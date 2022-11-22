@@ -33,17 +33,13 @@ const pull_many = (uids: string[]) => {
     })
   );
 };
-
-const findAllRelatedBlocks = (generator: {
+const findAllRelatedBlocksInPages = (generator: {
   find(): string;
   where(): string;
-  pages?: string[];
+  pages: string[];
 }) => {
-  // find all page title
-  let result;
-  if (generator.pages?.length) {
-    result = window.roamAlphaAPI.q(
-      `[
+  return window.roamAlphaAPI.q(
+    `[
   :find ${generator.find()} ?page
   :in $ % [?page ...]
   :where
@@ -51,34 +47,53 @@ const findAllRelatedBlocks = (generator: {
     [?ancestor :block/uid ?page]
     ${generator.where()}
   ]`,
-      ancestorrule,
-      generator.pages
-    );
-  } else {
-    result = window.roamAlphaAPI.q(
-      `[
-  :find ${generator.find()} ?page
-  :in $ % 
-  :where
-    
-    [?ancestor :block/uid ?page]
-    ${generator.where()}
-]`,
-      ancestorrule
-    );
-  }
-  console.log(
-    "query: ",
-    `[
-  :find ${generator.find()} ?page
-  :in $ % 
-  :where
-    
-    [?ancestor :block/uid ?page]
-    ${generator.where()}
-]`
+    ancestorrule,
+    generator.pages
   );
-  return result as string[][];
+};
+
+const findAllRelatedPages = (keywords: string[]): string[] => {
+  // TODO:
+  const pages = keywords.reduce((p, c) => {
+    const result = window.roamAlphaAPI.data.fast.q(`
+        [
+            :find [?uid ...]
+            :where
+                [?b :block/string ?s]
+                [?b :block/parents ?p]
+                [(clojure.string/includes? ?s  "${c}")]
+                [?p :node/title ?t]
+                [?p :block/uid ?uid]
+        ]
+    `) as unknown as string[];
+    return Array.from(new Set([...result, ...p]));
+  }, [] as string[]);
+  console.log(pages);
+  return pages;
+};
+
+const findAllRelatedBlocks = (keywords: string[]) => {
+  const find = () => {
+    return keywords.map((s, i) => `?uid${i}`).join(" ");
+  };
+
+  const where = () => {
+    return keywords
+      .map((s, i) => {
+        return `[?block${i} :block/string ?s${i}]
+       [?block${i} :block/uid ?uid${i}]
+       (ancestor ?block${i} ?ancestor)
+       [(clojure.string/includes? ?s${i}  "${s}")]
+      `;
+      })
+      .join(" ");
+  };
+  const pages = findAllRelatedPages(keywords);
+  return findAllRelatedBlocksInPages({
+    find,
+    where,
+    pages,
+  });
 };
 
 const findAllRelatedPageUids = (keywords: string[]) => {
@@ -110,21 +125,6 @@ const findAllRelatedPageUids = (keywords: string[]) => {
 
 export const Query = debounce(async (search: string) => {
   const ary = search.trim().split(" ");
-  const find = () => {
-    return ary.map((s, i) => `?uid${i}`).join(" ");
-  };
-
-  const where = () => {
-    return ary
-      .map((s, i) => {
-        return `[?block${i} :block/string ?s${i}]
-       [?block${i} :block/uid ?uid${i}]
-       (ancestor ?block${i} ?ancestor)
-       [(clojure.string/includes? ?s${i}  "${s}")]
-      `;
-      })
-      .join(" ");
-  };
 
   if (!search || search.trim() === "") {
     return undefined;
@@ -132,10 +132,7 @@ export const Query = debounce(async (search: string) => {
   console.log(search.length, ary, " startting ");
   const [pageUids, blockAryUids] = await Promise.all([
     findAllRelatedPageUids(ary),
-    findAllRelatedBlocks({
-      find,
-      where,
-    }),
+    findAllRelatedBlocks(ary),
   ]);
   console.log(" midding ");
   let controller = new AbortController();
@@ -169,41 +166,40 @@ export const Query = debounce(async (search: string) => {
   });
 
   console.log("before end");
-  const blocks = await Promise.all([
-    topLevelBlocks.map((uids) => {
-      const uid = uids[0];
-      const target = pull(uid);
-      const parents = getParentsInfoOfBlockUid(uid);
-      return {
-        text: target[":block/string"] || target[":node/title"],
-        paths: parents.map(
-          (item) => item[":block/string"] || item[":node/title"]
-        ),
-        children: [],
-        uid,
-        createTime: target[":create/time"],
-        editTime: target[":edit/time"],
-        //   user: target[":create/user"]
-      };
-    }),
-    lowLevelBlocks.map((uids) => {
-      const uid = uids.slice(-1)[0];
-      const target = pull(uid);
-      const parents = getParentsInfoOfBlockUid(uid);
-      const children = pull_many(uids.slice(0, -1));
-      return {
-        text: target[":block/string"] || target[":node/title"],
-        paths: parents.map(
-          (item) => item[":block/string"] || item[":node/title"]
-        ),
-        children: children.map((item) => item[":block/string"]),
-        uid,
-        createTime: target[":create/time"],
-        editTime: target[":edit/time"],
-        //   user: target[":create/user"]
-      };
-    }),
-  ]);
-
-  return [pageBlocks, blocks];
+  // const blocks = await Promise.all([
+  //   topLevelBlocks.map((uids) => {
+  //     const uid = uids[0];
+  //     const target = pull(uid);
+  //     const parents = getParentsInfoOfBlockUid(uid);
+  //     return {
+  //       text: target[":block/string"] || target[":node/title"],
+  //       paths: parents.map(
+  //         (item) => item[":block/string"] || item[":node/title"]
+  //       ),
+  //       children: [],
+  //       uid,
+  //       createTime: target[":create/time"],
+  //       editTime: target[":edit/time"],
+  //       //   user: target[":create/user"]
+  //     };
+  //   }),
+  //   lowLevelBlocks.map((uids) => {
+  //     const uid = uids.slice(-1)[0];
+  //     const target = pull(uid);
+  //     const parents = getParentsInfoOfBlockUid(uid);
+  //     const children = pull_many(uids.slice(0, -1));
+  //     return {
+  //       text: target[":block/string"] || target[":node/title"],
+  //       paths: parents.map(
+  //         (item) => item[":block/string"] || item[":node/title"]
+  //       ),
+  //       children: children.map((item) => item[":block/string"]),
+  //       uid,
+  //       createTime: target[":create/time"],
+  //       editTime: target[":edit/time"],
+  //       //   user: target[":create/user"]
+  //     };
+  //   }),
+  // ]);
+  return [pageBlocks, [topLevelBlocks, lowLevelBlocks]];
 });
