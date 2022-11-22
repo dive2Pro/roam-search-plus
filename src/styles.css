@@ -1,0 +1,126 @@
+*,
+*:after,
+*:before {
+  margin: 0;
+  padding: 0;
+}
+
+.result-highlight {
+  background-color: #ff66a1;
+  margin: -2px;
+  padding: 2px;
+}
+
+.bp3-checkbox .bp3-button {
+  pointer-events: none;
+}
+
+.sub-bg {
+  line-height: 28px;
+  font-size: 12px;
+  height: 28px;
+}
+
+.sub-bg .bp3-button-text {
+  font-size: 12px;
+}
+.result-container {
+  position: relative;
+}
+.result-container .infinite-scroll {
+  min-height: 450px;
+  max-height: 550px;
+  overflow: auto;
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
+}
+
+.infinite-scroll::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+.selected-result {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  background-color: #ebf1f5;
+  min-height: 450px;
+  max-height: 550px;
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.query-history-item {
+}
+.result-breadcrumbs {
+  flex-wrap: wrap;
+}
+.result-breadcrumbs span {
+  white-space: pre;
+  align-items: center;
+  display: inline-flex;
+  color: #a7b6c2;
+}
+
+.result-item-container {
+  padding: 4px;
+}
+
+.query-history-item:hover .bp3-icon {
+  opacity: 1;
+}
+.query-history-item .bp3-icon {
+  opacity: 0;
+}
+
+.top-dialog .bp3-dialog-container {
+  align-items: flex-start;
+  padding-top: 60px;
+}
+
+.search-block-item .bp3-breadcrumb {
+  font-size: 12px;
+}
+
+.search-block-item .bp3-collapse-list.bp3-breadcrumbs {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.search-block-item .bp3-collapse-list.bp3-breadcrumbs li {
+  display: inline-flex;
+}
+
+.search-block-item .bp3-collapse-list.bp3-breadcrumbs li span {
+  max-width: 140px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ellipsis {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  display: inline-flex;
+}
+
+.ellipsis span {
+  display: inline-block;
+  vertical-align: top;
+  line-height: 20px;
+}
+.ellipsis-to-left {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
