@@ -9,6 +9,7 @@ export default {
     document.body.appendChild(el);
     ReactDOM.render(<App/>, el)
     extension_helper.on_uninstall(() => {
+      ReactDOM.unmountComponentAtNode(el)
       document.body.removeChild(el);
     });
   },

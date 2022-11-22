@@ -1,22 +1,9 @@
 import { DateRange } from "@blueprintjs/datetime";
-import { observable, ObservableObject } from "@legendapp/state";
+import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
 import { PullBlock } from "roamjs-components/types";
-
-const roamQuery = {
-  findByString(str: string) {
-    window.roamAlphaAPI.data.fast.q(
-      `[:find (pull ?b [
-      :block/string 
-      :node/title 
-      :block/uid 
- ]) :where [?b :block/uid]
-              [?b :block/string ?t]
-              [(clojure.string/includes? ?t "${str}")]
-    ]`
-    );
-  }
-};
+import { extension_helper } from "./helper";
+import { Query } from "./query";
 
 export type ResultItem = {
   id: string;
@@ -143,7 +130,7 @@ const ui = observable({
   selectedTarget: [] as ResultItem[],
   showSelectedTarget: false,
   conditions: {
-    onlyPage: false
+    onlyPage: false,
   },
   copySelectedTarget,
   previewSelected: false,
@@ -151,37 +138,48 @@ const ui = observable({
     search: [
       {
         id: 1,
-        text: "qwe33"
-      }
-    ]
+        text: "qwe33",
+      },
+    ],
   },
   sort: {
     selection: [
       {
-        text: "-"
+        text: "-",
       },
       { text: "By creation - recent to oldest" },
       {
-        text: "By creation - oldest to recent"
+        text: "By creation - oldest to recent",
       },
       { text: "By modification - recent to oldest" },
-      { text: "By modification - oldest to  recent" }
+      { text: "By modification - oldest to  recent" },
     ],
-    selected: 0
+    selected: 0,
   },
   tags: [] as string[],
   pages: {
     selected: [] as string[],
-    items: [] as string[]
-  }
+    items: [] as string[],
+  },
 });
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 
+const dispose = observe(async () => {
+  const search = query.search.get();
+
+  const [pages, blocks] = await Query(search);
+  console.log(pages, blocks, ' ---')
+});
+
+extension_helper.on_uninstall(() => {
+  dispose();
+});
+
 export const store = {
   db: observable({
     ui,
-    query
+    query,
   }),
   actions: {
     changeShowSelectedTarget() {
@@ -243,7 +241,7 @@ export const store = {
 
       query.modificationDate.set({
         start: dayjs(range[0]).startOf("day"),
-        end: dayjs(range[1]).startOf("day").add(1, "day").subtract(1, "second")
+        end: dayjs(range[1]).startOf("day").add(1, "day").subtract(1, "second"),
       });
     },
     changeSearch(s: string) {
@@ -252,7 +250,7 @@ export const store = {
     saveHistory(str: string) {
       ui.history.search.push({
         id: Date.now(),
-        text: str
+        text: str,
       });
     },
     clearSearch() {
@@ -304,19 +302,19 @@ export const store = {
       today() {
         const today = new Date();
         store.actions.changeModifyRange([today, today]);
-      }
+      },
     },
     conditions: {
       toggleOnlyPage() {
         ui.conditions.onlyPage.toggle();
-      }
+      },
     },
     changeTags(tags: string[]) {
       ui.tags.set(tags);
     },
     changeSelectedPages(pages: string[]) {
       ui.pages.selected.set(pages);
-    }
+    },
   },
   ui: {
     isOpen() {
@@ -354,7 +352,7 @@ export const store = {
       selectedText() {
         let r = ui.sort.selection[ui.sort.selected.get()].text.get();
         return r;
-      }
+      },
     },
     date: {
       lastEditRange() {
@@ -364,7 +362,7 @@ export const store = {
         }
         return [
           new Date(date.start.toString()),
-          new Date(date.end.toString())
+          new Date(date.end.toString()),
         ] as DateRange;
       },
       lastEdit() {
@@ -379,17 +377,17 @@ export const store = {
           " - " +
           dayjs(endTime).format("YYYY/MM/DD")
         );
-      }
+      },
     },
     conditions: {
       isOnlyPage() {
         return ui.conditions.onlyPage.get();
-      }
+      },
     },
     tags: {
       getTags() {
         return ui.tags.get();
-      }
+      },
     },
     isSelectedTarget(item: ObservableObject<ResultItem>) {
       // const r =
@@ -404,7 +402,7 @@ export const store = {
       },
       isSelected(text: string) {
         return ui.pages.selected.get().indexOf(text) > -1;
-      }
+      },
     },
     result: {
       size() {
@@ -412,16 +410,18 @@ export const store = {
       },
       list() {
         if (ui.conditions.onlyPage.get()) {
-          const v = query.result.filter((item) => item.isPage.get()) as unknown as ResultItem[];
+          const v = query.result.filter((item) =>
+            item.isPage.get()
+          ) as unknown as ResultItem[];
           return observable(v);
         }
         return query.result;
-      }
+      },
     },
     copySelectedTarget() {
       return ui.copySelectedTarget;
-    }
-  }
+    },
+  },
 };
 
 ui.open.onChange((next) => {

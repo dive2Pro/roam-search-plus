@@ -11,3 +11,18 @@ export const extension_helper = {
     uninstalls = [];
   },
 };
+
+export const debounce = <T, R>(cb: (t: T) => R, ms = 500) => {
+  let timeout: any;
+  return (t: T) => {
+    return new Promise<R>((resolve) => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(() => {
+        resolve(cb.call(null, t));
+        timeout = null;
+      }, ms);
+    });
+  };
+};
