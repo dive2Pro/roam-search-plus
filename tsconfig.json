@@ -1,14 +1,31 @@
 {
-    "include": [
-        "./src/**/*"
-    ],
-    "compilerOptions": {
-        "strict": true,
-        "esModuleInterop": true,
-        "lib": [
-            "dom",
-            "es2015"
-        ],
-        "jsx": "react-jsx"
-    }
+  "compilerOptions": {
+    "outDir": "./build/",
+    "noImplicitAny": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "module": "esnext",
+    "target": "es2019",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "skipLibCheck": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "importHelpers": true,
+    "experimentalDecorators": true,
+  },
+  "include": [
+    "src",
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "files": [
+    "node_modules/roamjs-components/types/index.d.ts"
+  ]
 }

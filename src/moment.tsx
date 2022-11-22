@@ -23,19 +23,6 @@ export const MomentDate: React.FC<{
   }
 };
 
-export const MomentDateRange: React.FC<
-  { range: DateRange; format?: string; withTime?: boolean } & Props
-> = ({
-  range: [start, end],
-  withTime = false,
-  format = withTime ? FORMAT_TIME : FORMAT
-}) => (
-  <div>
-    <MomentDate withTime={withTime} date={start} format={format} />
-    <Icon icon="arrow-right" />
-    <MomentDate withTime={withTime} date={end} format={format} />
-  </div>
-);
 
 function getMomentFormatter(format: string): DateFormatProps {
   return {

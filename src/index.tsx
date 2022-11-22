@@ -1,14 +1,18 @@
-import { StrictMode } from "react";
 import "./styles.css";
-import * as ReactDOMClient from "react-dom/client";
-
 import App from "./App";
+import { extension_helper } from "./helper";
+import ReactDOM from 'react-dom';
 
-const rootElement = document.getElementById("root");
-const root = ReactDOMClient.createRoot(rootElement);
-
-root.render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+export default {
+  onload: (extensionAPI: RoamExtensionAPI) => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    ReactDOM.render(<App/>, el)
+    extension_helper.on_uninstall(() => {
+      document.body.removeChild(el);
+    });
+  },
+  onunload: () => {
+    extension_helper.uninstall();
+  },
+};

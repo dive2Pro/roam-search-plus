@@ -19,6 +19,7 @@ const roamQuery = {
 };
 
 export type ResultItem = {
+  id: string;
   text: string;
   uid: string;
   editTime: number;
@@ -45,6 +46,7 @@ const query = observable({
   inPages: [],
   result: [
     {
+      id: "1",
       text: `there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
         there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
         there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
@@ -55,23 +57,24 @@ const query = observable({
       paths: [
         "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
         "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2"
+        "block2",
       ],
-      isPage: false
+      isPage: false,
     },
     {
-      text:
-        "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
+      id: "2",
+      text: "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
 
       uid: "we",
       paths: [
         "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
         "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2"
+        "block2",
       ],
-      isPage: true
+      isPage: true,
     },
     {
+      id: "3",
       text: `there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
         there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
         there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
@@ -82,23 +85,26 @@ const query = observable({
       paths: [
         "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
         "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2"
+        "block2",
       ],
-      isPage: false
+      isPage: false,
     },
     {
-      text:
-        "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
+      id: "4",
+
+      text: "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
 
       uid: "weq",
       paths: [
         "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
         "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2"
+        "block2",
       ],
-      isPage: true
+      isPage: true,
     },
     {
+      id: "5",
+
       text: `there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
         there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
         there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
@@ -109,23 +115,24 @@ const query = observable({
       paths: [
         "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
         "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2"
+        "block2",
       ],
-      isPage: false
+      isPage: false,
     },
     {
-      text:
-        "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
+      id: "6",
+
+      text: "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
 
       uid: "wee",
       paths: [
         "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
         "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2"
+        "block2",
       ],
-      isPage: true
-    }
-  ] as ResultItem[]
+      isPage: true,
+    },
+  ] as ResultItem[],
 });
 
 const copySelectedTarget = observable([] as ResultItem[]);
@@ -320,7 +327,7 @@ export const store = {
       return query.search.get();
     },
     getDateRange() {
-      return [];
+      return [] as string[];
     },
     isTyped() {
       return query.search.get()?.length;
@@ -405,7 +412,7 @@ export const store = {
       },
       list() {
         if (ui.conditions.onlyPage.get()) {
-          const v = query.result.filter((item) => item.isPage.get());
+          const v = query.result.filter((item) => item.isPage.get()) as unknown as ResultItem[];
           return observable(v);
         }
         return query.result;

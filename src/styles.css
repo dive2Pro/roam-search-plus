@@ -1,9 +1,3 @@
-*,
-*:after,
-*:before {
-  margin: 0;
-  padding: 0;
-}
 
 .result-highlight {
   background-color: #ff66a1;

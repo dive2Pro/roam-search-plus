@@ -8,14 +8,17 @@ import {
   Button,
   Icon,
   Divider,
-  Checkbox
+  Checkbox,
 } from "@blueprintjs/core";
 import { QueryList } from "@blueprintjs/select";
 import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "./store";
-import ReactLoadMore from "react-more-load";
 import { ObservableObject } from "@legendapp/state";
-import { useEffect, useRef } from "react";
+import { FC, useEffect, useRef } from "react";
+
+const ReactLoadMore: FC<{}> = (props) => {
+  return <div className="infinite-scroll">{props.children}</div>;
+};
 
 function escapeRegExpChars(text: string) {
   return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
@@ -57,49 +60,55 @@ function highlightText(text: string, query: string) {
   return tokens;
 }
 
-const Row = observer((props: { item: ObservableObject<ResultItem> }) => {
-  const text = highlightText(props.item.text.get(), store.ui.getSearch());
-  let content;
-  if (props.item.isPage.get()) {
-    content = (
-      <>
-        <Button className="result-item-container" minimal icon={"application"}>
-          {text}
-        </Button>
-        <Divider />
-      </>
-    );
-  } else {
-    content = (
-      <>
-        <Button className="result-item-container" minimal icon={"paragraph"}>
-          <div className="flex-row result-breadcrumbs">
-            {props.item.paths.map((s, index, ary) => {
-              return (
-                <span>
-                  {s}
-                  {index < ary.length - 1 ? (
-                    <Icon
-                      size={12}
-                      style={{ margin: "0 4px" }}
-                      icon="chevron-right"
-                    />
-                  ) : null}
-                </span>
-              );
-            })}
-          </div>
-          {text}
-        </Button>
-        <Divider />
-      </>
-    );
+const Row = observer(
+  (props: { item: ObservableObject<ResultItem & { id: string }> }) => {
+    const text = highlightText(props.item.text.get(), store.ui.getSearch());
+    let content;
+    if (props.item.isPage.get()) {
+      content = (
+        <>
+          <Button
+            className="result-item-container"
+            minimal
+            icon={"application"}
+          >
+            {text}
+          </Button>
+          <Divider />
+        </>
+      );
+    } else {
+      content = (
+        <>
+          <Button className="result-item-container" minimal icon={"paragraph"}>
+            <div className="flex-row result-breadcrumbs">
+              {props.item.paths.map((s, index, ary) => {
+                return (
+                  <span>
+                    {s}
+                    {index < ary.length - 1 ? (
+                      <Icon
+                        size={12}
+                        style={{ margin: "0 4px" }}
+                        icon="chevron-right"
+                      />
+                    ) : null}
+                  </span>
+                );
+              })}
+            </div>
+            {text}
+          </Button>
+          <Divider />
+        </>
+      );
+    }
+    return content;
   }
-  return content;
-});
+);
 
 const CheckboxAbleRow = observer(
-  (props: { item: ObservableObject<ResultItem> }) => {
+  (props: { item: ObservableObject<ResultItem & { id: string }> }) => {
     return (
       <Checkbox
         checked={store.ui.isSelectedTarget(props.item)}
@@ -148,20 +157,14 @@ export const QueryResult = observer(() => {
   return (
     <div>
       <ReactLoadMore
-        Footer={() => {
-          return <span>..</span>;
-        }}
-        onBottom={() => {}}
-        fetching={false}
-        hasMore={true}
+        // Footer={() => {
+        //   return <span>..</span>;
+        // }}
+        // onBottom={() => {}}
+        // fetching={false}
+        // hasMore={true}
       >
-        <For
-          each={store.ui.result.list()}
-          item={item}
-          itemProps={{
-            isMultipleSelection
-          }}
-        />
+        <For each={store.ui.result.list()} item={item} />
       </ReactLoadMore>
     </div>
   );
