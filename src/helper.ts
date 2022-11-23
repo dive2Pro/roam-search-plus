@@ -27,8 +27,6 @@ export const debounce = <T, R>(cb: (t: T) => R, ms = 500) => {
   };
 };
 
-
-
 export function getSame<T>(arr1: T[], arr2: T[]) {
   return [...new Set(arr1)].filter((item) => arr2.includes(item));
 }
@@ -39,9 +37,11 @@ export function getDiff<T>(arr1: T[], arr2: T[]) {
   });
 }
 
-
-export const pull = (uid: string) => {
-  return window.roamAlphaAPI.data.pull("[*]", [":block/uid", uid]);
+export const pull = (uidOrTitle: string) => {
+  return (
+    window.roamAlphaAPI.data.pull("[*]", [":block/uid", uidOrTitle]) ||
+    window.roamAlphaAPI.data.pull("[*]", [":node/title", uidOrTitle])
+  );
 };
 
 export const pull_many = (uids: string[]) => {
@@ -52,4 +52,3 @@ export const pull_many = (uids: string[]) => {
     })
   );
 };
-

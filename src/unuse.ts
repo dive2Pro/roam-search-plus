@@ -34,16 +34,4 @@ const findAllParentsUidsByBlockUid = (uid: string) => {
 };
 
 
-const getParentsInfoOfBlockUid = (uid: string) => {
-  const result = window.roamAlphaAPI.data.fast
-    .q(
-      `[:find (pull ?p [:block/uid :block/string :node/title]) :where [?b :block/uid "${uid}"] [?b :block/parents ?p] ]`
-    )
-    .map((item) => item[0]);
-  return result as {
-    ":block/uid": string;
-    ":block/string": string;
-    ":node/title": string;
-  }[];
-};
 

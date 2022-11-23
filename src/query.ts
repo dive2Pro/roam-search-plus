@@ -1,3 +1,4 @@
+import { PullBlock } from "roamjs-components/types";
 import { debounce, getDiff, getSame, pull, pull_many } from "./helper";
 
 let conditionRule = "";
@@ -149,21 +150,21 @@ const findAllRelatedBlockGroupByPages = (
     }
     return p;
   }, new Map<string, string[]>());
-  const result = [];
-  // for (let item of mapped) {
-  //   const [key, values] = item;
-  //   result.push({
-  //     page: pull(key),
-  //     children: pull_many(values),
-  //   });
-  // }
+  const result: { page: PullBlock; children: PullBlock[] }[] = [];
+  for (let item of mapped) {
+    const [key, values] = item;
+    result.push({
+      page: pull(key),
+      children: pull_many(values),
+    });
+  }
   return result;
 };
 
 const findAllRelatedBlocks = (keywords: string[]) => {
   const topLevelBlocks = findBlocksContainsAllKeywords(keywords);
   if (keywords.length <= 1) {
-    return [topLevelBlocks];
+    return [topLevelBlocks, undefined] as const;
   }
   console.log("find low");
   return [
@@ -206,6 +207,19 @@ const findAllRelatedPageUids = (keywords: string[]) => {
   }, uids) as unknown as string[];
 };
 
+const getParentsInfoOfBlockUid = (uid: string) => {
+  const result = window.roamAlphaAPI.data.fast
+    .q(
+      `[:find (pull ?p [:block/uid :block/string :node/title]) :where [?b :block/uid "${uid}"] [?b :block/parents ?p] ]`
+    )
+    .map((item) => item[0]);
+  return result as {
+    ":block/uid": string;
+    ":block/string": string;
+    ":node/title": string;
+  }[];
+};
+
 export const Query = debounce(
   async (config: {
     search: string;
@@ -241,7 +255,7 @@ export const Query = debounce(
                 : ""
             }
             [?block]
-            ]
+          ]
       ]
     
     `;
@@ -252,7 +266,16 @@ export const Query = debounce(
     ]);
     const pageBlocks = pull_many(pageUids);
     console.log("end!!!!!!");
-    return [pageBlocks, pull_many(topLevelBlocks), lowLevelBlocks] as const;
+    return [
+      pageBlocks,
+      pull_many(topLevelBlocks).map((item) => {
+        return {
+          ...item,
+          parents: getParentsInfoOfBlockUid(item[":block/uid"]),
+        };
+      }),
+      lowLevelBlocks,
+    ] as const;
   },
   1000
 );

@@ -8,14 +8,12 @@ import { Query } from "./query";
 export type ResultItem = {
   id: string;
   text: string;
-  uid: string;
   editTime: number;
   createTime: number;
-  createUser: number;
   isPage: boolean;
-  editUser: number;
   paths: string[];
   isSelected: boolean;
+  children?: string[];
 };
 
 const query = observable({
@@ -24,95 +22,16 @@ const query = observable({
   search: "wwe",
   people: [],
   inPages: [],
-  result: [
-    {
-      id: "1",
-      text: `there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        `,
-      uid: "q1",
-      paths: [
-        "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
-        "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2",
-      ],
-      isPage: false,
-    },
-    {
-      id: "2",
-      text: "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
-
-      uid: "we",
-      paths: [
-        "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
-        "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2",
-      ],
-      isPage: true,
-    },
-    {
-      id: "3",
-      text: `there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        `,
-      uid: "q11",
-      paths: [
-        "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
-        "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2",
-      ],
-      isPage: false,
-    },
-    {
-      id: "4",
-
-      text: "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
-
-      uid: "weq",
-      paths: [
-        "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
-        "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2",
-      ],
-      isPage: true,
-    },
-    {
-      id: "5",
-
-      text: `there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. 
-        `,
-      uid: "q1w",
-      paths: [
-        "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
-        "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2",
-      ],
-      isPage: false,
-    },
-    {
-      id: "6",
-
-      text: "there are too much 总是 game over there nothing will leave empty, that could be the worse thing every before. ",
-
-      uid: "wee",
-      paths: [
-        "page/jkj空间定居 帆赛发 kjowokksjksjkjskdjf",
-        "block1 靖峰竞赛就赛警方吃we 人 english",
-        "block2",
-      ],
-      isPage: true,
-    },
-  ] as ResultItem[],
+  result: {
+    pages: [] as PullBlock[],
+    topBlocks: [] as (PullBlock & { parents: PullBlock[] })[],
+    lowBlocks: [] as
+      | {
+          page: PullBlock;
+          children: PullBlock[];
+        }[]
+      | undefined,
+  },
 });
 
 const copySelectedTarget = observable([] as ResultItem[]);
@@ -154,32 +73,133 @@ const ui = observable({
     selected: [] as string[],
     items: [] as string[],
   },
+  result: [] as ResultItem[],
 });
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 
 const dispose = observe(async () => {
   const search = query.search.get();
+
+  const [pages, topBlocks, lowBlocks] = await Query({
+    search,
+  });
+  console.log(pages, topBlocks, " - set result-- ", lowBlocks);
+  query.result.set({
+    pages,
+    topBlocks,
+    lowBlocks,
+  });
+});
+
+function conditionFilter<T extends PullBlock>(
+  blocks: T[],
+  config: {
+    modificationDate?: SelectDate;
+    creationDate?: SelectDate;
+  }
+) {
+  let result = blocks;
+  if (config.modificationDate) {
+    result = result.filter((item) => {
+      return (
+        item[":edit/time"] >= config.modificationDate.start.valueOf() &&
+        item[":edit/time"] >= config.modificationDate.end.valueOf()
+      );
+    });
+  }
+  if (config.modificationDate) {
+    result = result.filter((item) => {
+      return (
+        item[":create/time"] >= config.modificationDate.start.valueOf() &&
+        item[":create/time"] >= config.modificationDate.end.valueOf()
+      );
+    });
+  }
+  return result;
+}
+
+const disposeUiResult = observe(async () => {
+  const queryResult = query.result.get();
+
   const modificationDate = query.modificationDate.get();
   const creationDate = query.creationDate.get();
-  if (modificationDate) {
-    console.log(
-      dayjs().unix(),
-      modificationDate.start.format('YYYY-MM-dd'),
-      creationDate,
-      " ----@@@"
-    );
-  }
-  const [pages, blocks, lowLevelBlocks] = await Query({
-    search,
+  const config = {
     modificationDate,
     creationDate,
-  });
-  console.log(pages, blocks, " ---", lowLevelBlocks);
+  };
+
+  const pages = conditionFilter(queryResult.pages, config);
+  const topBlocks = conditionFilter(queryResult.topBlocks, config);
+
+  const lowLevelBlocks = (() => {
+    if (!queryResult.lowBlocks) {
+      return [];
+    }
+    const lastUids = conditionFilter(
+      queryResult.lowBlocks.map((item) => item.page),
+      config
+    ).map((item) => item[":block/uid"]);
+    return queryResult.lowBlocks.filter((item) => {
+      return lastUids.some((uid) => {
+        return uid === item.page[":block/uid"];
+      });
+    });
+  })();
+
+  const result: ResultItem[] = [
+    ...pages.map((block) => {
+      return {
+        id: block[":block/uid"],
+        text: block[":node/title"],
+        editTime: block[":edit/time"],
+        createTime: block[":create/time"],
+        isPage: true,
+        paths: [],
+        isSelected: false,
+        children: [],
+      };
+    }),
+    ...topBlocks.map((block) => {
+      return {
+        id: block[":block/uid"],
+        text: block[":block/string"],
+        editTime: block[":edit/time"],
+        createTime: block[":create/time"],
+        isPage: false,
+        paths: block.parents.map(
+          (item) => item[":block/string"] || item[":node/title"]
+        ),
+        isSelected: false,
+        children: [],
+      };
+    }),
+    ...lowLevelBlocks.map((item) => {
+      return {
+        id: item.page[":block/uid"],
+        text: item.page[":node/title"],
+        editTime: item.page[":edit/time"],
+        createTime: item.page[":create/time"],
+        isPage: true,
+        paths: [],
+        isSelected: false,
+        children: item.children.map((child) => child[":block/string"]),
+      };
+    }),
+  ];
+
+  console.log(" ui result = ", result);
+  ui.result.set(result);
+});
+
+const disposeUiResultSort = observe(() => {
+  // TODO:
 });
 
 extension_helper.on_uninstall(() => {
   dispose();
+  disposeUiResult();
+  disposeUiResultSort();
 });
 
 export const store = {
@@ -192,7 +212,7 @@ export const store = {
       ui.showSelectedTarget.toggle();
       if (ui.showSelectedTarget.peek()) {
         ui.copySelectedTarget.set(
-          observable(query.result.get().filter((o) => o.isSelected))
+          observable(ui.result.get().filter((o) => o.isSelected))
         );
       } else {
         // ui.copySelectedTarget.get().forEach((o) => {
@@ -205,12 +225,12 @@ export const store = {
         //   selectedTargetStore.get(o.uid)?.isSelected.set(o.isSelected);
         // });
 
-        query.result.forEach((item) => {
-          var a = selectedTargetStore.get(item.peek().uid);
+        ui.result.forEach((item) => {
+          var a = selectedTargetStore.get(item.peek().id);
           console.log(item, " = item");
         });
 
-        query.result.set(query.result.get());
+        ui.result.set(ui.result.get());
       }
     },
     changeSelectedTarget(item: ObservableObject<ResultItem>) {
@@ -224,7 +244,7 @@ export const store = {
       //   ui.selectedTarget.push(item.get());
       // }
       item.isSelected.set(!item.isSelected.get());
-      selectedTargetStore.set(item.peek().uid, item);
+      selectedTargetStore.set(item.peek().id, item);
     },
 
     openDialog() {
@@ -349,7 +369,7 @@ export const store = {
       return ui.history;
     },
     selectedCount() {
-      return query.result.get().filter((o) => o.isSelected).length;
+      return ui.result.get().filter((o) => o.isSelected).length;
     },
     sort: {
       selection() {
@@ -399,7 +419,7 @@ export const store = {
       // const r =
       //   ui.selectedTarget.get().findIndex((o) => o.uid === item.peek().uid) >
       //   -1;
-      console.log(" =r change", item.peek().uid);
+      console.log(" =r change", item.peek().id);
       return item.isSelected.get();
     },
     pages: {
@@ -412,16 +432,16 @@ export const store = {
     },
     result: {
       size() {
-        return query.result.get().length;
+        return ui.result.get().length;
       },
       list() {
         if (ui.conditions.onlyPage.get()) {
-          const v = query.result.filter((item) =>
+          const v = ui.result.filter((item) =>
             item.isPage.get()
           ) as unknown as ResultItem[];
           return observable(v);
         }
-        return query.result;
+        return ui.result;
       },
     },
     copySelectedTarget() {
