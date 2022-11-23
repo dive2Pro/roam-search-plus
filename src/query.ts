@@ -1,7 +1,23 @@
-import { debounce, getDiff, getSame, pull_many } from "./helper";
+import { debounce, getDiff, getSame, pull, pull_many } from "./helper";
 
 let conditionRule = "";
 
+const conditionRuleQuery = (uids: string[]) => {
+  console.log("q-", uids);
+  return window.roamAlphaAPI.data.fast.q(
+    `
+    [
+      :find ?uid
+      :in $ % [?uid ...]
+      :where
+        [?b :block/uid ?uid]
+        
+    ]
+  `,
+    conditionRule,
+    uids
+  );
+};
 const ancestorrule = `[ 
    [ (ancestor ?child ?parent) 
         [?parent :block/children ?child] ]
@@ -17,7 +33,7 @@ const findBlocksContainsAllKeywords = (keywords: string[]) => {
             :find  [?uid ...]
             :in $ %
             :where
-                (condition ?b)
+                
                 [?b :block/string ?s]
                 [?b :block/uid ?uid]
                 [(clojure.string/includes? ?s  "${c}")]
@@ -43,7 +59,7 @@ const findBlocksContainsStringInPages = (
             :find  [?uid ...]
             :in $  [?page ...] %
             :where
-                (condition ?b)
+                
                 [?b :block/string ?s]
                 [?b :block/uid ?uid]
                 [?b :block/parents ?p]
@@ -52,6 +68,7 @@ const findBlocksContainsStringInPages = (
                 [(clojure.string/includes? ?s  "${c}")]
                 [?p :node/title ?t]
                 [?p :block/uid ?page]
+
         ]
     `,
       pages,
@@ -75,17 +92,16 @@ const findAllRelatedPages = (keywords: string[]): string[] => {
       `
         [
             :find [?uid ...]
-            :in $ % %2
+            :in $ %
             :where
-                (condition ?b)
                 [?b :block/string ?s]
                 [?b :block/parents ?p]
                 [(clojure.string/includes? ?s  "${c}")]
                 [?p :node/title ?t]
                 [?p :block/uid ?uid]
+                
         ]
     `,
-      ancestorrule,
       conditionRule
     ) as unknown as string[];
     if (index === 0) {
@@ -101,26 +117,29 @@ const findAllRelatedBlockGroupByPages = (
   keywords: string[],
   topLevelBlocks: string[]
 ) => {
+  console.log(" ---000-==");
   const pages = findAllRelatedPages(keywords);
+  console.log(" ---111-==, ", Date.now());
   const blocksInSamePage = findBlocksContainsStringInPages(keywords, pages);
   // 找到正好包含所有 keywords 的 block. 记录下来
-  // console.log(blocksInSamePage, topLevelBlocks, " ----==", pages);
+  console.log(" ---222-==", Date.now());
   const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
+  console.log(" ---333-==", Date.now());
+
+  // 找到 相同 page 下满足条件的 block
   const pageUidBlockUidAry = window.roamAlphaAPI.q(
     `
     [
       :find ?pid ?uid
-      :in $ [?uid ...] % %2 
+      :in $ [?uid ...] %
       :where
-        (condition ?b)
         [?page :node/title ?pid]
         [?b :block/uid ?uid]
         (ancestor ?b ?page)
     ]
     `,
     lowLevelBlocks,
-    ancestorrule,
-    conditionRule
+    ancestorrule
   ) as unknown as [string, string][];
   const mapped = pageUidBlockUidAry.reduce((p, [pageUid, blockUid]) => {
     if (p.has(pageUid)) {
@@ -130,8 +149,15 @@ const findAllRelatedBlockGroupByPages = (
     }
     return p;
   }, new Map<string, string[]>());
-  console.log(mapped, " ---pages---");
-  return mapped;
+  const result = [];
+  // for (let item of mapped) {
+  //   const [key, values] = item;
+  //   result.push({
+  //     page: pull(key),
+  //     children: pull_many(values),
+  //   });
+  // }
+  return result;
 };
 
 const findAllRelatedBlocks = (keywords: string[]) => {
@@ -139,7 +165,7 @@ const findAllRelatedBlocks = (keywords: string[]) => {
   if (keywords.length <= 1) {
     return [topLevelBlocks];
   }
-
+  console.log("find low");
   return [
     topLevelBlocks,
     findAllRelatedBlockGroupByPages(keywords, topLevelBlocks),
@@ -153,7 +179,7 @@ const findAllRelatedPageUids = (keywords: string[]) => {
             :find [?uid ...]
             :in $ %
             :where
-                (condition ?b)
+                
                 [?b :block/uid ?uid]
                 [?b :node/title ?s]
                 [(clojure.string/includes? ?s  "${keywords[0]}")]
@@ -168,7 +194,7 @@ const findAllRelatedPageUids = (keywords: string[]) => {
             :find [?uid ...]
             :in $ % [?uid ...]
             :where
-                (condition ?b)
+                
                 [?b :block/uid ?uid]
                 [?b :node/title ?s]
                 [(clojure.string/includes? ?s  "${c}")]
@@ -225,7 +251,8 @@ export const Query = debounce(
       findAllRelatedBlocks(ary),
     ]);
     const pageBlocks = pull_many(pageUids);
+    console.log("end!!!!!!");
     return [pageBlocks, pull_many(topLevelBlocks), lowLevelBlocks] as const;
-    // return [pageUids]
-  }
+  },
+  1000
 );
