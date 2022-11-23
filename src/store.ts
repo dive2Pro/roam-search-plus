@@ -168,8 +168,8 @@ const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 const dispose = observe(async () => {
   const search = query.search.get();
 
-  const [pages, blocks] = await Query(search);
-  console.log(pages, blocks, ' ---')
+  const [pages, blocks, lowLevelBlocks] = await Query(search);
+  console.log(pages, blocks, ' ---', lowLevelBlocks)
 });
 
 extension_helper.on_uninstall(() => {

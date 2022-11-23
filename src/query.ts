@@ -158,6 +158,42 @@ const findAllRelatedPages = (keywords: string[]): string[] => {
   return pages;
 };
 
+const findAllRelatedBlockGroupByPages = (
+  keywords: string[],
+  topLevelBlocks: string[]
+) => {
+  const pages = findAllRelatedPages(keywords);
+  const blocksInSamePage = findBlocksContainsStringInPages(keywords, pages);
+  // 找到正好包含所有 keywords 的 block. 记录下来
+  // console.log(blocksInSamePage, topLevelBlocks, " ----==", pages);
+  const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
+
+  const pageUidBlockUidAry = window.roamAlphaAPI.q(
+    `
+    [
+      :find ?pid ?uid
+      :in $ % [?uid ...]
+      :where
+        [?page :node/title ?pid]
+        [?b :block/uid ?uid]
+        (ancestor ?b ?page)
+    ]
+    `,
+    ancestorrule,
+    lowLevelBlocks
+  ) as unknown as [string, string][];
+  const mapped = pageUidBlockUidAry.reduce((p, [pageUid, blockUid]) => {
+    if (p.has(pageUid)) {
+      p.get(pageUid).push(blockUid);
+    } else {
+      p.set(pageUid, [blockUid]);
+    }
+    return p;
+  }, new Map<string, string[]>());
+  console.log(mapped, " ---pages---");
+  return mapped
+};
+
 const findAllRelatedBlocks = (keywords: string[]) => {
   const find = () => {
     return keywords.map((s, i) => `?uid${i}`).join(" ");
@@ -174,22 +210,16 @@ const findAllRelatedBlocks = (keywords: string[]) => {
       })
       .join(" ");
   };
-
-  const pages = findAllRelatedPages(keywords);
-  const blocksInSamePage = findBlocksContainsStringInPages(keywords, pages);
-  // 找到正好包含所有 keywords 的 block. 记录下来
   const topLevelBlocks = findBlocksContainsAllKeywords(keywords);
-  console.log(blocksInSamePage, topLevelBlocks, ' ----==', pages)
-  const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
-  // const crossoverBlocks = getMinCrossoverBlocksBy(lowLevelBlocks);
-  // const map = topLevelBlocks.map;
-  // 找到这些 block 父层级最低
-  // return findAllRelatedBlocksInPages({
-  //   find,
-  //   where,
-  //   pages,
-  // });
-  return [topLevelBlocks, lowLevelBlocks];
+  if (keywords.length <= 1) {
+    return [topLevelBlocks];
+  }
+
+  return [
+    topLevelBlocks,
+    // lowLevelBlocks.length ? ([lowLevelBlocks, pages] as const) : undefined,
+    findAllRelatedBlockGroupByPages(keywords, topLevelBlocks),
+  ] as const;
 };
 
 const findAllRelatedPageUids = (keywords: string[]) => {
@@ -297,5 +327,5 @@ export const Query = debounce(async (search: string) => {
   //     };
   //   }),
   // ]);
-  return [pageBlocks, [topLevelBlocks, lowLevelBlocks]];
+  return [pageBlocks, pull_many(topLevelBlocks), lowLevelBlocks] as const;
 });
