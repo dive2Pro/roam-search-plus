@@ -78,10 +78,11 @@ const ui = observable({
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 
+
 const dispose = observe(async () => {
   const search = query.search.get();
 
-  const [pages, topBlocks, lowBlocks] = await Query({
+  const [pages, topBlocks, lowBlocks = []] = await Query({
     search,
   });
   console.log(pages, topBlocks, " - set result-- ", lowBlocks);
@@ -90,6 +91,50 @@ const dispose = observe(async () => {
     topBlocks,
     lowBlocks,
   });
+
+  const result: ResultItem[] = [
+    ...pages.map((block) => {
+      return {
+        id: block[":block/uid"],
+        text: block[":node/title"],
+        editTime: block[":edit/time"],
+        createTime: block[":create/time"],
+        isPage: true,
+        paths: [],
+        isSelected: false,
+        children: [],
+      };
+    }),
+    ...topBlocks.map((block) => {
+      return {
+        id: block[":block/uid"],
+        text: block[":block/string"],
+        editTime: block[":edit/time"],
+        createTime: block[":create/time"],
+        isPage: false,
+        paths: block.parents.map(
+          (item) => item[":block/string"] || item[":node/title"]
+        ),
+        isSelected: false,
+        children: [],
+      };
+    }),
+    ...lowBlocks.map((item) => {
+      return {
+        id: item.page[":block/uid"],
+        text: item.page[":node/title"],
+        editTime: item.page[":edit/time"],
+        createTime: item.page[":create/time"],
+        isPage: true,
+        paths: [],
+        isSelected: false,
+        children: item.children.map((child) => child[":block/string"]),
+      };
+    }),
+  ];
+
+  console.log(" ui result = ", result);
+  ui.result.set(result);
 });
 
 function conditionFilter<T extends PullBlock>(
@@ -119,78 +164,7 @@ function conditionFilter<T extends PullBlock>(
   return result;
 }
 
-const disposeUiResult = observe(async () => {
-  const queryResult = query.result.get();
-
-  const modificationDate = query.modificationDate.get();
-  const creationDate = query.creationDate.get();
-  const config = {
-    modificationDate,
-    creationDate,
-  };
-
-  const pages = conditionFilter(queryResult.pages, config);
-  const topBlocks = conditionFilter(queryResult.topBlocks, config);
-
-  const lowLevelBlocks = (() => {
-    if (!queryResult.lowBlocks) {
-      return [];
-    }
-    const lastUids = conditionFilter(
-      queryResult.lowBlocks.map((item) => item.page),
-      config
-    ).map((item) => item[":block/uid"]);
-    return queryResult.lowBlocks.filter((item) => {
-      return lastUids.some((uid) => {
-        return uid === item.page[":block/uid"];
-      });
-    });
-  })();
-
-  const result: ResultItem[] = [
-    ...pages.map((block) => {
-      return {
-        id: block[":block/uid"],
-        text: block[":node/title"],
-        editTime: block[":edit/time"],
-        createTime: block[":create/time"],
-        isPage: true,
-        paths: [],
-        isSelected: false,
-        children: [],
-      };
-    }),
-    ...topBlocks.map((block) => {
-      return {
-        id: block[":block/uid"],
-        text: block[":block/string"],
-        editTime: block[":edit/time"],
-        createTime: block[":create/time"],
-        isPage: false,
-        paths: block.parents.map(
-          (item) => item[":block/string"] || item[":node/title"]
-        ),
-        isSelected: false,
-        children: [],
-      };
-    }),
-    ...lowLevelBlocks.map((item) => {
-      return {
-        id: item.page[":block/uid"],
-        text: item.page[":node/title"],
-        editTime: item.page[":edit/time"],
-        createTime: item.page[":create/time"],
-        isPage: true,
-        paths: [],
-        isSelected: false,
-        children: item.children.map((child) => child[":block/string"]),
-      };
-    }),
-  ];
-
-  console.log(" ui result = ", result);
-  ui.result.set(result);
-});
+const disposeUiResult = observe(async () => {});
 
 const disposeUiResultSort = observe(() => {
   // TODO:
@@ -415,12 +389,11 @@ export const store = {
         return ui.tags.get();
       },
     },
-    isSelectedTarget(item: ObservableObject<ResultItem>) {
+    isSelectedTarget(item: ResultItem) {
       // const r =
       //   ui.selectedTarget.get().findIndex((o) => o.uid === item.peek().uid) >
       //   -1;
-      console.log(" =r change", item.peek().id);
-      return item.isSelected.get();
+      return item.isSelected;
     },
     pages: {
       get() {
@@ -435,13 +408,33 @@ export const store = {
         return ui.result.get().length;
       },
       list() {
+        let uiResult = ui.result.get();
         if (ui.conditions.onlyPage.get()) {
-          const v = ui.result.filter((item) =>
-            item.isPage.get()
-          ) as unknown as ResultItem[];
-          return observable(v);
+          // uiResult = uiResult.filter((item) => item.isPage);
         }
-        return ui.result;
+
+        const modificationDate = query.modificationDate.get();
+        const creationDate = query.creationDate.get();
+
+        if (modificationDate) {
+          uiResult = uiResult.filter((item) => {
+            return (
+              item.editTime >= modificationDate.start.valueOf() &&
+              item.editTime <= modificationDate.end.valueOf()
+            );
+          });
+        }
+        if (creationDate) {
+          uiResult = uiResult.filter((item) => {
+            return (
+              item.createTime >= creationDate.start.valueOf() &&
+              item.createTime <= creationDate.end.valueOf()
+            );
+          });
+        }
+        console.log("only here change", uiResult);
+
+        return observable(uiResult);
       },
     },
     copySelectedTarget() {
