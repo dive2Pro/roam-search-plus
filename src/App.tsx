@@ -18,7 +18,7 @@ import {
   Label,
   Intent,
   MenuItemProps,
-  ButtonGroup
+  ButtonGroup,
 } from "@blueprintjs/core";
 
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
@@ -36,10 +36,10 @@ function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
       {...props}
       {...(props.selected
         ? {
-            icon: "blank"
+            icon: "blank",
           }
         : {
-            icon: "blank"
+            icon: "blank",
           })}
     />
   );
@@ -73,8 +73,8 @@ const HistoryItem = observer(({ item }: { item: Item }) => {
 
 const sidebarStore = observable({
   date: {
-    modifySelected: undefined as DateRange | undefined
-  }
+    modifySelected: undefined as DateRange | undefined,
+  },
 });
 
 const INTENTS = [
@@ -82,7 +82,7 @@ const INTENTS = [
   Intent.PRIMARY,
   Intent.SUCCESS,
   Intent.DANGER,
-  Intent.WARNING
+  Intent.WARNING,
 ];
 const Sidebar = observer(() => {
   return (
@@ -91,7 +91,7 @@ const Sidebar = observer(() => {
         width: 220,
         backgroundColor: "hsl(204,33%,97%)",
         padding: 10,
-        display: store.ui.isTyped() ? "block" : "none"
+        display: store.ui.isTyped() ? "block" : "none",
       }}
     >
       <div>
@@ -264,7 +264,7 @@ function _App() {
         style={{
           paddingBottom: 0,
           width: "unset",
-          alignItems: "flex-start"
+          alignItems: "flex-start",
         }}
         onClose={() => store.actions.closeDialog()}
         portalClassName="top-dialog"
@@ -274,7 +274,13 @@ function _App() {
             <div>
               <InputGroup
                 placeholder="search..."
-                leftIcon="search"
+                leftIcon={
+                  store.ui.isLoading() ? (
+                    <Icon icon="refresh" size={14} className="loading" />
+                  ) : (
+                    "search"
+                  )
+                }
                 autoFocus
                 fill
                 rightElement={
@@ -305,8 +311,8 @@ function _App() {
                   position={Position.BOTTOM}
                   modifiers={{
                     arrow: {
-                      enabled: false
-                    }
+                      enabled: false,
+                    },
                   }}
                   content={
                     <Menu>

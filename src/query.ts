@@ -220,19 +220,18 @@ const getParentsInfoOfBlockUid = (uid: string) => {
   }[];
 };
 
-export const Query = debounce(
-  async (config: {
-    search: string;
-    modificationDate?: SelectDate;
-    creationDate?: SelectDate;
-  }) => {
-    const { search } = config;
-    const ary = search.trim().split(" ");
+export const Query = async (config: {
+  search: string;
+  modificationDate?: SelectDate;
+  creationDate?: SelectDate;
+}) => {
+  const { search } = config;
+  const ary = search.trim().split(" ");
 
-    if (!search || search.trim() === "") {
-      return undefined;
-    }
-    conditionRule = `
+  if (!search || search.trim() === "") {
+    return undefined;
+  }
+  conditionRule = `
       [
         [
           (condition ?block)
@@ -259,23 +258,21 @@ export const Query = debounce(
       ]
     
     `;
-    console.log(search.length, config, "rule =", conditionRule, " startting ");
-    const [pageUids, [topLevelBlocks, lowLevelBlocks]] = await Promise.all([
-      findAllRelatedPageUids(ary),
-      findAllRelatedBlocks(ary),
-    ]);
-    const pageBlocks = pull_many(pageUids);
-    console.log("end!!!!!!");
-    return [
-      pageBlocks,
-      pull_many(topLevelBlocks).map((item) => {
-        return {
-          ...item,
-          parents: getParentsInfoOfBlockUid(item[":block/uid"]),
-        };
-      }),
-      lowLevelBlocks,
-    ] as const;
-  },
-  1000
-);
+  console.log(search.length, config, "rule =", conditionRule, " startting ");
+  const [pageUids, [topLevelBlocks, lowLevelBlocks]] = await Promise.all([
+    findAllRelatedPageUids(ary),
+    findAllRelatedBlocks(ary),
+  ]);
+  const pageBlocks = pull_many(pageUids);
+  console.log("end!!!!!!");
+  return [
+    pageBlocks,
+    pull_many(topLevelBlocks).map((item) => {
+      return {
+        ...item,
+        parents: getParentsInfoOfBlockUid(item[":block/uid"]),
+      };
+    }),
+    lowLevelBlocks,
+  ] as const;
+};

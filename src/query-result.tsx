@@ -16,18 +16,25 @@ import { ObservableObject, observe } from "@legendapp/state";
 import { FC, useEffect, useRef, useState } from "react";
 import { highlightText } from "./helper";
 import { Virtuoso } from "react-virtuoso";
-const ReactLoadMore: FC<{}> = (props) => {
-  return <div className="infinite-scroll">{props.children}</div>;
-};
 
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(<>{props.item.text}</>);
   useEffect(() => {
+    let timeout: any;
     return observe(() => {
       const search = store.ui.getSearch();
-      setTimeout(() => {
-        setText(highlightText(props.item.text, search));
-      }, 10);
+      const isLoading = store.ui.isLoading();
+      clearTimeout(timeout);
+      if (!search || isLoading) {
+        return;
+      }
+      console.log("run~~~~~", search, isLoading);
+
+      window.requestIdleCallback(() => {
+        timeout = setTimeout(() => {
+          setText(highlightText(props.item.text, search));
+        }, 50);
+      });
     });
   }, []);
   let content;
@@ -80,18 +87,19 @@ const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
   );
 });
 
-const TargetCheckboxAbleRow = observer((props: { item: ResultItem }) => {
-  console.log(props.item, " = item");
-  return (
-    <Checkbox
-      checked={store.ui.isSelectedTarget(props.item)}
-      // TODO
-      // onChange={() => store.actions.changeSelectedTarget(props.item)}
-    >
-      <Row {...props} />
-    </Checkbox>
-  );
-});
+const TargetCheckboxAbleRow = observer(
+  (props: { item: ObservableObject<ResultItem> }) => {
+    console.log(props.item, " = item");
+    return (
+      <Checkbox
+        checked={store.ui.isSelectedTarget(props.item.get())}
+        onChange={() => store.actions.changeSelectedTarget(props.item)}
+      >
+        <Row item={props.item.get()} />
+      </Checkbox>
+    );
+  }
+);
 
 export const QueryResult = observer(() => {
   const isMultipleSelection = store.ui.isMultipleSelection();
@@ -101,27 +109,9 @@ export const QueryResult = observer(() => {
   } else {
     Item = Row;
   }
-
-  // useEffect(() => {
-  //   const el = document.querySelector(".bp3-dialog");
-  //   const handler = (e: Event) => {
-  //     console.log(e.code);
-  //   };
-  //   el?.addEventListener("keydown", handler);
-  //   return () => {
-  //     el?.removeEventListener("keydown", handler);
-  //   };
-  // }, []);
-
   return (
     <div>
       <Virtuoso
-        // Footer={() => {
-        //   return <span>..</span>;
-        // }}
-        // onBottom={() => {}}
-        // fetching={false}
-        // hasMore={true}
         className="infinite-scroll"
         data={store.ui.result.list().get()}
         itemContent={(index, data) => <Item key={data.id} item={data} />}

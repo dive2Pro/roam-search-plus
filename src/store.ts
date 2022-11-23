@@ -2,7 +2,7 @@ import { DateRange } from "@blueprintjs/datetime";
 import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
 import { PullBlock } from "roamjs-components/types";
-import { extension_helper } from "./helper";
+import { debounce, extension_helper } from "./helper";
 import { Query } from "./query";
 
 export type ResultItem = {
@@ -74,14 +74,13 @@ const ui = observable({
     items: [] as string[],
   },
   result: [] as ResultItem[],
+  loading: false,
 });
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 
-
-const dispose = observe(async () => {
-  const search = query.search.get();
-
+const trigger = debounce(async (search: string) => {
+  console.log("trigger !", search);
   const [pages, topBlocks, lowBlocks = []] = await Query({
     search,
   });
@@ -135,6 +134,27 @@ const dispose = observe(async () => {
 
   console.log(" ui result = ", result);
   ui.result.set(result);
+  ui.loading.set(false);
+}, 500);
+let prevSearch = "";
+const dispose = observe(async () => {
+  const search = query.search.get().trim();
+  console.log(search, " start search");
+  if (!search) {
+    return;
+  }
+
+  if (prevSearch === search) {
+    return;
+  }
+
+  prevSearch = search;
+  ui.loading.set(true);
+  try {
+    await trigger(search);
+  } catch (e) {
+    ui.loading.set(false);
+  }
 });
 
 function conditionFilter<T extends PullBlock>(
@@ -439,6 +459,9 @@ export const store = {
     },
     copySelectedTarget() {
       return ui.copySelectedTarget;
+    },
+    isLoading() {
+      return ui.loading.get();
     },
   },
 };
