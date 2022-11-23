@@ -33,6 +33,90 @@ const pull_many = (uids: string[]) => {
     })
   );
 };
+
+const findAllParentsUidsByBlockUid = (uid: string) => {
+  return window.roamAlphaAPI.q(
+    `
+    [
+     :find [?e ...]
+     :where
+       [?b :block/uid "${uid}"]
+       [?b :block/parents ?p]
+       [?p :block/uid ?e]
+    ]
+    `
+  ) as unknown as string[];
+};
+
+function getSame<T>(arr1: T[], arr2: T[]) {
+  return [...new Set(arr1)].filter((item) => arr2.includes(item));
+}
+
+function getDiff<T>(arr1: T[], arr2: T[]) {
+  return arr1.concat(arr2).filter((v, index, arr) => {
+    return arr.indexOf(v) === arr.lastIndexOf(v);
+  });
+}
+
+const getMinCrossoverBlocksBy = (blocks: string[], keywords: string[]) => {
+  // 找到同时满足 x 个
+};
+
+const findBlocksContainsAllKeywords = (keywords: string[]) => {
+  return keywords.reduce((p, c, index) => {
+    const r = window.roamAlphaAPI.data.fast.q(
+      `
+        [
+            :find  [?uid ...]
+            :where
+                [?b :block/string ?s]
+                [?b :block/uid ?uid]
+                [(clojure.string/includes? ?s  "${c}")]
+        ]
+      `
+    ) as unknown as string[];
+    if (index === 0) {
+      return r;
+    }
+    return getSame(p, r);
+  }, [] as string[]);
+};
+
+const findBlocksContainsStringInPages = (
+  keywords: string[],
+  pages: string[]
+) => {
+  const result = keywords.reduce((p, c, index) => {
+    const result = window.roamAlphaAPI.data.fast.q(
+      `
+        [
+            :find  [?uid ...]
+            :in $ [?page ...]
+            :where
+                [?b :block/string ?s]
+                [?b :block/uid ?uid]
+                [?b :block/parents ?p]
+                [?p :block/uid ?pd]
+                [?b :block/parents ?p2]
+                [(clojure.string/includes? ?s  "${c}")]
+                [?p :node/title ?t]
+                [?p :block/uid ?page]
+        ]
+    `,
+      pages
+    );
+    if (index === 0) {
+      return result;
+    }
+    if (result.length === 0) {
+      return result;
+    }
+    return Array.from(new Set([...result, ...p]));
+  }, [] as string[]);
+
+  return result;
+};
+
 const findAllRelatedBlocksInPages = (generator: {
   find(): string;
   where(): string;
@@ -53,8 +137,7 @@ const findAllRelatedBlocksInPages = (generator: {
 };
 
 const findAllRelatedPages = (keywords: string[]): string[] => {
-  // TODO:
-  const pages = keywords.reduce((p, c) => {
+  const pages = keywords.reduce((p, c, index) => {
     const result = window.roamAlphaAPI.data.fast.q(`
         [
             :find [?uid ...]
@@ -66,7 +149,10 @@ const findAllRelatedPages = (keywords: string[]): string[] => {
                 [?p :block/uid ?uid]
         ]
     `) as unknown as string[];
-    return Array.from(new Set([...result, ...p]));
+    if (index === 0) {
+      return result;
+    }
+    return getSame(p, result);
   }, [] as string[]);
   console.log(pages);
   return pages;
@@ -88,12 +174,22 @@ const findAllRelatedBlocks = (keywords: string[]) => {
       })
       .join(" ");
   };
+
   const pages = findAllRelatedPages(keywords);
-  return findAllRelatedBlocksInPages({
-    find,
-    where,
-    pages,
-  });
+  const blocksInSamePage = findBlocksContainsStringInPages(keywords, pages);
+  // 找到正好包含所有 keywords 的 block. 记录下来
+  const topLevelBlocks = findBlocksContainsAllKeywords(keywords);
+  console.log(blocksInSamePage, topLevelBlocks, ' ----==', pages)
+  const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
+  // const crossoverBlocks = getMinCrossoverBlocksBy(lowLevelBlocks);
+  // const map = topLevelBlocks.map;
+  // 找到这些 block 父层级最低
+  // return findAllRelatedBlocksInPages({
+  //   find,
+  //   where,
+  //   pages,
+  // });
+  return [topLevelBlocks, lowLevelBlocks];
 };
 
 const findAllRelatedPageUids = (keywords: string[]) => {
@@ -130,40 +226,40 @@ export const Query = debounce(async (search: string) => {
     return undefined;
   }
   console.log(search.length, ary, " startting ");
-  const [pageUids, blockAryUids] = await Promise.all([
+  const [pageUids, [topLevelBlocks, lowLevelBlocks]] = await Promise.all([
     findAllRelatedPageUids(ary),
     findAllRelatedBlocks(ary),
   ]);
   console.log(" midding ");
-  let controller = new AbortController();
-  new Promise((resolve, reject) => {});
+  // let controller = new AbortController();
+  // new Promise((resolve, reject) => {});
   const pageBlocks = pull_many(pageUids);
-  const set = new Set<string>();
-  let result = blockAryUids
-    // 结果中包含最低符合层级和其 parents 级的数据, 除了最低层级外的都要清理掉.
-    .filter((uids) => {
-      const key = uids.slice(0, -1).join(",");
-      if (set.has(key)) {
-        return false;
-      }
-      set.add(key);
-      return true;
-    });
+  // const set = new Set<string>();
+  // let result = blockAryUids
+  //   // 结果中包含最低符合层级和其 parents 级的数据, 除了最低层级外的都要清理掉.
+  //   .filter((uids) => {
+  //     const key = uids.slice(0, -1).join(",");
+  //     if (set.has(key)) {
+  //       return false;
+  //     }
+  //     set.add(key);
+  //     return true;
+  //   });
   // 如果除了最后一位, 其他的都相等, 证明是同一 block 中包含所有的查询字符, 提升其匹配级别.
-  const topLevelBlocks = result.filter((uids) => {
-    const isSame = uids
-      .slice(0, -1)
-      .every((id, index, array) => id === array[0]);
-    return isSame;
-  });
-  // .map((uids) => uids[0]);
+  // const topLevelBlocks = result.filter((uids) => {
+  //   const isSame = uids
+  //     .slice(0, -1)
+  //     .every((id, index, array) => id === array[0]);
+  //   return isSame;
+  // });
+  // // .map((uids) => uids[0]);
 
-  const lowLevelBlocks = result.filter((uids) => {
-    const isSame = uids
-      .slice(0, -1)
-      .every((id, index, array) => id === array[0]);
-    return !isSame;
-  });
+  // const lowLevelBlocks = result.filter((uids) => {
+  //   const isSame = uids
+  //     .slice(0, -1)
+  //     .every((id, index, array) => id === array[0]);
+  //   return !isSame;
+  // });
 
   console.log("before end");
   // const blocks = await Promise.all([
