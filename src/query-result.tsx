@@ -19,16 +19,28 @@ import { Virtuoso } from "react-virtuoso";
 
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(<>{props.item.text}</>);
+  const [paths, setPaths] = useState<string[]>([]);
   useEffect(() => {
     let timeout: any;
-    return observe(() => {
+    if (!props.item.isPage) {
+    }
+    const dispose = observe(() => {
+      const isLoading = store.ui.isLoading();
+      if (!isLoading) {
+        console.log('going~~~~~')
+        window.requestIdleCallback(() => {
+          setPaths(store.ui.getPaths(props.item.id));
+        });
+      }
+    });
+    const dispose1 = observe(() => {
       const search = store.ui.getSearch();
       const isLoading = store.ui.isLoading();
       clearTimeout(timeout);
       if (!search || isLoading) {
         return;
       }
-      console.log("run~~~~~", search, isLoading);
+      // console.log("run~~~~~", search, isLoading, props.item.id);
 
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
@@ -36,7 +48,11 @@ const Row = observer((props: { item: ResultItem }) => {
         }, 50);
       });
     });
-  }, []);
+    return () => {
+      dispose();
+      dispose1();
+    };
+  }, [props.item.id]);
   let content;
   if (props.item.isPage) {
     content = (
@@ -52,7 +68,7 @@ const Row = observer((props: { item: ResultItem }) => {
       <>
         <Button className="result-item-container" minimal icon={"paragraph"}>
           <div className="flex-row result-breadcrumbs">
-            {props.item.paths.map((s, index, ary) => {
+            {paths.map((s, index, ary) => {
               return (
                 <span>
                   {s}

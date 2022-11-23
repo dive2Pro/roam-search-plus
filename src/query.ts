@@ -1,6 +1,7 @@
 import { PullBlock } from "roamjs-components/types";
 import { debounce, getDiff, getSame, pull, pull_many } from "./helper";
 
+type Fn = () => void;
 let conditionRule = "";
 
 const conditionRuleQuery = (uids: string[]) => {
@@ -26,8 +27,16 @@ const ancestorrule = `[
         [?parent :block/children ?child ] 
         (ancestor ?parent ?a) ] ] ]`;
 
-const findBlocksContainsAllKeywords = (keywords: string[]) => {
+const checkCancel = (cancelRef: { cancel: boolean }) => {
+  return () => {
+    if (cancelRef.cancel) {
+      throw new Error("Cancel!");
+    }
+  };
+};
+const findBlocksContainsAllKeywords = (keywords: string[], checkFn: Fn) => {
   return keywords.reduce((p, c, index) => {
+    checkFn();
     const r = window.roamAlphaAPI.data.fast.q(
       `
         [
@@ -51,9 +60,11 @@ const findBlocksContainsAllKeywords = (keywords: string[]) => {
 
 const findBlocksContainsStringInPages = (
   keywords: string[],
-  pages: string[]
+  pages: string[],
+  checkFn: Fn
 ) => {
   const result = keywords.reduce((p, c, index) => {
+    checkFn();
     const result = window.roamAlphaAPI.data.fast.q(
       `
         [
@@ -87,8 +98,9 @@ const findBlocksContainsStringInPages = (
   return result;
 };
 
-const findAllRelatedPages = (keywords: string[]): string[] => {
+const findAllRelatedPages = (keywords: string[], checkFn: Fn): string[] => {
   const pages = keywords.reduce((p, c, index) => {
+    checkFn();
     const result = window.roamAlphaAPI.data.fast.q(
       `
         [
@@ -114,21 +126,27 @@ const findAllRelatedPages = (keywords: string[]): string[] => {
   return pages;
 };
 
-const findAllRelatedBlockGroupByPages = (
+const findAllRelatedBlockGroupByPages = async (
   keywords: string[],
-  topLevelBlocks: string[]
+  topLevelBlocks: string[],
+  checkFn: Fn
 ) => {
+  checkFn();
   console.log(" ---000-==");
-  const pages = findAllRelatedPages(keywords);
+  const pages = findAllRelatedPages(keywords, checkFn);
   console.log(" ---111-==, ", Date.now());
-  const blocksInSamePage = findBlocksContainsStringInPages(keywords, pages);
+  const blocksInSamePage = findBlocksContainsStringInPages(
+    keywords,
+    pages,
+    checkFn
+  );
   // 找到正好包含所有 keywords 的 block. 记录下来
   console.log(" ---222-==", Date.now());
-  const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
+  const lowLevelBlocks = await getDiff(topLevelBlocks, blocksInSamePage);
   console.log(" ---333-==", Date.now());
-
+  checkFn();
   // 找到 相同 page 下满足条件的 block
-  const pageUidBlockUidAry = window.roamAlphaAPI.q(
+  const pageUidBlockUidAry = (await window.roamAlphaAPI.q(
     `
     [
       :find ?pid ?uid
@@ -141,8 +159,9 @@ const findAllRelatedBlockGroupByPages = (
     `,
     lowLevelBlocks,
     ancestorrule
-  ) as unknown as [string, string][];
+  )) as unknown as [string, string][];
   const mapped = pageUidBlockUidAry.reduce((p, [pageUid, blockUid]) => {
+    checkFn();
     if (p.has(pageUid)) {
       p.get(pageUid).push(blockUid);
     } else {
@@ -152,6 +171,7 @@ const findAllRelatedBlockGroupByPages = (
   }, new Map<string, string[]>());
   const result: { page: PullBlock; children: PullBlock[] }[] = [];
   for (let item of mapped) {
+    checkFn();
     const [key, values] = item;
     result.push({
       page: pull(key),
@@ -161,19 +181,20 @@ const findAllRelatedBlockGroupByPages = (
   return result;
 };
 
-const findAllRelatedBlocks = (keywords: string[]) => {
-  const topLevelBlocks = findBlocksContainsAllKeywords(keywords);
+const findAllRelatedBlocks = (keywords: string[], checkFn: Fn) => {
+  const topLevelBlocks = findBlocksContainsAllKeywords(keywords, checkFn);
   if (keywords.length <= 1) {
     return [topLevelBlocks, undefined] as const;
   }
   console.log("find low");
   return [
     topLevelBlocks,
-    findAllRelatedBlockGroupByPages(keywords, topLevelBlocks),
+    findAllRelatedBlockGroupByPages(keywords, topLevelBlocks, checkFn),
   ] as const;
 };
 
-const findAllRelatedPageUids = (keywords: string[]) => {
+const findAllRelatedPageUids = (keywords: string[], checkFn: Fn) => {
+  checkFn();
   const uids = window.roamAlphaAPI.data.q(
     `
         [
@@ -189,6 +210,7 @@ const findAllRelatedPageUids = (keywords: string[]) => {
     conditionRule
   );
   return keywords.slice(1).reduce((p, c) => {
+    checkFn();
     return window.roamAlphaAPI.data.q(
       `
         [
@@ -207,7 +229,7 @@ const findAllRelatedPageUids = (keywords: string[]) => {
   }, uids) as unknown as string[];
 };
 
-const getParentsInfoOfBlockUid = (uid: string) => {
+export const getParentsInfoOfBlockUid = (uid: string) => {
   const result = window.roamAlphaAPI.data.fast
     .q(
       `[:find (pull ?p [:block/uid :block/string :node/title]) :where [?b :block/uid "${uid}"] [?b :block/parents ?p] ]`
@@ -220,7 +242,7 @@ const getParentsInfoOfBlockUid = (uid: string) => {
   }[];
 };
 
-export const Query = async (config: {
+export const Query = (config: {
   search: string;
   modificationDate?: SelectDate;
   creationDate?: SelectDate;
@@ -259,20 +281,30 @@ export const Query = async (config: {
     
     `;
   console.log(search.length, config, "rule =", conditionRule, " startting ");
-  const [pageUids, [topLevelBlocks, lowLevelBlocks]] = await Promise.all([
-    findAllRelatedPageUids(ary),
-    findAllRelatedBlocks(ary),
-  ]);
-  const pageBlocks = pull_many(pageUids);
+  let cancelRef = {
+    cancel: false,
+  };
+  const checkFn = checkCancel(cancelRef);
+  const then = Promise.all([
+    findAllRelatedPageUids(ary, checkFn),
+    findAllRelatedBlocks(ary, checkFn),
+  ]).then(([pageUids, [topLevelBlocks, lowLevelBlocks]]) => {
+    if (cancelRef.cancel) {
+      throw new Error("cancel");
+    }
+    return [
+      pull_many(pageUids),
+      pull_many(topLevelBlocks),
+      lowLevelBlocks,
+    ] as const;
+  });
   console.log("end!!!!!!");
-  return [
-    pageBlocks,
-    pull_many(topLevelBlocks).map((item) => {
-      return {
-        ...item,
-        parents: getParentsInfoOfBlockUid(item[":block/uid"]),
-      };
-    }),
-    lowLevelBlocks,
-  ] as const;
+  return {
+    then: (cb: any) => {
+      then.then(cb);
+    },
+    cancel: () => {
+      cancelRef.cancel = true;
+    },
+  };
 };

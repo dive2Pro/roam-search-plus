@@ -3,7 +3,7 @@ import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
 import { PullBlock } from "roamjs-components/types";
 import { debounce, extension_helper } from "./helper";
-import { Query } from "./query";
+import { getParentsInfoOfBlockUid, Query } from "./query";
 
 export type ResultItem = {
   id: string;
@@ -37,7 +37,7 @@ const query = observable({
 const copySelectedTarget = observable([] as ResultItem[]);
 
 const ui = observable({
-  open: false,
+  open: true,
   multiple: false,
   selectedTarget: [] as ResultItem[],
   showSelectedTarget: false,
@@ -79,63 +79,69 @@ const ui = observable({
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 
+let prevCancel = () => {};
+
 const trigger = debounce(async (search: string) => {
   console.log("trigger !", search);
-  const [pages, topBlocks, lowBlocks = []] = await Query({
+  prevCancel();
+  const queryApi = Query({
     search,
   });
-  console.log(pages, topBlocks, " - set result-- ", lowBlocks);
-  query.result.set({
-    pages,
-    topBlocks,
-    lowBlocks,
+  prevCancel = queryApi.cancel;
+  // console.log(pages, topBlocks, " - set result-- ", lowBlocks);
+  queryApi.then(([pages, [topBlocks, lowBlocks]]) => {
+    query.result.set({
+      pages,
+      topBlocks,
+      lowBlocks,
+    });
+
+    const result: ResultItem[] = [
+      // ...pages.map((block) => {
+      //   return {
+      //     id: block[":block/uid"],
+      //     text: block[":node/title"],
+      //     editTime: block[":edit/time"],
+      //     createTime: block[":create/time"],
+      //     isPage: true,
+      //     paths: [],
+      //     isSelected: false,
+      //     children: [],
+      //   };
+      // }),
+      // ...topBlocks.map((block) => {
+      //   return {
+      //     id: block[":block/uid"],
+      //     text: block[":block/string"],
+      //     editTime: block[":edit/time"],
+      //     createTime: block[":create/time"],
+      //     isPage: false,
+      //     paths: block.parents.map(
+      //       (item) => item[":block/string"] || item[":node/title"]
+      //     ),
+      //     isSelected: false,
+      //     children: [],
+      //   };
+      // }),
+      // ...lowBlocks.map((item) => {
+      //   return {
+      //     id: item.page[":block/uid"],
+      //     text: item.page[":node/title"],
+      //     editTime: item.page[":edit/time"],
+      //     createTime: item.page[":create/time"],
+      //     isPage: true,
+      //     paths: [],
+      //     isSelected: false,
+      //     children: item.children.map((child) => child[":block/string"]),
+      //   };
+      // }),
+    ];
+
+    console.log(" ui result = ", result);
+    // ui.result.set(result);
+    ui.loading.set(false);
   });
-
-  const result: ResultItem[] = [
-    ...pages.map((block) => {
-      return {
-        id: block[":block/uid"],
-        text: block[":node/title"],
-        editTime: block[":edit/time"],
-        createTime: block[":create/time"],
-        isPage: true,
-        paths: [],
-        isSelected: false,
-        children: [],
-      };
-    }),
-    ...topBlocks.map((block) => {
-      return {
-        id: block[":block/uid"],
-        text: block[":block/string"],
-        editTime: block[":edit/time"],
-        createTime: block[":create/time"],
-        isPage: false,
-        paths: block.parents.map(
-          (item) => item[":block/string"] || item[":node/title"]
-        ),
-        isSelected: false,
-        children: [],
-      };
-    }),
-    ...lowBlocks.map((item) => {
-      return {
-        id: item.page[":block/uid"],
-        text: item.page[":node/title"],
-        editTime: item.page[":edit/time"],
-        createTime: item.page[":create/time"],
-        isPage: true,
-        paths: [],
-        isSelected: false,
-        children: item.children.map((child) => child[":block/string"]),
-      };
-    }),
-  ];
-
-  console.log(" ui result = ", result);
-  ui.result.set(result);
-  ui.loading.set(false);
-}, 500);
+}, 1000);
 let prevSearch = "";
 const dispose = observe(async () => {
   const search = query.search.get().trim();
@@ -145,7 +151,7 @@ const dispose = observe(async () => {
   }
 
   if (prevSearch === search) {
-    return;
+    // return;
   }
 
   prevSearch = search;
@@ -338,8 +344,8 @@ export const store = {
   },
   ui: {
     isOpen() {
-      // return ui.open.get();
-      return true;
+      return ui.open.get();
+      // return true;
     },
     getSearch() {
       return query.search.get();
@@ -462,6 +468,11 @@ export const store = {
     },
     isLoading() {
       return ui.loading.get();
+    },
+    getPaths(uid: string) {
+      return getParentsInfoOfBlockUid(uid).map(
+        (item) => item[":block/string"] || item[":node/title"]
+      );
     },
   },
 };
