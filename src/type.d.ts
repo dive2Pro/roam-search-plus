@@ -9,3 +9,11 @@ type RoamExtensionAPI = {
     set: (k: string, v: unknown) => Promise<void>;
   };
 };
+
+type SelectDate =
+  | {
+      // 这样定义, 可以在不同的属性中复制
+      start: Dayjs;
+      end: Dayjs;
+    }
+  | undefined;

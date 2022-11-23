@@ -18,13 +18,6 @@ export type ResultItem = {
   isSelected: boolean;
 };
 
-type SelectDate =
-  | {
-      // 这样定义, 可以在不同的属性中复制
-      start: Dayjs;
-      end: Dayjs;
-    }
-  | undefined;
 const query = observable({
   creationDate: undefined as SelectDate,
   modificationDate: undefined as SelectDate,
@@ -167,9 +160,22 @@ const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 
 const dispose = observe(async () => {
   const search = query.search.get();
-
-  const [pages, blocks, lowLevelBlocks] = await Query(search);
-  console.log(pages, blocks, ' ---', lowLevelBlocks)
+  const modificationDate = query.modificationDate.get();
+  const creationDate = query.creationDate.get();
+  if (modificationDate) {
+    console.log(
+      dayjs().unix(),
+      modificationDate.start.format('YYYY-MM-dd'),
+      creationDate,
+      " ----@@@"
+    );
+  }
+  const [pages, blocks, lowLevelBlocks] = await Query({
+    search,
+    modificationDate,
+    creationDate,
+  });
+  console.log(pages, blocks, " ---", lowLevelBlocks);
 });
 
 extension_helper.on_uninstall(() => {
