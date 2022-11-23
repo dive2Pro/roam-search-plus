@@ -82,9 +82,9 @@ export function highlightText(text: string, query: string) {
     }
     lastIndex = regexp.lastIndex;
     tokens.push(
-      <strong className="result-highlight" key={lastIndex}>
+      <span className="result-highlight" key={lastIndex}>
         {match[0]}
-      </strong>
+      </span>
     );
   }
 
