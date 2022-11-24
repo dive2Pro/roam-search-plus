@@ -249,6 +249,9 @@ export const store = {
       selectedTargetStore.set(item.peek().id, item);
     },
 
+    toggleDialog() { 
+      ui.open.set(!ui.open.peek())
+    },
     openDialog() {
       ui.open.set(true);
       // window.roamAlphaAPI.ui.getFocusedBlock()
