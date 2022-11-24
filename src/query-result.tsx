@@ -9,6 +9,7 @@ import {
   Icon,
   Divider,
   Checkbox,
+  Classes,
 } from "@blueprintjs/core";
 import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "./store";
@@ -16,6 +17,9 @@ import { ObservableObject, observe } from "@legendapp/state";
 import React, { FC, useEffect, useRef, useState } from "react";
 import { highlightText } from "./helper";
 import { Virtuoso } from "react-virtuoso";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(<>{props.item.text}</>);
@@ -70,54 +74,52 @@ const Row = observer((props: { item: ResultItem }) => {
 
   let content;
   if (props.item.isPage) {
-    content = (
-      <>
-        <Button
-          className="result-item-container"
-          fill
-          style={{ justifyContent: "flex-start" }}
-          minimal
-          icon={"application"}
-          onClick={handlerClick}
-        >
-          {text}
-        </Button>
-        <Divider />
-      </>
-    );
+    content = text;
   } else {
     content = (
       <>
-        <Button
-          className="result-item-container"
-          fill
-          onClick={handlerClick}
-          minimal
-          icon={"paragraph"}
-        >
-          <div className="flex-row result-breadcrumbs">
-            {path.map((s, index, ary) => {
-              return (
-                <span>
-                  {s}
-                  {index < ary.length - 1 ? (
-                    <Icon
-                      size={12}
-                      style={{ margin: "0 4px" }}
-                      icon="chevron-right"
-                    />
-                  ) : null}
-                </span>
-              );
-            })}
-          </div>
-          {text}
-        </Button>
-        <Divider />
+        <div className="flex-row result-breadcrumbs">
+          {path.map((s, index, ary) => {
+            return (
+              <span>
+                {s}
+                {index < ary.length - 1 ? (
+                  <Icon
+                    size={12}
+                    style={{ margin: "0 4px" }}
+                    icon="chevron-right"
+                  />
+                ) : null}
+              </span>
+            );
+          })}
+        </div>
+        {text}
       </>
     );
   }
-  return content;
+  return (
+    <>
+      <Button
+        className="result-item-container"
+        fill
+        onClick={handlerClick}
+        minimal
+        icon={"paragraph"}
+      >
+        {content}
+        <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+          <span className="date date-fromnow">
+            {dayjs(props.item.editTime).fromNow()}
+          </span>
+          <span className="date date-common">
+            {dayjs(props.item.editTime).format("HH:mm MMM DD, YYYY")}
+          </span>
+        </div>
+      </Button>
+      <Divider />
+    </>
+  );
 });
 
 const CheckboxAbleRow = observer((props: { item: ResultItem }) => {

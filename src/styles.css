@@ -124,8 +124,30 @@
   text-align: left;
 }
 
+.result-item-container .bp3-button-text {
+  flex: 1;
+}
+.result-item-container .date {
+  font-size: 12px;
+  color: #999;
+}
 
 
+.result-item-container .date-fromnow {
+  display: inline-block;
+}
+
+.result-item-container .date-common{
+  display: none;
+}
+
+.result-item-container:hover .date-common {
+  display: inline-block;
+}
+
+.result-item-container:hover .date-fromnow {
+  display: none;
+}
 
 .loading {
   -webkit-transition-property: -webkit-transform;

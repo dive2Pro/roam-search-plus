@@ -59,14 +59,12 @@ const ui = observable({
   sort: {
     selection: [
       {
-        text: "-",
+        text: "Priority",
       },
-      { text: "By creation - recent to oldest" },
-      {
-        text: "By creation - oldest to recent",
-      },
-      { text: "By modification - recent to oldest" },
-      { text: "By modification - oldest to  recent" },
+      { text: "Modified - Descending" },
+      { text: "Modified - Ascending" },
+      { text: "Created  - Descending" },
+      { text: "Created  - Ascending" },
     ],
     selected: 0,
   },
@@ -91,7 +89,7 @@ const keywordsBuildFrom = (search: string) => {
       keywords.push(result[0].replace(/\"(.+?)\"/, "$1"));
     }
   } while (result);
-  console.log('keywords = ', keywords)
+  console.log("keywords = ", keywords);
   return keywords;
 };
 
@@ -503,8 +501,28 @@ export const store = {
       },
       list() {
         let uiResult = ui.result.get();
+
         if (ui.conditions.onlyPage.get()) {
-          // uiResult = uiResult.filter((item) => item.isPage);
+          uiResult = uiResult.filter((item) => item.isPage);
+        }
+
+        if (ui.sort.selected.get()) {
+          const sortFns = [
+            () => 0,
+            (a: ResultItem, b: ResultItem) => {
+              return b.editTime - a.editTime;
+            },
+            (a: ResultItem, b: ResultItem) => {
+              return a.editTime - b.editTime;
+            },
+            (a: ResultItem, b: ResultItem) => {
+              return b.createTime - a.createTime;
+            },
+            (a: ResultItem, b: ResultItem) => {
+              return a.createTime - b.createTime;
+            },
+          ];
+          uiResult = uiResult.sort(sortFns[ui.sort.selected.get()]);
         }
 
         const modificationDate = query.modificationDate.get();

@@ -328,7 +328,7 @@ function _App() {
                   }
                 >
                   <div>
-                    Sort :{" "}
+                    Sort By:{" "}
                     <Button
                       rightIcon={<Icon icon="chevron-down" size={12} />}
                       minimal
