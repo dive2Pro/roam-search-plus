@@ -21,6 +21,11 @@
 .result-container {
   position: relative;
 }
+
+.result-item-container .bp3-icon {
+  align-self: flex-start;
+  padding-top: 4px;
+}
 .result-container .infinite-scroll {
   min-height: 450px;
   max-height: 550px;

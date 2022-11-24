@@ -301,12 +301,12 @@ function _App() {
             </div>
             <div>
               <ButtonGroup className="sub-bg">
-                <Checkbox
+                {/* <Checkbox
                   checked={store.ui.isMultipleSelection()}
                   onChange={(e) => store.actions.toggleMultiple()}
                   label="Multiple Select"
                 ></Checkbox>
-                <Divider />
+                <Divider /> */}
                 <Popover
                   position={Position.BOTTOM}
                   modifiers={{
