@@ -76,6 +76,7 @@ const ui = observable({
   },
   result: [] as ResultItem[],
   loading: false,
+  list: [] as ResultItem[],
 });
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
@@ -205,7 +206,61 @@ function conditionFilter<T extends PullBlock>(
   return result;
 }
 
-const disposeUiResult = observe(async () => {});
+const disposeUiResult = observe(async () => {
+  let uiResult = ui.result.get();
+
+  if (ui.conditions.onlyPage.get()) {
+    uiResult = uiResult.filter((item) => item.isPage);
+  }
+ 
+  const modificationDate = query.modificationDate.get();
+  const creationDate = query.creationDate.get();
+
+  if (modificationDate) {
+    uiResult = uiResult.filter((item) => {
+      return (
+        item.editTime >= modificationDate.start.valueOf() &&
+        item.editTime <= modificationDate.end.valueOf()
+      );
+    });
+  }
+  if (creationDate) {
+    uiResult = uiResult.filter((item) => {
+      return (
+        item.createTime >= creationDate.start.valueOf() &&
+        item.createTime <= creationDate.end.valueOf()
+      );
+    });
+  }
+
+  if (!ui.conditions.includeCode.get()) {
+    uiResult = uiResult.filter(item => {
+      return item.isPage || !(item.text.startsWith('```') && item.text.endsWith('```'));
+    })
+  }
+
+   if (ui.sort.selected.get()) {
+     const sortFns = [
+       () => 0,
+       (a: ResultItem, b: ResultItem) => {
+         return b.editTime - a.editTime;
+       },
+       (a: ResultItem, b: ResultItem) => {
+         return a.editTime - b.editTime;
+       },
+       (a: ResultItem, b: ResultItem) => {
+         return b.createTime - a.createTime;
+       },
+       (a: ResultItem, b: ResultItem) => {
+         return a.createTime - b.createTime;
+       },
+     ];
+     uiResult = uiResult.sort(sortFns[ui.sort.selected.get()]);
+   }
+
+  
+  ui.list.set(uiResult);
+});
 
 const disposeUiResultSort = observe(() => {
   // TODO:
@@ -507,53 +562,7 @@ export const store = {
         return ui.result.get().length;
       },
       list() {
-        let uiResult = ui.result.get();
-
-        if (ui.conditions.onlyPage.get()) {
-          uiResult = uiResult.filter((item) => item.isPage);
-        }
-
-        if (ui.sort.selected.get()) {
-          const sortFns = [
-            () => 0,
-            (a: ResultItem, b: ResultItem) => {
-              return b.editTime - a.editTime;
-            },
-            (a: ResultItem, b: ResultItem) => {
-              return a.editTime - b.editTime;
-            },
-            (a: ResultItem, b: ResultItem) => {
-              return b.createTime - a.createTime;
-            },
-            (a: ResultItem, b: ResultItem) => {
-              return a.createTime - b.createTime;
-            },
-          ];
-          uiResult = uiResult.sort(sortFns[ui.sort.selected.get()]);
-        }
-
-        const modificationDate = query.modificationDate.get();
-        const creationDate = query.creationDate.get();
-
-        if (modificationDate) {
-          uiResult = uiResult.filter((item) => {
-            return (
-              item.editTime >= modificationDate.start.valueOf() &&
-              item.editTime <= modificationDate.end.valueOf()
-            );
-          });
-        }
-        if (creationDate) {
-          uiResult = uiResult.filter((item) => {
-            return (
-              item.createTime >= creationDate.start.valueOf() &&
-              item.createTime <= creationDate.end.valueOf()
-            );
-          });
-        }
-        console.log("only here change", uiResult);
-
-        return observable(uiResult);
+        return ui.list.get()
       },
     },
     copySelectedTarget() {
@@ -567,21 +576,6 @@ export const store = {
     },
     size: {
       resultList() {
-        const list = store.ui.result.list().get();
-        const windowHeight = document.body.getBoundingClientRect().height;
-        const MAX = windowHeight - 250;
-        const MIN = 450;
-        const height =
-          list.length > 20
-            ? MAX
-            : list.length > 10
-            ? Math.min(MIN + 200, MAX)
-            : MIN;
-
-        return {
-          height,
-          minHeight: height,
-        };
       },
     },
   },

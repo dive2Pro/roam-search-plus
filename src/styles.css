@@ -69,6 +69,7 @@
 .result-item-container {
   padding: 4px;
   justify-content: flex-start;
+  width: 100%;
 }
 
 .query-history-item:hover .bp3-icon {

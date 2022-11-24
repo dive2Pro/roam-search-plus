@@ -14,7 +14,7 @@ import {
 import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "./store";
 import { ObservableObject, observe } from "@legendapp/state";
-import React, { FC, useEffect, useRef, useState } from "react";
+import React, { FC, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { highlightText } from "./helper";
 import { Virtuoso } from "react-virtuoso";
 import dayjs from "dayjs";
@@ -38,7 +38,7 @@ const Row = observer((props: { item: ResultItem }) => {
 
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
-          // setText(highlightText(props.item.text, search));
+          setText(highlightText(props.item.text, search));
         }, 50);
       });
     });
@@ -102,10 +102,9 @@ const Row = observer((props: { item: ResultItem }) => {
     <>
       <Button
         className="result-item-container"
-        fill
         onClick={handlerClick}
         minimal
-        icon={"paragraph"}
+        icon={props.item.isPage ? "application" : "paragraph"}
       >
         {content}
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
@@ -155,11 +154,32 @@ export const QueryResult = observer(() => {
   } else {
     Item = Row;
   }
+  const list = store.ui.result.list();
+  const [style, setStyle] = useState({});
+  useLayoutEffect(() => {
+    const el = [...document.querySelectorAll("[data-test-id]")].find(
+      (el) => el.getAttribute("data-test-id") === "virtuoso-item-list"
+    ) as HTMLElement;
+    const windowHeight = document.body.getBoundingClientRect().height;
+    const MAX = windowHeight - 250;
+    const MIN = 450;
+    setTimeout(() => {
+      const vHeight = el.getBoundingClientRect().height;
+
+      const height = Math.max(MIN, Math.min(vHeight, MAX));
+      // list.length > 20 ? MAX : list.length > 10 ? Math.min(MIN + 200, MAX) : MIN;
+      // const height = MAX;
+      setStyle({
+        height,
+        minHeight: height,
+      });
+    });
+  }, [list]);
   return (
     <Virtuoso
       className="infinite-scroll"
-      // style={store.ui.size.resultList()}
-      data={store.ui.result.list().get()}
+      style={style}
+      data={list}
       itemContent={(index, data) => <Item key={data.id} item={data} />}
     ></Virtuoso>
   );
