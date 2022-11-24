@@ -2,6 +2,7 @@ import { TextArea, Toast, Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
 import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
+import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
 import { debounce, extension_helper } from "./helper";
 import { Query } from "./query";
@@ -9,13 +10,13 @@ import { getParentsStrFromBlockUid } from "./roam";
 
 export type ResultItem = {
   id: string;
-  text: string;
+  text: string | ReactNode;
   editTime: number;
   createTime: number;
   isPage: boolean;
   paths: string[];
   isSelected: boolean;
-  children?: string[];
+  children: ResultItem[];
 };
 
 const query = observable({
@@ -98,6 +99,10 @@ const keywordsBuildFrom = (search: string) => {
 let cancelPre = () => {};
 const trigger = debounce(async (search: string) => {
   cancelPre();
+  if (!search) {
+    return
+  }
+  console.log(search, " start search");
   const queryAPi = Query({
     search: keywordsBuildFrom(search),
   });
@@ -147,30 +152,40 @@ const trigger = debounce(async (search: string) => {
           isPage: true,
           paths: [],
           isSelected: false,
-          children: item.children.map((child) => child[":block/string"]),
+          children: item.children.map((block) => {
+            return {
+              id: block[":block/uid"],
+              text: block[":block/string"],
+              editTime: block[":edit/time"],
+              createTime: block[":create/time"],
+              isPage: false,
+              // paths: block.parents.map(
+              //   (item) => item[":block/string"] || item[":node/title"]
+              // ),
+              paths: [],
+              isSelected: false,
+              children: [],
+            };
+          }),
         };
       }),
     ];
 
     console.log(" ui result = ", result);
     ui.result.set(result);
-    ui.loading.set(false);
   });
+  ui.loading.set(false);
 }, 1000);
 let prevSearch = "";
 const dispose = observe(async () => {
   const search = query.search.get().trim();
-  console.log(search, " start search");
   if (!search) {
-    return;
-  }
-
-  if (prevSearch === search) {
     // return;
+    ui.loading.set(false);
+  } else {
+    ui.loading.set(true);
   }
-
   prevSearch = search;
-  ui.loading.set(true);
   try {
     await trigger(search);
   } catch (e) {
@@ -212,7 +227,7 @@ const disposeUiResult = observe(async () => {
   if (ui.conditions.onlyPage.get()) {
     uiResult = uiResult.filter((item) => item.isPage);
   }
- 
+
   const modificationDate = query.modificationDate.get();
   const creationDate = query.creationDate.get();
 
@@ -234,31 +249,33 @@ const disposeUiResult = observe(async () => {
   }
 
   if (!ui.conditions.includeCode.get()) {
-    uiResult = uiResult.filter(item => {
-      return item.isPage || !(item.text.startsWith('```') && item.text.endsWith('```'));
-    })
+    uiResult = uiResult.filter((item) => {
+      return (
+        item.isPage ||
+        !(item.text.startsWith("```") && item.text.endsWith("```"))
+      );
+    });
   }
 
-   if (ui.sort.selected.get()) {
-     const sortFns = [
-       () => 0,
-       (a: ResultItem, b: ResultItem) => {
-         return b.editTime - a.editTime;
-       },
-       (a: ResultItem, b: ResultItem) => {
-         return a.editTime - b.editTime;
-       },
-       (a: ResultItem, b: ResultItem) => {
-         return b.createTime - a.createTime;
-       },
-       (a: ResultItem, b: ResultItem) => {
-         return a.createTime - b.createTime;
-       },
-     ];
-     uiResult = uiResult.sort(sortFns[ui.sort.selected.get()]);
-   }
+  if (ui.sort.selected.get()) {
+    const sortFns = [
+      () => 0,
+      (a: ResultItem, b: ResultItem) => {
+        return b.editTime - a.editTime;
+      },
+      (a: ResultItem, b: ResultItem) => {
+        return a.editTime - b.editTime;
+      },
+      (a: ResultItem, b: ResultItem) => {
+        return b.createTime - a.createTime;
+      },
+      (a: ResultItem, b: ResultItem) => {
+        return a.createTime - b.createTime;
+      },
+    ];
+    uiResult = uiResult.sort(sortFns[ui.sort.selected.get()]);
+  }
 
-  
   ui.list.set(uiResult);
 });
 
@@ -457,8 +474,8 @@ export const store = {
         ui.conditions.onlyPage.toggle();
       },
       toggleIncludeCodeblock() {
-        ui.conditions.includeCode.toggle()
-      }
+        ui.conditions.includeCode.toggle();
+      },
     },
     changeTags(tags: string[]) {
       ui.tags.set(tags);
@@ -536,7 +553,7 @@ export const store = {
       },
       isIncludeCodeblock() {
         return ui.conditions.includeCode.get();
-      }
+      },
     },
     tags: {
       getTags() {
@@ -562,7 +579,7 @@ export const store = {
         return ui.result.get().length;
       },
       list() {
-        return ui.list.get()
+        return ui.list.get();
       },
     },
     copySelectedTarget() {
@@ -575,8 +592,7 @@ export const store = {
       return getParentsStrFromBlockUid(uid);
     },
     size: {
-      resultList() {
-      },
+      resultList() {},
     },
   },
 };

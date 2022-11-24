@@ -14,7 +14,15 @@ import {
 import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "./store";
 import { ObservableObject, observe } from "@legendapp/state";
-import React, { FC, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  FC,
+  ReactElement,
+  ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { highlightText } from "./helper";
 import { Virtuoso } from "react-virtuoso";
 import dayjs from "dayjs";
@@ -23,6 +31,7 @@ dayjs.extend(relativeTime);
 
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(<>{props.item.text}</>);
+  const [children, setChildren] = useState(props.item.children);
   const [path, setPath] = useState<string[]>([]);
 
   useEffect(() => {
@@ -38,7 +47,16 @@ const Row = observer((props: { item: ResultItem }) => {
 
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
-          setText(highlightText(props.item.text, search));
+          setText(highlightText(props.item.text as string, search));
+          setChildren(
+            children.map((child) => {
+              return {
+                ...child,
+                text: highlightText(child.text as string, search),
+              }
+            })
+            
+          );
         }, 50);
       });
     });
@@ -59,22 +77,42 @@ const Row = observer((props: { item: ResultItem }) => {
     };
   }, [props.item.id]);
 
-  const handlerClick = (e: React.MouseEvent) => {
+  const handlerClick = (e: React.MouseEvent, item: ResultItem) => {
     e.preventDefault();
+    e.stopPropagation();
     if (e.shiftKey) {
       // store.actions.closeDialog();
-      store.actions.confirm.openInSidebar([props.item]);
+      store.actions.confirm.openInSidebar([item]);
     } else if (e.altKey) {
-      store.actions.confirm.saveAsReference([props.item]);
+      store.actions.confirm.saveAsReference([item]);
     } else {
-      store.actions.confirm.openInMain(props.item);
+      store.actions.confirm.openInMain(item);
     }
     store.actions.closeDialog();
   };
 
   let content;
   if (props.item.isPage) {
-    content = text;
+    content = (
+      <div>
+        {text}
+        {children.map((child) => {
+          return (
+            <Button
+              minimal
+              small
+              onClick={(e) => handlerClick(e, child)}
+              icon={<Icon icon="symbol-circle" size={10} />}
+              text={
+                <>
+                  <div>{child.text}</div>
+                </>
+              }
+            ></Button>
+          );
+        })}
+      </div>
+    );
   } else {
     content = (
       <>
@@ -102,7 +140,7 @@ const Row = observer((props: { item: ResultItem }) => {
     <>
       <Button
         className="result-item-container"
-        onClick={handlerClick}
+        onClick={(e) => handlerClick(e, props.item)}
         minimal
         icon={props.item.isPage ? "application" : "paragraph"}
       >
@@ -179,6 +217,7 @@ export const QueryResult = observer(() => {
     <Virtuoso
       className="infinite-scroll"
       style={style}
+      totalCount={list.length}
       data={list}
       itemContent={(index, data) => <Item key={data.id} item={data} />}
     ></Virtuoso>
