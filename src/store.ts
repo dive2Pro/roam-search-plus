@@ -1,9 +1,11 @@
+import { TextArea, Toast, Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
 import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
 import { PullBlock } from "roamjs-components/types";
 import { debounce, extension_helper } from "./helper";
 import { Query } from "./query";
+import { getParentsStrFromBlockUid } from "./roam";
 
 export type ResultItem = {
   id: string;
@@ -141,7 +143,6 @@ const trigger = debounce(async (search: string) => {
     ui.result.set(result);
     ui.loading.set(false);
   });
-  
 }, 1000);
 let prevSearch = "";
 const dispose = observe(async () => {
@@ -160,7 +161,7 @@ const dispose = observe(async () => {
   try {
     await trigger(search);
   } catch (e) {
-    console.log(e, ' ---')
+    console.log(e, " ---");
     ui.loading.set(false);
   }
 });
@@ -248,9 +249,8 @@ export const store = {
       item.isSelected.set(!item.isSelected.get());
       selectedTargetStore.set(item.peek().id, item);
     },
-
-    toggleDialog() { 
-      ui.open.set(!ui.open.peek())
+    toggleDialog() {
+      ui.open.set(!ui.open.peek());
     },
     openDialog() {
       ui.open.set(true);
@@ -306,7 +306,59 @@ export const store = {
       console.log(index, " -");
       ui.sort.selected.set(index);
     },
-    confirm() {},
+    confirm: {
+      openInSidebar(items: ResultItem[]) {
+        items.forEach((item) => {
+          window.roamAlphaAPI.ui.rightSidebar.addWindow({
+            window: {
+              "block-uid": item.id,
+              type: "block",
+            },
+          });
+        });
+      },
+      saveAsReference(items: ResultItem[]) {
+        const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
+        const pasteStr = items
+          .map((item) => {
+            if (item.isPage) {
+              return `[[${item.text}]]`;
+            } else {
+              return `((${item.id}))`;
+            }
+          })
+          .join("\n");
+        if (focusedBlock) {
+          
+          // focus lose....
+
+          // const inputEl = document.querySelector(
+          //   "textarea.rm-block-input"
+          // ) as HTMLTextAreaElement;
+          // inputEl.value = inputEl.value + pasteStr;
+        } else {
+        }
+        navigator.clipboard.writeText(pasteStr);
+        Toaster.create().show({
+          message: "references copied",
+        });
+      },
+      openInMain(item: ResultItem) {
+        if (item.isPage) {
+          window.roamAlphaAPI.ui.mainWindow.openPage({
+            page: {
+              uid: item.id,
+            },
+          });
+        } else {
+          window.roamAlphaAPI.ui.mainWindow.openBlock({
+            block: {
+              uid: item.id,
+            },
+          });
+        }
+      },
+    },
     confirmMultiple() {
       const search = query.search.peek();
       store.actions.saveHistory(search);
@@ -474,12 +526,34 @@ export const store = {
     isLoading() {
       return ui.loading.get();
     },
+    getPathsFromUid(uid: string) {
+      return getParentsStrFromBlockUid(uid);
+    },
+    size: {
+      resultList() {
+        const list = store.ui.result.list().get();
+        const windowHeight = document.body.getBoundingClientRect().height;
+        const MAX = windowHeight - 250;
+        const MIN = 450;
+        const height =
+          list.length > 20
+            ? MAX
+            : list.length > 10
+            ? Math.min(MIN + 200, MAX)
+            : MIN;
+
+        return {
+          height,
+          minHeight: height,
+        };
+      },
+    },
   },
 };
 
 ui.open.onChange((next) => {
   if (next !== true) {
-    query.search.set("");
+    // query.search.set("");
   }
 });
 

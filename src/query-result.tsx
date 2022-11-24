@@ -13,15 +13,17 @@ import {
 import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "./store";
 import { ObservableObject, observe } from "@legendapp/state";
-import { FC, useEffect, useRef, useState } from "react";
+import React, { FC, useEffect, useRef, useState } from "react";
 import { highlightText } from "./helper";
 import { Virtuoso } from "react-virtuoso";
 
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(<>{props.item.text}</>);
+  const [path, setPath] = useState<string[]>([]);
+
   useEffect(() => {
     let timeout: any;
-    return observe(() => {
+    const textDispose = observe(() => {
       const search = store.ui.getSearch();
       const isLoading = store.ui.isLoading();
       clearTimeout(timeout);
@@ -36,12 +38,48 @@ const Row = observer((props: { item: ResultItem }) => {
         }, 50);
       });
     });
-  }, []);
+
+    const pathDispose = observe(() => {
+      const search = store.ui.getSearch();
+      const isLoading = store.ui.isLoading();
+      if (isLoading || !search) {
+        return;
+      }
+
+      setPath(store.ui.getPathsFromUid(props.item.id));
+    });
+
+    return () => {
+      textDispose();
+      pathDispose();
+    };
+  }, [props.item.id]);
+
+  const handlerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (e.shiftKey) {
+      // store.actions.closeDialog();
+      store.actions.confirm.openInSidebar([props.item]);
+    } else if (e.altKey) {
+      store.actions.confirm.saveAsReference([props.item]);
+    } else {
+      store.actions.confirm.openInMain(props.item);
+    }
+    store.actions.closeDialog();
+  };
+
   let content;
   if (props.item.isPage) {
     content = (
       <>
-        <Button className="result-item-container" minimal icon={"application"}>
+        <Button
+          className="result-item-container"
+          fill
+          style={{ justifyContent: "flex-start" }}
+          minimal
+          icon={"application"}
+          onClick={handlerClick}
+        >
           {text}
         </Button>
         <Divider />
@@ -50,9 +88,15 @@ const Row = observer((props: { item: ResultItem }) => {
   } else {
     content = (
       <>
-        <Button className="result-item-container" minimal icon={"paragraph"}>
+        <Button
+          className="result-item-container"
+          fill
+          onClick={handlerClick}
+          minimal
+          icon={"paragraph"}
+        >
           <div className="flex-row result-breadcrumbs">
-            {props.item.paths.map((s, index, ary) => {
+            {path.map((s, index, ary) => {
               return (
                 <span>
                   {s}
@@ -110,13 +154,12 @@ export const QueryResult = observer(() => {
     Item = Row;
   }
   return (
-    <div>
-      <Virtuoso
-        className="infinite-scroll"
-        data={store.ui.result.list().get()}
-        itemContent={(index, data) => <Item key={data.id} item={data} />}
-      ></Virtuoso>
-    </div>
+    <Virtuoso
+      className="infinite-scroll"
+      style={store.ui.size.resultList()}
+      data={store.ui.result.list().get()}
+      itemContent={(index, data) => <Item key={data.id} item={data} />}
+    ></Virtuoso>
   );
 });
 
