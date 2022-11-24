@@ -103,6 +103,14 @@ const Sidebar = observer(() => {
           checked={store.ui.conditions.isOnlyPage()}
           alignIndicator="right"
         />
+        <Switch
+          label="Include Code Blocks"
+          onChange={(e) => {
+            store.actions.conditions.toggleIncludeCodeblock();
+          }}
+          checked={store.ui.conditions.isIncludeCodeblock()}
+          alignIndicator="right"
+        />
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
         <Switch label="Have Twitter" alignIndicator="left" />

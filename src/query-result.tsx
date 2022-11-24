@@ -38,7 +38,7 @@ const Row = observer((props: { item: ResultItem }) => {
 
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
-          setText(highlightText(props.item.text, search));
+          // setText(highlightText(props.item.text, search));
         }, 50);
       });
     });
@@ -158,7 +158,7 @@ export const QueryResult = observer(() => {
   return (
     <Virtuoso
       className="infinite-scroll"
-      style={store.ui.size.resultList()}
+      // style={store.ui.size.resultList()}
       data={store.ui.result.list().get()}
       itemContent={(index, data) => <Item key={data.id} item={data} />}
     ></Virtuoso>

@@ -45,6 +45,7 @@ const ui = observable({
   showSelectedTarget: false,
   conditions: {
     onlyPage: false,
+    includeCode: false,
   },
   copySelectedTarget,
   previewSelected: false,
@@ -400,6 +401,9 @@ export const store = {
       toggleOnlyPage() {
         ui.conditions.onlyPage.toggle();
       },
+      toggleIncludeCodeblock() {
+        ui.conditions.includeCode.toggle()
+      }
     },
     changeTags(tags: string[]) {
       ui.tags.set(tags);
@@ -475,6 +479,9 @@ export const store = {
       isOnlyPage() {
         return ui.conditions.onlyPage.get();
       },
+      isIncludeCodeblock() {
+        return ui.conditions.includeCode.get();
+      }
     },
     tags: {
       getTags() {
