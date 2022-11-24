@@ -17,17 +17,14 @@ const getParentsInfoOfBlockUid = (uid: string) => {
 };
 
 export const Query = (config: {
-  search: string;
+  search: string[];
   modificationDate?: SelectDate;
   creationDate?: SelectDate;
 }) => {
   console.time("SSSS");
   const { search } = config;
-  const ary = search.trim().split(" ");
+  const ary = search
 
-  if (!search || search.trim() === "") {
-    return undefined;
-  }
   conditionRule = `
       [
         [

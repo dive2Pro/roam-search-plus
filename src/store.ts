@@ -81,12 +81,25 @@ const ui = observable({
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 
+const keywordsBuildFrom = (search: string) => {
+  let keywords = [];
+  var reg = new RegExp(/(\".+?\")|(\S+)/gi);
+  let result;
+  do {
+    result = reg.exec(search);
+    if (result) {
+      keywords.push(result[0].replace(/\"(.+?)\"/, "$1"));
+    }
+  } while (result);
+  console.log('keywords = ', keywords)
+  return keywords;
+};
+
 let cancelPre = () => {};
 const trigger = debounce(async (search: string) => {
-  console.log("trigger !", search);
   cancelPre();
   const queryAPi = Query({
-    search,
+    search: keywordsBuildFrom(search),
   });
   cancelPre = queryAPi.cancel;
   await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
@@ -329,9 +342,7 @@ export const store = {
           })
           .join("\n");
         if (focusedBlock) {
-          
           // focus lose....
-
           // const inputEl = document.querySelector(
           //   "textarea.rm-block-input"
           // ) as HTMLTextAreaElement;
