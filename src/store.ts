@@ -11,7 +11,7 @@ import { getParentsStrFromBlockUid } from "./roam";
 export type ResultItem = {
   id: string;
   text: string | ReactNode;
-  editTime: number;
+  editTime?: number;
   createTime: number;
   isPage: boolean;
   paths: string[];
@@ -120,7 +120,7 @@ const trigger = debounce(async (search: string) => {
         return {
           id: block[":block/uid"],
           text: block[":node/title"],
-          editTime: block[":edit/time"],
+          editTime: block[":edit/time"] || block[':create/time'],
           createTime: block[":create/time"],
           isPage: true,
           paths: [],
@@ -132,7 +132,7 @@ const trigger = debounce(async (search: string) => {
         return {
           id: block[":block/uid"],
           text: block[":block/string"],
-          editTime: block[":edit/time"],
+          editTime: block[":edit/time"] || block[":create/time"],
           createTime: block[":create/time"],
           isPage: false,
           // paths: block.parents.map(
@@ -147,7 +147,7 @@ const trigger = debounce(async (search: string) => {
         return {
           id: item.page[":block/uid"],
           text: item.page[":node/title"],
-          editTime: item.page[":edit/time"],
+          editTime: item.page[":edit/time"] || item.page[":create/time"],
           createTime: item.page[":create/time"],
           isPage: true,
           paths: [],
@@ -156,7 +156,7 @@ const trigger = debounce(async (search: string) => {
             return {
               id: block[":block/uid"],
               text: block[":block/string"],
-              editTime: block[":edit/time"],
+              editTime: block[":edit/time"] || block[":create/time"],
               createTime: block[":create/time"],
               isPage: false,
               // paths: block.parents.map(
@@ -250,9 +250,10 @@ const disposeUiResult = observe(async () => {
 
   if (!ui.conditions.includeCode.get()) {
     uiResult = uiResult.filter((item) => {
+      const text = item.text as string;
       return (
         item.isPage ||
-        !(item.text.startsWith("```") && item.text.endsWith("```"))
+        !(text.startsWith("```") && text.endsWith("```"))
       );
     });
   }
