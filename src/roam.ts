@@ -107,3 +107,20 @@ export const getPageUidsFromUids = (uids: string[]) => {
     uids
   ) as unknown as string[];
 };
+
+let PAGES: PullBlock[];
+export const getAllPages = () => {
+  return PAGES;
+};
+
+export const renewAllPages = () => {
+  PAGES = window.roamAlphaAPI.data.fast.q(
+    `
+    [
+            :find [(pull ?e [*]) ...]
+            :where                
+                [?e :node/title ?u]
+        ]
+    `
+  ) as PullBlock[];
+};

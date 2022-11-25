@@ -13,8 +13,10 @@ import {
 } from "./helper";
 import { Query } from "./query";
 import {
+  getAllPages,
   getPageUidsFromUids,
   getParentsStrFromBlockUid,
+  renewAllPages,
   renewCache,
 } from "./roam";
 
@@ -87,7 +89,10 @@ const ui = observable({
   },
   tags: [] as string[],
   pages: {
-    selected: [] as string[],
+    selected: [] as {
+      id: string;
+      text: string;
+    }[],
     items: [] as {
       id: string;
       text: string;
@@ -116,7 +121,7 @@ const keywordsBuildFrom = (search: string) => {
 };
 
 let cancelPre = () => {};
-const trigger = debounce(async (search: string) => {
+const trigger = debounce(async (search: string, uids?: string[]) => {
   cancelPre();
   if (!search) {
     return;
@@ -124,6 +129,7 @@ const trigger = debounce(async (search: string) => {
   console.log(search, " start search");
   const queryAPi = Query({
     search: keywordsBuildFrom(search),
+    uids,
   });
   cancelPre = queryAPi.cancel;
   await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
@@ -196,23 +202,39 @@ const trigger = debounce(async (search: string) => {
   ui.loading.set(false);
 }, 500);
 let prevSearch = "";
-const dispose = observe(async () => {
-  const search = query.search.get().trim();
 
-  if (search !== prevSearch) {
-    prevSearch = search;
-    if (!search) {
-      // return;
-      ui.loading.set(false);
-    } else {
-      ui.loading.set(true);
-    }
+const disposeSearch = query.search.onChange(async (next) => {
+  const nextStr = next.trim();
+  const selectedPagesUids = ui.pages.selected.peek();
+
+  if (nextStr !== prevSearch) {
+    ui.loading.set(true);
     try {
-      await trigger(search);
+      await trigger(
+        nextStr,
+        selectedPagesUids.map((item) => item.id)
+      );
     } catch (e) {
       console.log(e, " ---");
       ui.loading.set(false);
     }
+  }
+});
+
+const dispose = observe(async () => {
+  const search = query.search.peek().trim();
+  const selectedPagesUids = ui.pages.selected.get();
+
+  ui.loading.set(true);
+
+  try {
+    await trigger(
+      search,
+      selectedPagesUids.map((item) => item.id)
+    );
+  } catch (e) {
+    console.log(e, " ---");
+    ui.loading.set(false);
   }
 });
 
@@ -249,14 +271,12 @@ const disposeUiResult = observe(async () => {
   if (ui.conditions.onlyPage.get()) {
     uiResult = uiResult.filter((item) => item.isPage);
   }
-  const selectedPagesUids = ui.pages.selected.get();
-  if (selectedPagesUids.length) {
-    // const resultPages = getPageUidsFromUids(uiResult.map((item) => item.id));
-
-    // uiResult = uiResult.filter((item) => {
-    //   return selectedPagesUids.some((id) => id === item.id);
-    // });
-  }
+  // uiResult.filter( item => item.isPage)
+  // const resultPages = getPageUidsFromUids(uiResult.map((item) => item.id));
+  // 只有选中的 page 才出现.
+  // uiResult = uiResult.filter((item) => {
+  //   return selectedPagesUids.some((id) => id === item.id);
+  // });
   const modificationDate = query.modificationDate.get();
   const creationDate = query.creationDate.get();
 
@@ -284,7 +304,7 @@ const disposeUiResult = observe(async () => {
     });
   }
 
-  if (ui.sort.selected.get()) {
+  if (ui.sort.selected.get() !== 0) {
     const sortFns = [
       () => 0,
       (a: ResultItem, b: ResultItem) => {
@@ -301,6 +321,7 @@ const disposeUiResult = observe(async () => {
       },
     ];
     uiResult = uiResult.sort(sortFns[ui.sort.selected.get()]);
+    console.log("sorted-");
   }
 
   ui.list.set(uiResult);
@@ -312,26 +333,40 @@ const disposeUiResultSort = observe(() => {
 
 const disposeUiSelectablePages = observe(() => {
   const list = ui.result.get();
-
+  const pages = list
+    .filter((item) => item.isPage)
+    .map((item) => ({
+      id: item.id,
+      text: item.text as string,
+    }));
   const pageBlocks = pull_many(
-    getPageUidsFromUids(list.map((item) => item.id))
+    getPageUidsFromUids(
+      list.filter((item) => !item.isPage).map((item) => item.id)
+    )
   );
-  ui.pages.items.set([
-    ...list
-      .filter((item) => item.isPage)
-      .map((item) => ({
-        id: item.id,
-        text: item.text as string,
+
+  // console.log(
+  //   [...pages,
+  //   ...pageBlocks.map((item) => ({
+  //     id: item[":block/uid"],
+  //     text: item[":node/title"],
+  //   }))].filter(item => item.text),
+  //   " ----"
+  // );
+  ui.pages.items.set(
+    [
+      ...pages,
+      ...pageBlocks.map((item) => ({
+        id: item[":block/uid"],
+        text: item[":node/title"],
       })),
-    ...pageBlocks.map((item) => ({
-      id: item[":block/uid"],
-      text: item[":node/title"],
-    })),
-  ].filter( item => item.text));
+    ].filter((item) => item.text)
+  );
 });
 
 extension_helper.on_uninstall(() => {
   dispose();
+  disposeSearch();
   disposeUiResult();
   disposeUiResultSort();
   disposeUiSelectablePages();
@@ -535,13 +570,13 @@ export const store = {
     changeTags(tags: string[]) {
       ui.tags.set(tags);
     },
-    changeSelectedPages(id: string) {
+    changeSelectedPages(obj: { id: string; text: string }) {
       const selected = ui.pages.selected.peek();
-      const index = selected.findIndex((item) => item === id);
+      const index = selected.findIndex((item) => item.id === obj.id);
       if (index > -1) {
         ui.pages.selected.splice(index, 1);
       } else {
-        ui.pages.selected.push(id);
+        ui.pages.selected.push(obj);
       }
     },
     setHeight(vHeight: number) {
@@ -636,17 +671,18 @@ export const store = {
       get() {
         // const selected = ui.pages.selected.get();
 
-        return ui.pages.items.get();
+        // return ui.pages.items.get();
+        return getAllPages().map(item => ({
+          id: item[":block/uid"],
+          text: item[":node/title"]
+        }))
         // .filter((item) => !selected.some((id) => id === item.id));
       },
       isSelected(id: string) {
-        return ui.pages.selected.get().findIndex((item) => item === id) > -1;
+        return ui.pages.selected.get().findIndex((item) => item.id === id) > -1;
       },
       getSelected() {
-        const selectedIds = ui.pages.selected.get();
-        return ui.pages.items
-          .get()
-          .filter((item) => selectedIds.some((id) => id === item.id));
+        return ui.pages.selected.get();
       },
     },
     result: {
@@ -680,6 +716,7 @@ export const store = {
 };
 
 renewCache();
+renewAllPages();
 ui.visible.onChange((next) => {
   const el = document.querySelector("." + CONSTNATS.el);
   if (!next) {
@@ -687,6 +724,7 @@ ui.visible.onChange((next) => {
   } else {
     el.classList.remove("invisible");
     renewCache();
+    renewAllPages()
   }
 });
 ui.open.onChange((next) => {

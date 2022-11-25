@@ -4,6 +4,13 @@ import { getBlocksContainsStr } from "./roam";
 
 let conditionRule = "";
 
+const ancestorrule = `[ 
+   [ (ancestor ?child ?parent) 
+        [?parent :block/children ?child] ]
+   [ (ancestor ?child ?a) 
+        [?parent :block/children ?child ] 
+        (ancestor ?parent ?a) ] ] ]`;
+
 const getParentsInfoOfBlockUid = (uid: string) => {
   const result = window.roamAlphaAPI.data.fast
     .q(
@@ -21,6 +28,7 @@ export const Query = (config: {
   search: string[];
   modificationDate?: SelectDate;
   creationDate?: SelectDate;
+  uids?: string[];
 }) => {
   console.time("SSSS");
 
@@ -86,28 +94,44 @@ export const Query = (config: {
     };
   }
 
-  const ancestorrule = `[ 
-   [ (ancestor ?child ?parent) 
-        [?parent :block/children ?child] ]
-   [ (ancestor ?child ?a) 
-        [?parent :block/children ?child ] 
-        (ancestor ?parent ?a) ] ] ]`;
-
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
+    console.log(config.uids, "----");
     return keywords.reduce((p, c, index) => {
-      const r = window.roamAlphaAPI.data.fast.q(
+      let queryArgs = [
         `
         [
             :find  [?uid ...]
-            :in $ %
+            :in $ 
             :where
-                
+
                 [?b :block/string ?s]
                 [?b :block/uid ?uid]
                 [(clojure.string/includes? ?s  "${c}")]
         ]
       `,
-        conditionRule
+      ] as [string , string[]] | [string];
+      if (config.uids?.length) {
+        queryArgs = [
+          `
+        [
+            :find  [?uid ...]
+            :in $ [?page ...]
+            :where
+                [?b :block/page ?p]
+                [?p :block/uid ?page]
+                [?b :block/string ?s]
+                [?b :block/uid ?uid]
+                [(clojure.string/includes? ?s  "${c}")]
+        ]
+      `,
+          config.uids,
+        ];
+      }
+      console.log(config.uids, queryArgs, " ----------");
+
+      const r = window.roamAlphaAPI.data.fast.q.apply(
+        null,
+        queryArgs
       ) as unknown as string[];
       if (index === 0) {
         return r;
@@ -155,13 +179,16 @@ export const Query = (config: {
   }
 
   function* findAllRelatedPages(keywords: string[]) {
+    if (config.uids && config.uids.length) {
+      return config.uids;
+    }
     let pages: string[];
     for (let keyword of keywords) {
       const result = window.roamAlphaAPI.data.fast.q(
         `
         [
             :find [?uid ...]
-            :in $ %
+            :in $ % [?page ...]
             :where
                 [?b :block/string ?s]
                 [?b :block/parents ?p]
@@ -259,7 +286,10 @@ export const Query = (config: {
 
   function* findAllRelatedPageUids(keywords: string[]) {
     let result: string[];
-
+    // TODO: 优化流程处理
+    if (config.uids.length) {
+      return config.uids
+    }
     for (let c of keywords) {
       if (result === undefined) {
         result = window.roamAlphaAPI.data.q(

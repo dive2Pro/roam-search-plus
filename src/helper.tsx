@@ -17,15 +17,15 @@ export const extension_helper = {
   },
 };
 
-export const debounce = <T, R>(cb: (t: T) => R, ms = 500) => {
+export const debounce = <T, R>(cb: (...t: T[]) => R, ms = 500) => {
   let timeout: any;
-  return (t?: T) => {
+  return (...t: T[]) => {
     return new Promise<R>((resolve) => {
       if (timeout) {
         clearTimeout(timeout);
       }
       timeout = setTimeout(() => {
-        resolve(cb.call(null, t));
+        resolve(cb.apply(null, t));
         timeout = null;
       }, ms);
     });

@@ -106,6 +106,7 @@ export const Sidebar = observer(() => {
             {store.ui.pages.getSelected().map((item) => {
               return (
                 <Button
+                  key={item.id}
                   minimal
                   icon="calendar"
                   fill
@@ -113,7 +114,7 @@ export const Sidebar = observer(() => {
                   rightIcon={
                     <Icon
                       onClick={() => {
-                        store.actions.changeSelectedPages(item.id);
+                        store.actions.changeSelectedPages(item);
                       }}
                       icon="small-cross"
                     />
@@ -124,7 +125,7 @@ export const Sidebar = observer(() => {
               );
             })}
 
-            <SelectPages text="Add Page" />
+            <SelectPages text="Add page" />
           </div>
         )}
         {store.ui.date.lastEdit() ? (
@@ -211,7 +212,7 @@ export const Sidebar = observer(() => {
   );
 });
 
-function SelectPages(props: { text: string }) {
+const SelectPages = observer((props: { text: string }) => {
   return (
     <Select
       items={store.ui.pages.get()}
@@ -219,7 +220,7 @@ function SelectPages(props: { text: string }) {
         return item.text.indexOf(query) > -1;
       }}
       onItemSelect={(item) => {
-        store.actions.changeSelectedPages(item.id);
+        store.actions.changeSelectedPages(item);
       }}
       itemRenderer={(item, itemProps) => {
         return (
@@ -242,4 +243,4 @@ function SelectPages(props: { text: string }) {
       />
     </Select>
   );
-}
+});
