@@ -90,6 +90,10 @@
   margin-top: 5px;
   padding: 5px;
 }
+.result-item-child .bp4-card, .bp3-elevation-0 {
+  box-shadow: unset;
+  background-color: inherit;
+}
 
 .query-history-item:hover .bp3-icon {
   opacity: 1;

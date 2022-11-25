@@ -33,8 +33,13 @@ export const QueryHistory = observer(() => {
   return (
     <div>
       <div>
+              <div>Recently Viewed</div>
+              
+      </div>
+
+      <div>
         <div>
-          <h4 className="bp3-heading">Latest search</h4>
+          <div>Latest search</div>
         </div>
         <div>
           <For each={store.ui.getHistory().search} item={HistoryItem}></For>

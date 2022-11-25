@@ -34,7 +34,7 @@ export type ResultItem = {
 const query = observable({
   creationDate: undefined as SelectDate,
   modificationDate: undefined as SelectDate,
-  search: "wwe",
+  search: "",
   people: [],
   inPages: [],
   result: {
@@ -62,7 +62,7 @@ const ui = observable({
   showSelectedTarget: false,
   conditions: {
     onlyPage: false,
-    includeCode: false,
+    includeCode: true,
     inPages: [] as string[], // 可选页面
   },
   copySelectedTarget,
@@ -208,7 +208,7 @@ const disposeSearch = query.search.onChange(async (next) => {
   const selectedPagesUids = ui.pages.selected.peek();
 
   if (nextStr !== prevSearch) {
-    ui.loading.set(true);
+    ui.loading.set(!!nextStr);
     try {
       await trigger(
         nextStr,
@@ -225,7 +225,7 @@ const dispose = observe(async () => {
   const search = query.search.peek().trim();
   const selectedPagesUids = ui.pages.selected.get();
 
-  ui.loading.set(true);
+  ui.loading.set(!!search);
 
   try {
     await trigger(
@@ -304,25 +304,23 @@ const disposeUiResult = observe(async () => {
     });
   }
 
-  if (ui.sort.selected.get() !== 0) {
-    const sortFns = [
-      () => 0,
-      (a: ResultItem, b: ResultItem) => {
-        return b.editTime - a.editTime;
-      },
-      (a: ResultItem, b: ResultItem) => {
-        return a.editTime - b.editTime;
-      },
-      (a: ResultItem, b: ResultItem) => {
-        return b.createTime - a.createTime;
-      },
-      (a: ResultItem, b: ResultItem) => {
-        return a.createTime - b.createTime;
-      },
-    ];
-    uiResult = uiResult.sort(sortFns[ui.sort.selected.get()]);
-    console.log("sorted-");
-  }
+  const sortFns = [
+    () => 0,
+    (a: ResultItem, b: ResultItem) => {
+      return b.editTime - a.editTime;
+    },
+    (a: ResultItem, b: ResultItem) => {
+      return a.editTime - b.editTime;
+    },
+    (a: ResultItem, b: ResultItem) => {
+      return b.createTime - a.createTime;
+    },
+    (a: ResultItem, b: ResultItem) => {
+      return a.createTime - b.createTime;
+    },
+  ];
+  uiResult = uiResult.slice().sort(sortFns[ui.sort.selected.get()]);
+  // console.log("sorted-", uiResult);
 
   ui.list.set(uiResult);
 });
@@ -672,10 +670,10 @@ export const store = {
         // const selected = ui.pages.selected.get();
 
         // return ui.pages.items.get();
-        return getAllPages().map(item => ({
+        return getAllPages().map((item) => ({
           id: item[":block/uid"],
-          text: item[":node/title"]
-        }))
+          text: item[":node/title"],
+        }));
         // .filter((item) => !selected.some((id) => id === item.id));
       },
       isSelected(id: string) {
@@ -724,7 +722,7 @@ ui.visible.onChange((next) => {
   } else {
     el.classList.remove("invisible");
     renewCache();
-    renewAllPages()
+    renewAllPages();
   }
 });
 ui.open.onChange((next) => {

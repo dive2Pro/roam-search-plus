@@ -56,7 +56,7 @@ export const Sidebar = observer(() => {
     >
       <div>
         <Switch
-          label="Only Page Title"
+          label="Only page"
           onChange={(e) => {
             store.actions.conditions.toggleOnlyPage();
           }}
@@ -64,7 +64,7 @@ export const Sidebar = observer(() => {
           alignIndicator="right"
         />
         <Switch
-          label="Include Code Blocks"
+          label="Include code blocks"
           onChange={(e) => {
             store.actions.conditions.toggleIncludeCodeblock();
           }}

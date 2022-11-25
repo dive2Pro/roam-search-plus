@@ -9,4 +9,5 @@
 - [ ] user involve
 - [ ] RegExp search
 - [ ] Most ref pages;
-- [ ] 
+- [ ] reset inputs
+- [ ] history
