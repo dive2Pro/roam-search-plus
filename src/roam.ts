@@ -90,3 +90,20 @@ export const getBlocksContainsStr = (s: string) => {
   saveToCache(s, result);
   return result;
 };
+
+export const getPageUidsFromUids = (uids: string[]) => {
+  return window.roamAlphaAPI.q(
+    `
+        [
+            :find [?e ...]
+            :in $ [?uid ...]
+            :where
+                [?b :block/uid ?uid]
+                [?b :block/page ?p]
+                [?p :block/uid ?e]
+        ]
+        
+    `,
+    uids
+  ) as unknown as string[];
+};

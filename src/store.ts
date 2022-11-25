@@ -12,7 +12,11 @@ import {
   pull_many,
 } from "./helper";
 import { Query } from "./query";
-import { getParentsStrFromBlockUid, renewCache } from "./roam";
+import {
+  getPageUidsFromUids,
+  getParentsStrFromBlockUid,
+  renewCache,
+} from "./roam";
 
 export type ResultItem = {
   id: string;
@@ -245,7 +249,14 @@ const disposeUiResult = observe(async () => {
   if (ui.conditions.onlyPage.get()) {
     uiResult = uiResult.filter((item) => item.isPage);
   }
+  const selectedPagesUids = ui.pages.selected.get();
+  if (selectedPagesUids.length) {
+    // const resultPages = getPageUidsFromUids(uiResult.map((item) => item.id));
 
+    // uiResult = uiResult.filter((item) => {
+    //   return selectedPagesUids.some((id) => id === item.id);
+    // });
+  }
   const modificationDate = query.modificationDate.get();
   const creationDate = query.creationDate.get();
 
@@ -301,28 +312,22 @@ const disposeUiResultSort = observe(() => {
 
 const disposeUiSelectablePages = observe(() => {
   const list = ui.result.get();
+
   const pageBlocks = pull_many(
-    window.roamAlphaAPI.q(
-      `
-        [
-            :find [?e ...]
-            :in $ [?uid ...]
-            :where
-                [?b :block/uid ?uid]
-                [?b :block/page ?p]
-                [?p :block/uid ?e]
-        ]
-        
-    `,
-      list.map((item) => item.id)
-    ) as unknown as string[]
+    getPageUidsFromUids(list.map((item) => item.id))
   );
-  ui.pages.items.set(
-    pageBlocks.map((item) => ({
+  ui.pages.items.set([
+    ...list
+      .filter((item) => item.isPage)
+      .map((item) => ({
+        id: item.id,
+        text: item.text as string,
+      })),
+    ...pageBlocks.map((item) => ({
       id: item[":block/uid"],
       text: item[":node/title"],
-    }))
-  );
+    })),
+  ]);
 });
 
 extension_helper.on_uninstall(() => {
