@@ -630,13 +630,13 @@ ui.visible.onChange((next) => {
     el.classList.add("invisible");
   } else {
     el.classList.remove("invisible");
+    renewCache();
   }
 });
 ui.open.onChange((next) => {
   if (next !== true) {
     // query.search.set("");
   } else {
-    renewCache();
   }
 });
 

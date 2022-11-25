@@ -1,5 +1,6 @@
 import { PullBlock } from "roamjs-components/types";
 import { debounce, getDiff, getSame, pull, pull_many } from "./helper";
+import { getBlocksContainsStr } from "./roam";
 
 let conditionRule = "";
 
@@ -22,8 +23,6 @@ export const Query = (config: {
   creationDate?: SelectDate;
 }) => {
   console.time("SSSS");
-  const { search } = config;
-  const ary = search
 
   conditionRule = `
       [
@@ -87,22 +86,6 @@ export const Query = (config: {
     };
   }
 
-  const conditionRuleQuery = (uids: string[]) => {
-    console.log("q-", uids);
-    return window.roamAlphaAPI.data.fast.q(
-      `
-    [
-      :find ?uid
-      :in $ % [?uid ...]
-      :where
-        [?b :block/uid ?uid]
-        
-    ]
-  `,
-      conditionRule,
-      uids
-    );
-  };
   const ancestorrule = `[ 
    [ (ancestor ?child ?parent) 
         [?parent :block/children ?child] ]
@@ -191,7 +174,6 @@ export const Query = (config: {
         conditionRule
       ) as unknown as string[];
       yield result;
-      console.log("key word", keyword);
       if (pages === undefined) {
         pages = result;
       } else {
@@ -228,7 +210,8 @@ export const Query = (config: {
       :find ?pid ?uid
       :in $ [?uid ...] %
       :where
-        [?page :node/title ?pid]
+        [?page :node/title ?e]
+        [?page :block/uid ?pid]
         [?b :block/uid ?uid]
         (ancestor ?b ?page)
     ]
@@ -244,12 +227,14 @@ export const Query = (config: {
       }
       return p;
     }, new Map<string, string[]>());
-    const result: { page: PullBlock; children: PullBlock[] }[] = [];
+    const result: { page: string; children: string[] }[] = [];
     for (let item of mapped) {
       const [key, values] = item;
       result.push({
-        page: pull(key),
-        children: pull_many(values),
+        // page: pull(key),
+        page: key,
+        // children: pull_many(values),
+        children: values,
       });
       yield key;
     }
@@ -265,7 +250,10 @@ export const Query = (config: {
     console.log("find low");
     return [
       topLevelBlocks,
-      await allRelatedGenerator(keywords, topLevelBlocks),
+      (await allRelatedGenerator(keywords, topLevelBlocks)) as {
+        page: string;
+        children: string[];
+      }[],
     ] as const;
   };
 
@@ -309,34 +297,45 @@ export const Query = (config: {
     }
     return result;
   }
+  const { search } = config;
+  // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
+  const ary = search;
   console.log(search.length, config, "rule =", conditionRule, " startting ");
   const allRelatedPageUidsGenerator = timeSlice_(findAllRelatedPageUids);
   const promise = Promise.all([
     allRelatedPageUidsGenerator(ary),
     findAllRelatedBlocks(ary),
   ]);
-  console.log("end!!!!!!");
-  console.timeEnd("SSSS");
 
   return {
-    promise: promise.then(([pageUids, [topLevelBlocks, lowLevelBlocks]]) => {
-      const pageBlocks = pull_many(pageUids);
+    promise: promise.then(
+      ([pageUids, [topLevelBlocks, lowLevelBlocks = []]]) => {
+        const result = [
+          pull_many(pageUids),
+          // pageUids,
+          pull_many(topLevelBlocks),
+          // topLevelBlocks,
+          //   .map((item) => {
+          //   return {
+          //     ...item,
+          //     parents: getParentsInfoOfBlockUid(item[":block/uid"]),
+          //   };
+          // }),
+          lowLevelBlocks.map((item) => {
+            return {
+              page: pull(item.page),
+              children: pull_many(item.children),
+            };
+          }),
 
-      return [
-        pageBlocks,
-        pull_many(topLevelBlocks),
-        //   .map((item) => {
-        //   return {
-        //     ...item,
-        //     parents: getParentsInfoOfBlockUid(item[":block/uid"]),
-        //   };
-        // }),
-        lowLevelBlocks as unknown as {
-          page: PullBlock,
-          children: PullBlock[]
-        }[],
-      ] as const;
-    }),
+          // lowLevelBlocks,
+        ] as const;
+        console.log("end!!!!!!");
+        console.timeEnd("SSSS");
+
+        return result;
+      }
+    ),
     cancel: () => {
       cancelRef.current = true;
     },
