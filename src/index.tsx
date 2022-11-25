@@ -1,5 +1,5 @@
 import "./styles.css";
-import App from "./App";
+import App from "./components/App";
 import { CONSTNATS, extension_helper } from "./helper";
 import ReactDOM from "react-dom";
 import { store } from "./store";

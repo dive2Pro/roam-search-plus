@@ -13,7 +13,7 @@ import {
   Card,
 } from "@blueprintjs/core";
 import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
-import { store, ResultItem } from "./store";
+import { store, ResultItem } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
 import React, {
   FC,
@@ -24,7 +24,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { highlightText } from "./helper";
+import { highlightText } from "../helper";
 import { Virtuoso } from "react-virtuoso";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
