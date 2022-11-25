@@ -1,6 +1,5 @@
-
 .result-highlight {
-  color: #CD4246;
+  color: #cd4246;
   /* margin: -2px; */
   /* padding: 2px; */
 }
@@ -58,6 +57,7 @@
 }
 .result-breadcrumbs {
   flex-wrap: wrap;
+  margin-bottom: 5px;
 }
 .result-breadcrumbs span {
   white-space: pre;
@@ -71,6 +71,24 @@
   padding: 4px;
   justify-content: flex-start;
   width: 100%;
+  display: flex;
+  cursor: pointer;
+}
+
+.result-item-container:hover {
+  background: rgba(167, 182, 194, 0.3);
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+.result-item-content {
+  overflow: auto;
+}
+
+.result-item-child {
+  margin-top: 5px;
+  padding: 5px;
 }
 
 .query-history-item:hover .bp3-icon {
@@ -87,7 +105,7 @@
 }
 
 .advanced-search-el {
-  transition: opacity 0.25s  cubic-bezier(0.075, 0.82, 0.165, 1) ;
+  transition: opacity 0.25s cubic-bezier(0.075, 0.82, 0.165, 1);
 }
 
 .search-block-item .bp3-breadcrumb {
@@ -139,12 +157,11 @@
   color: #999;
 }
 
-
 .result-item-container .date-fromnow {
   display: inline-block;
 }
 
-.result-item-container .date-common{
+.result-item-container .date-common {
   display: none;
 }
 
@@ -172,31 +189,43 @@
   -webkit-animation-name: rotate;
   -webkit-animation-iteration-count: infinite;
   -webkit-animation-timing-function: linear;
-  
+
   -moz-transition-property: -moz-transform;
-  -moz-animation-name: rotate; 
-  -moz-animation-duration: 1.2s; 
+  -moz-animation-name: rotate;
+  -moz-animation-duration: 1.2s;
   -moz-animation-iteration-count: infinite;
   -moz-animation-timing-function: linear;
-  
+
   transition-property: transform;
-  animation-name: rotate; 
-  animation-duration: 1.2s; 
+  animation-name: rotate;
+  animation-duration: 1.2s;
   animation-iteration-count: infinite;
   animation-timing-function: linear;
 }
 
 @-webkit-keyframes rotate {
-    from {-webkit-transform: rotate(0deg);}
-    to {-webkit-transform: rotate(360deg);}
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(360deg);
+  }
 }
 
 @-moz-keyframes rotate {
-    from {-moz-transform: rotate(0deg);}
-    to {-moz-transform: rotate(360deg);}
+  from {
+    -moz-transform: rotate(0deg);
+  }
+  to {
+    -moz-transform: rotate(360deg);
+  }
 }
 
 @keyframes rotate {
-    from {transform: rotate(0deg);}
-    to {transform: rotate(360deg);}
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

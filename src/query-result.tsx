@@ -10,6 +10,7 @@ import {
   Divider,
   Checkbox,
   Classes,
+  Card,
 } from "@blueprintjs/core";
 import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "./store";
@@ -94,20 +95,19 @@ const Row = observer((props: { item: ResultItem }) => {
   if (props.item.isPage) {
     content = (
       <div>
-        {text}
+        <div className="result-item-content">{text}</div>
         {children.map((child) => {
           return (
-            <Button
-              minimal
-              small
+            <Card
+              interactive
               onClick={(e) => handlerClick(e, child)}
-              icon={<Icon icon="symbol-circle" size={10} />}
-              text={
-                <>
-                  <div>{child.text}</div>
-                </>
-              }
-            ></Button>
+              className="result-item-child"
+            >
+              <div className="flex-row">
+                <Icon icon="symbol-circle" size={10} />
+                <div className="result-item-content" style={{ marginLeft: 10}}>{child.text}</div>
+              </div>
+            </Card>
           );
         })}
       </div>
@@ -131,18 +131,17 @@ const Row = observer((props: { item: ResultItem }) => {
             );
           })}
         </div>
-        {text}
+        <div className="result-item-content">{text}</div>
       </>
     );
   }
   return (
-    <>
-      <Button
-        className="result-item-container"
-        onClick={(e) => handlerClick(e, props.item)}
-        minimal
-        icon={props.item.isPage ? "application" : "paragraph"}
-      >
+    <section
+      className="result-item-container"
+      onClick={(e) => handlerClick(e, props.item)}
+    >
+      <Icon icon={props.item.isPage ? "application" : "paragraph"}></Icon>
+      <div style={{ width: "100%", marginLeft: 10 }}>
         {content}
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
           <span className="date date-fromnow">
@@ -152,9 +151,8 @@ const Row = observer((props: { item: ResultItem }) => {
             {dayjs(props.item.editTime).format("HH:mm MMM DD, YYYY")}
           </span>
         </div>
-      </Button>
-      <Divider />
-    </>
+      </div>
+    </section>
   );
 });
 

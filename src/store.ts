@@ -42,8 +42,8 @@ const copySelectedTarget = observable([] as ResultItem[]);
 const MIN = 450;
 
 const ui = observable({
-  open: false,
-  visible: false,
+  open: true,
+  visible: true,
 
   multiple: false,
   selectedTarget: [] as ResultItem[],
