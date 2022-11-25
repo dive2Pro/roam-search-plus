@@ -1,29 +1,8 @@
-import {
-  MenuItem,
-  Menu,
-  Boundary,
-  Breadcrumbs,
-  CollapsibleList,
-  OverflowList,
-  Button,
-  Icon,
-  Divider,
-  Checkbox,
-  Classes,
-  Card,
-} from "@blueprintjs/core";
-import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
+import { Icon, Checkbox, Classes, Card } from "@blueprintjs/core";
+import { For, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
-import React, {
-  FC,
-  ReactElement,
-  ReactNode,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import { highlightText } from "../helper";
 import { Virtuoso } from "react-virtuoso";
 import dayjs from "dayjs";
@@ -105,7 +84,9 @@ const Row = observer((props: { item: ResultItem }) => {
             >
               <div className="flex-row">
                 <Icon icon="symbol-circle" size={10} />
-                <div className="result-item-content" style={{ marginLeft: 10}}>{child.text}</div>
+                <div className="result-item-content" style={{ marginLeft: 10 }}>
+                  {child.text}
+                </div>
               </div>
             </Card>
           );

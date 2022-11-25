@@ -1,10 +1,26 @@
-import { Switch, Popover, Position, Classes, Button, Icon, Intent } from "@blueprintjs/core";
+import { Switch, Popover, Position, Classes, Button, Icon, Intent, MenuItem, MenuItemProps } from "@blueprintjs/core";
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select } from "@blueprintjs/select";
 import { observable } from "@legendapp/state";
 import { observer } from "@legendapp/state/react";
 import { MOMENT_FORMATS } from "../moment";
 import { store } from "../store";
+
+
+function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
+  return (
+    <MenuItem
+      {...props}
+      {...(props.selected
+        ? {
+            icon: "blank",
+          }
+        : {
+            icon: "blank",
+          })}
+    />
+  );
+}
 
 
 const sidebarStore = observable({

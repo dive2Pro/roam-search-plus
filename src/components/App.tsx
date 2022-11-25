@@ -4,48 +4,20 @@ import {
   Dialog,
   Classes,
   Divider,
-  Overlay,
-  Switch,
-  Checkbox,
   Menu,
   Popover,
   Position,
   MenuItem,
   Icon,
-  Tooltip,
-  ControlGroup,
-  TagInput,
-  Label,
-  Intent,
-  MenuItemProps,
   ButtonGroup,
 } from "@blueprintjs/core";
 
-import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
-import { ItemRenderer, MultiSelect, Select } from "@blueprintjs/select";
 import { store } from "../store";
-import { For, enableLegendStateReact, observer } from "@legendapp/state/react";
-import { MOMENT_FORMATS } from "../moment";
-import { observable, ObservableObject } from "@legendapp/state";
-import { ListContainer, QueryResult } from "./query-result";
+import { enableLegendStateReact, observer } from "@legendapp/state/react";
+import { ListContainer } from "./query-result";
 import { Sidebar } from "./sidebar";
 import { QueryHistory } from "./history-result";
 enableLegendStateReact();
-
-function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
-  return (
-    <MenuItem
-      {...props}
-      {...(props.selected
-        ? {
-            icon: "blank",
-          }
-        : {
-            icon: "blank",
-          })}
-    />
-  );
-}
 
 function _App() {
   return (
