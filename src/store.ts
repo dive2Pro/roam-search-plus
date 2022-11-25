@@ -327,7 +327,7 @@ const disposeUiSelectablePages = observe(() => {
       id: item[":block/uid"],
       text: item[":node/title"],
     })),
-  ]);
+  ].filter( item => item.text));
 });
 
 extension_helper.on_uninstall(() => {
