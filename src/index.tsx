@@ -6,7 +6,7 @@ import { store } from "./store";
 
 const initListener = () => {
   const handler = (e: KeyboardEvent) => {
-    console.log(e.code, ' = code')
+    // console.log(e.code, ' = code')
     if (e.shiftKey && e.ctrlKey && e.code === 'KeyP') {
       store.actions.toggleDialog()
     }

@@ -1,2 +1,10 @@
 # roam-advanced-search
-Created with CodeSandbox
+
+
+# TODO
+
+- [ ] multiple choice
+- [ ] tags involve
+- [ ] pages involve
+- [ ] user involve
+- [ ] RegExp search

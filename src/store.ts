@@ -4,7 +4,13 @@ import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
 import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
-import { CONSTNATS, debounce, extension_helper } from "./helper";
+import {
+  CONSTNATS,
+  debounce,
+  extension_helper,
+  getDiff,
+  pull_many,
+} from "./helper";
 import { Query } from "./query";
 import { getParentsStrFromBlockUid, renewCache } from "./roam";
 
@@ -51,6 +57,7 @@ const ui = observable({
   conditions: {
     onlyPage: false,
     includeCode: false,
+    inPages: [] as string[], // 可选页面
   },
   copySelectedTarget,
   previewSelected: false,
@@ -77,7 +84,10 @@ const ui = observable({
   tags: [] as string[],
   pages: {
     selected: [] as string[],
-    items: [] as string[],
+    items: [] as {
+      id: string;
+      text: string;
+    }[],
   },
   result: [] as ResultItem[],
   loading: false,
@@ -289,10 +299,37 @@ const disposeUiResultSort = observe(() => {
   // TODO:
 });
 
+const disposeUiSelectablePages = observe(() => {
+  const list = ui.result.get();
+  const pageBlocks = pull_many(
+    window.roamAlphaAPI.q(
+      `
+        [
+            :find [?e ...]
+            :in $ [?uid ...]
+            :where
+                [?b :block/uid ?uid]
+                [?b :block/page ?p]
+                [?p :block/uid ?e]
+        ]
+        
+    `,
+      list.map((item) => item.id)
+    ) as unknown as string[]
+  );
+  ui.pages.items.set(
+    pageBlocks.map((item) => ({
+      id: item[":block/uid"],
+      text: item[":node/title"],
+    }))
+  );
+});
+
 extension_helper.on_uninstall(() => {
   dispose();
   disposeUiResult();
   disposeUiResultSort();
+  disposeUiSelectablePages();
 });
 
 export const store = {
@@ -493,8 +530,14 @@ export const store = {
     changeTags(tags: string[]) {
       ui.tags.set(tags);
     },
-    changeSelectedPages(pages: string[]) {
-      ui.pages.selected.set(pages);
+    changeSelectedPages(id: string) {
+      const selected = ui.pages.selected.peek();
+      const index = selected.findIndex((item) => item === id);
+      if (index > -1) {
+        ui.pages.selected.splice(index, 1);
+      } else {
+        ui.pages.selected.push(id);
+      }
     },
     setHeight(vHeight: number) {
       const windowHeight = document.body.getBoundingClientRect().height;
@@ -506,7 +549,6 @@ export const store = {
   ui: {
     isOpen() {
       return ui.open.get();
-      // return true;
     },
     getSearch() {
       return query.search.get();
@@ -587,10 +629,19 @@ export const store = {
     },
     pages: {
       get() {
+        // const selected = ui.pages.selected.get();
+
         return ui.pages.items.get();
+        // .filter((item) => !selected.some((id) => id === item.id));
       },
-      isSelected(text: string) {
-        return ui.pages.selected.get().indexOf(text) > -1;
+      isSelected(id: string) {
+        return ui.pages.selected.get().findIndex((item) => item === id) > -1;
+      },
+      getSelected() {
+        const selectedIds = ui.pages.selected.get();
+        return ui.pages.items
+          .get()
+          .filter((item) => selectedIds.some((id) => id === item.id));
       },
     },
     result: {

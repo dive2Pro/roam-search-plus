@@ -229,3 +229,12 @@
     transform: rotate(360deg);
   }
 }
+
+
+.sidebar {
+  color: var(--c2);
+}
+
+.sidebar-title {
+  margin: 10px 0;
+}

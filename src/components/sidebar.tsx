@@ -1,4 +1,14 @@
-import { Switch, Popover, Position, Classes, Button, Icon, Intent, MenuItem, MenuItemProps } from "@blueprintjs/core";
+import {
+  Switch,
+  Popover,
+  Position,
+  Classes,
+  Button,
+  Icon,
+  Intent,
+  MenuItem,
+  MenuItemProps,
+} from "@blueprintjs/core";
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select } from "@blueprintjs/select";
 import { observable } from "@legendapp/state";
@@ -6,22 +16,18 @@ import { observer } from "@legendapp/state/react";
 import { MOMENT_FORMATS } from "../moment";
 import { store } from "../store";
 
-
 function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
   return (
     <MenuItem
       {...props}
       {...(props.selected
         ? {
-            icon: "blank",
+            icon: "small-tick",
           }
-        : {
-            icon: "blank",
-          })}
+        : {})}
     />
   );
 }
-
 
 const sidebarStore = observable({
   date: {
@@ -37,7 +43,6 @@ const INTENTS = [
   Intent.WARNING,
 ];
 
-
 export const Sidebar = observer(() => {
   return (
     <section
@@ -47,6 +52,7 @@ export const Sidebar = observer(() => {
         padding: 10,
         display: store.ui.isTyped() ? "block" : "none",
       }}
+      className="sidebar"
     >
       <div>
         <Switch
@@ -94,12 +100,36 @@ export const Sidebar = observer(() => {
             }
           />
         </div> */}
-        <div>
-          <div className="bp3-heading">Pages</div>
-        </div>
+        {store.ui.pages.getSelected().length === 0 ? null : (
+          <div>
+            <div className="sidebar-title bp3-button-text">Search in pages</div>
+            {store.ui.pages.getSelected().map((item) => {
+              return (
+                <Button
+                  minimal
+                  icon="calendar"
+                  fill
+                  alignText="left"
+                  rightIcon={
+                    <Icon
+                      onClick={() => {
+                        store.actions.changeSelectedPages(item.id);
+                      }}
+                      icon="small-cross"
+                    />
+                  }
+                >
+                  {item.text}
+                </Button>
+              );
+            })}
+
+            <SelectPages text="Add Page" />
+          </div>
+        )}
         {store.ui.date.lastEdit() ? (
           <div>
-            <div className="bp3-heading">Latest Edit</div>
+            <div className="sidebar-title bp3-button-text">Latest Edit</div>
             <Popover
               position={Position.BOTTOM}
               content={
@@ -115,6 +145,8 @@ export const Sidebar = observer(() => {
               <Button
                 minimal
                 icon="calendar"
+                fill
+                alignText="left"
                 rightIcon={
                   <Icon
                     onClick={() => {
@@ -129,7 +161,7 @@ export const Sidebar = observer(() => {
             </Popover>
           </div>
         ) : null}
-        <div className="bp3-heading">Quick Search</div>
+        <div className="sidebar-title bp3-button-text">Quick Search</div>
         <Button minimal icon="person">
           Created By Me
         </Button>
@@ -143,7 +175,7 @@ export const Sidebar = observer(() => {
           Search in current page
         </Button>
 
-        <div className="bp3-heading">Custom Search</div>
+        <div className="sidebar-title bp3-button-text">Custom Search</div>
         {store.ui.date.lastEdit() ? null : (
           <Popover
             position={Position.BOTTOM}
@@ -166,39 +198,48 @@ export const Sidebar = observer(() => {
               />
             }
           >
-            <Button minimal icon="calendar">
+            <Button minimal fill alignText="left" icon="calendar">
               Modifyied date
             </Button>
           </Popover>
         )}
-        <Select
-          // selectedItems={store.ui.pages.get()}
-          items={["q", "w"]}
-          // tagRenderer={(item) => {
-          //   return `[[${item}]]`;
-          // }}
-          itemPredicate={(query, item, index) => {
-            return item.indexOf(query) > -1;
-          }}
-          onItemSelect={(item) => {
-            console.log(item, " =item");
-            store.actions.changeSelectedPages([...store.ui.pages.get(), item]);
-          }}
-          itemRenderer={(item, itemProps) => {
-            return (
-              <SelectMenuItem
-                selected={store.ui.pages.isSelected(item)}
-                {...itemProps}
-                onClick={itemProps.handleClick}
-                shouldDismissPopover={false}
-                text={item}
-              />
-            );
-          }}
-        >
-          <Button icon="search-template" text="Search in page" />
-        </Select>
+        {store.ui.pages.getSelected().length > 0 ? null : (
+          <SelectPages text="Search in page" />
+        )}
       </div>
     </section>
   );
 });
+
+function SelectPages(props: { text: string }) {
+  return (
+    <Select
+      items={store.ui.pages.get()}
+      itemPredicate={(query, item, index) => {
+        return item.text.indexOf(query) > -1;
+      }}
+      onItemSelect={(item) => {
+        store.actions.changeSelectedPages(item.id);
+      }}
+      itemRenderer={(item, itemProps) => {
+        return (
+          <SelectMenuItem
+            selected={store.ui.pages.isSelected(item.id)}
+            {...itemProps}
+            onClick={itemProps.handleClick}
+            shouldDismissPopover={false}
+            text={item.text}
+          />
+        );
+      }}
+    >
+      <Button
+        icon="search-template"
+        alignText="left"
+        fill
+        minimal
+        text={props.text}
+      />
+    </Select>
+  );
+}
