@@ -43,7 +43,7 @@ const Row = observer((props: { item: ResultItem }) => {
       if (!search || isLoading) {
         return;
       }
-      console.log("run~~~~~", search, isLoading);
+      // console.log("run~~~~~", search, isLoading);
 
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
@@ -53,9 +53,8 @@ const Row = observer((props: { item: ResultItem }) => {
               return {
                 ...child,
                 text: highlightText(child.text as string, search),
-              }
+              };
             })
-            
           );
         }, 50);
       });
@@ -193,30 +192,23 @@ export const QueryResult = observer(() => {
     Item = Row;
   }
   const list = store.ui.result.list();
-  const [style, setStyle] = useState({});
   useLayoutEffect(() => {
     const el = [...document.querySelectorAll("[data-test-id]")].find(
       (el) => el.getAttribute("data-test-id") === "virtuoso-item-list"
     ) as HTMLElement;
-    const windowHeight = document.body.getBoundingClientRect().height;
-    const MAX = windowHeight - 250;
-    const MIN = 450;
     setTimeout(() => {
       const vHeight = el.getBoundingClientRect().height;
 
-      const height = Math.max(MIN, Math.min(vHeight, MAX));
       // list.length > 20 ? MAX : list.length > 10 ? Math.min(MIN + 200, MAX) : MIN;
       // const height = MAX;
-      setStyle({
-        height,
-        minHeight: height,
-      });
+      console.log(" lahyout effect", vHeight);
+      store.actions.setHeight(vHeight);
     });
   }, [list]);
   return (
     <Virtuoso
       className="infinite-scroll"
-      style={style}
+      style={store.ui.result.getListStyle()}
       totalCount={list.length}
       data={list}
       itemContent={(index, data) => <Item key={data.id} item={data} />}

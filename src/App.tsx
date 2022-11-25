@@ -268,6 +268,7 @@ function _App() {
   return (
     <>
       <Dialog
+        usePortal={false}
         isOpen={store.ui.isOpen()}
         style={{
           paddingBottom: 0,

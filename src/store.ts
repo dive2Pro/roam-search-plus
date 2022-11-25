@@ -4,9 +4,9 @@ import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
 import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
-import { debounce, extension_helper } from "./helper";
+import { CONSTNATS, debounce, extension_helper } from "./helper";
 import { Query } from "./query";
-import { getParentsStrFromBlockUid } from "./roam";
+import { getParentsStrFromBlockUid, renewCache } from "./roam";
 
 export type ResultItem = {
   id: string;
@@ -39,8 +39,12 @@ const query = observable({
 
 const copySelectedTarget = observable([] as ResultItem[]);
 
+const MIN = 450;
+
 const ui = observable({
-  open: true,
+  open: false,
+  visible: false,
+
   multiple: false,
   selectedTarget: [] as ResultItem[],
   showSelectedTarget: false,
@@ -78,6 +82,7 @@ const ui = observable({
   result: [] as ResultItem[],
   loading: false,
   list: [] as ResultItem[],
+  height: MIN,
 });
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
@@ -100,7 +105,7 @@ let cancelPre = () => {};
 const trigger = debounce(async (search: string) => {
   cancelPre();
   if (!search) {
-    return
+    return;
   }
   console.log(search, " start search");
   const queryAPi = Query({
@@ -108,7 +113,7 @@ const trigger = debounce(async (search: string) => {
   });
   cancelPre = queryAPi.cancel;
   await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
-    console.log(pages, topBlocks, " - set result-- " + search, lowBlocks);
+    // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
     query.result.set({
       pages,
       topBlocks,
@@ -120,7 +125,7 @@ const trigger = debounce(async (search: string) => {
         return {
           id: block[":block/uid"],
           text: block[":node/title"],
-          editTime: block[":edit/time"] || block[':create/time'],
+          editTime: block[":edit/time"] || block[":create/time"],
           createTime: block[":create/time"],
           isPage: true,
           paths: [],
@@ -175,22 +180,25 @@ const trigger = debounce(async (search: string) => {
     ui.result.set(result);
   });
   ui.loading.set(false);
-}, 1000);
+}, 500);
 let prevSearch = "";
 const dispose = observe(async () => {
   const search = query.search.get().trim();
-  if (!search) {
-    // return;
-    ui.loading.set(false);
-  } else {
-    ui.loading.set(true);
-  }
-  prevSearch = search;
-  try {
-    await trigger(search);
-  } catch (e) {
-    console.log(e, " ---");
-    ui.loading.set(false);
+
+  if (search !== prevSearch) {
+    prevSearch = search;
+    if (!search) {
+      // return;
+      ui.loading.set(false);
+    } else {
+      ui.loading.set(true);
+    }
+    try {
+      await trigger(search);
+    } catch (e) {
+      console.log(e, " ---");
+      ui.loading.set(false);
+    }
   }
 });
 
@@ -251,10 +259,7 @@ const disposeUiResult = observe(async () => {
   if (!ui.conditions.includeCode.get()) {
     uiResult = uiResult.filter((item) => {
       const text = item.text as string;
-      return (
-        item.isPage ||
-        !(text.startsWith("```") && text.endsWith("```"))
-      );
+      return item.isPage || !(text.startsWith("```") && text.endsWith("```"));
     });
   }
 
@@ -335,15 +340,22 @@ export const store = {
       selectedTargetStore.set(item.peek().id, item);
     },
     toggleDialog() {
-      ui.open.set(!ui.open.peek());
+      if (ui.visible.get()) {
+        store.actions.closeDialog();
+      } else {
+        store.actions.openDialog();
+      }
     },
     openDialog() {
       ui.open.set(true);
+      ui.visible.set(true);
       // window.roamAlphaAPI.ui.getFocusedBlock()
       // TODO 根据结果是 写入 还是 复制到粘贴板
     },
     closeDialog() {
-      ui.open.set(false);
+      // ui.open.set(false);
+      console.log("close!!!");
+      ui.visible.set(false);
     },
     changeCreateRange(range: DateRange) {
       if (!range[0] || !range[1]) {
@@ -484,6 +496,12 @@ export const store = {
     changeSelectedPages(pages: string[]) {
       ui.pages.selected.set(pages);
     },
+    setHeight(vHeight: number) {
+      const windowHeight = document.body.getBoundingClientRect().height;
+      const MAX = windowHeight - 250;
+      const height = Math.max(MIN, Math.min(vHeight, MAX));
+      ui.height.set(height);
+    },
   },
   ui: {
     isOpen() {
@@ -582,6 +600,13 @@ export const store = {
       list() {
         return ui.list.get();
       },
+      getListStyle() {
+        const height = ui.height.get();
+        return {
+          height,
+          minHeight: height,
+        };
+      },
     },
     copySelectedTarget() {
       return ui.copySelectedTarget;
@@ -598,9 +623,20 @@ export const store = {
   },
 };
 
+renewCache();
+ui.visible.onChange((next) => {
+  const el = document.querySelector("." + CONSTNATS.el);
+  if (!next) {
+    el.classList.add("invisible");
+  } else {
+    el.classList.remove("invisible");
+  }
+});
 ui.open.onChange((next) => {
   if (next !== true) {
     // query.search.set("");
+  } else {
+    renewCache();
   }
 });
 

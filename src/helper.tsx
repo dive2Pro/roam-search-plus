@@ -1,3 +1,8 @@
+import { getCache } from "./roam";
+
+export const CONSTNATS = {
+  el: "advanced-search-el",
+};
 let uninstalls: Function[] = [];
 
 export const extension_helper = {
@@ -14,7 +19,7 @@ export const extension_helper = {
 
 export const debounce = <T, R>(cb: (t: T) => R, ms = 500) => {
   let timeout: any;
-  return (t: T) => {
+  return (t?: T) => {
     return new Promise<R>((resolve) => {
       if (timeout) {
         clearTimeout(timeout);
@@ -38,22 +43,24 @@ export function getDiff<T>(arr1: T[], arr2: T[]) {
 }
 
 export const pull = (uidOrTitle: string) => {
-  return (
-    window.roamAlphaAPI.data.pull("[*]", [":block/uid", uidOrTitle]) ||
-    window.roamAlphaAPI.data.pull("[*]", [":node/title", uidOrTitle])
-  );
+  return getCache().get(uidOrTitle)
+  // return (
+  //   window.roamAlphaAPI.data.pull("[*]", [":block/uid", uidOrTitle]) ||
+  //   window.roamAlphaAPI.data.pull("[*]", [":node/title", uidOrTitle])
+  // );
 };
 
 export const pull_many = (uids: string[]) => {
-  return window.roamAlphaAPI.data.pull_many(
-    "[*]",
-    uids.map((uid) => {
-      return [":block/uid", uid];
-    })
-  );
+  return uids.map((uid) => {
+    return getCache().get(uid);
+  });
+  // return window.roamAlphaAPI.data.pull_many(
+  //   "[*]",
+  //   uids.map((uid) => {
+  //     return [":block/uid", uid];
+  //   })
+  // );
 };
-
-
 
 function escapeRegExpChars(text: string) {
   return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");

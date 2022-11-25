@@ -1,6 +1,6 @@
 import "./styles.css";
 import App from "./App";
-import { extension_helper } from "./helper";
+import { CONSTNATS, extension_helper } from "./helper";
 import ReactDOM from "react-dom";
 import { store } from "./store";
 
@@ -23,6 +23,7 @@ export default {
 
     const el = document.createElement("div");
     document.body.appendChild(el);
+    el.className = CONSTNATS.el;
     ReactDOM.render(<App />, el);
     extension_helper.on_uninstall(() => {
       ReactDOM.unmountComponentAtNode(el);
