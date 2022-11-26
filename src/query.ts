@@ -95,7 +95,6 @@ export const Query = (config: {
   }
 
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
-    console.log(config.uids, "----");
     return keywords.reduce((p, c, index) => {
       let queryArgs = [
         `
@@ -109,7 +108,7 @@ export const Query = (config: {
                 [(clojure.string/includes? ?s  "${c}")]
         ]
       `,
-      ] as [string , string[]] | [string];
+      ] as [string, string[]] | [string];
       if (config.uids?.length) {
         queryArgs = [
           `
@@ -127,12 +126,12 @@ export const Query = (config: {
           config.uids,
         ];
       }
-      console.log(config.uids, queryArgs, " ----------");
 
       const r = window.roamAlphaAPI.data.fast.q.apply(
         null,
         queryArgs
       ) as unknown as string[];
+      console.log(r, " = r");
       if (index === 0) {
         return r;
       }
@@ -180,6 +179,7 @@ export const Query = (config: {
 
   function* findAllRelatedPages(keywords: string[]) {
     if (config.uids && config.uids.length) {
+      console.log("only uids", config.uids);
       return config.uids;
     }
     let pages: string[];
@@ -188,7 +188,6 @@ export const Query = (config: {
         `
         [
             :find [?uid ...]
-            :in $ % [?page ...]
             :where
                 [?b :block/string ?s]
                 [?b :block/parents ?p]
@@ -197,10 +196,10 @@ export const Query = (config: {
                 [?p :block/uid ?uid]
                 
         ]
-    `,
-        conditionRule
+    `
       ) as unknown as string[];
       yield result;
+      console.log(result, " -------@@", keywords, keyword, pages);
       if (pages === undefined) {
         pages = result;
       } else {
@@ -208,26 +207,27 @@ export const Query = (config: {
       }
     }
     // const pages = keywords.reduce((p, c, index) => {
-
+    console.log("pages = ", pages);
     // }, [] as string[]);
     return pages;
   }
 
-  function* findAllRelatedBlockGroupByPages(
+  async function findAllRelatedBlockGroupByPages(
     keywords: string[],
     topLevelBlocks: string[]
   ) {
     console.log(" ---000-==");
     const allRelatedPagesGenerator = timeSlice_(findAllRelatedPages);
-    const pages = yield* allRelatedPagesGenerator(keywords);
-    console.log(" ---111-==, ", Date.now());
-    const blocksInSamePage = yield* findBlocksContainsStringInPages(
-      keywords,
-      pages
+    const pages = await allRelatedPagesGenerator(keywords);
+    console.log(" ---111-==, ", Date.now(), pages);
+    const allRelatedBlockGroupByPages = timeSlice_(
+      findBlocksContainsStringInPages
     );
+    const blocksInSamePage = await allRelatedBlockGroupByPages(keywords, pages);
     // 找到正好包含所有 keywords 的 block. 记录下来
-    console.log(" ---222-==", Date.now());
-    const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
+    console.log(" ---222-==", Date.now(), pages, blocksInSamePage);
+    const lowLevelBlocks = getDiff(topLevelBlocks,blocksInSamePage);
+    // getDiff(topLevelBlocks, blocksInSamePage);
     console.log(" ---333-==", Date.now());
 
     // 找到 相同 page 下满足条件的 block
@@ -263,12 +263,12 @@ export const Query = (config: {
         // children: pull_many(values),
         children: values,
       });
-      yield key;
+      //  key;
     }
     return result;
   }
 
-  const findAllRelatedBlocks = async (keywords: string[]) => {
+  async function findAllRelatedBlocks(keywords: string[]) {
     const topLevelBlocks = findBlocksContainsAllKeywords(keywords);
     if (keywords.length <= 1) {
       return [topLevelBlocks, undefined] as const;
@@ -282,13 +282,13 @@ export const Query = (config: {
         children: string[];
       }[],
     ] as const;
-  };
+  }
 
   function* findAllRelatedPageUids(keywords: string[]) {
     let result: string[];
     // TODO: 优化流程处理
     if (config.uids.length) {
-      return config.uids
+      return config.uids;
     }
     for (let c of keywords) {
       if (result === undefined) {
