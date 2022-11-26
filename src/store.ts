@@ -4,6 +4,7 @@ import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
 import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
+import { recentlyViewed } from "./extentionApi";
 import {
   CONSTNATS,
   debounce,
@@ -16,6 +17,7 @@ import {
   getAllPages,
   getPageUidsFromUids,
   getParentsStrFromBlockUid,
+  opens,
   renewAllPages,
   renewCache,
 } from "./roam";
@@ -70,10 +72,11 @@ const ui = observable({
   history: {
     search: [
       {
-        id: 1,
+        id: "1",
         text: "qwe33",
       },
     ],
+    viewed: [] as BaseUiItem[],
   },
   sort: {
     selection: [
@@ -102,6 +105,10 @@ const ui = observable({
   loading: false,
   list: [] as ResultItem[],
   height: MIN,
+});
+
+ui.history.viewed.onChange((items) => {
+  recentlyViewed.save(items);
 });
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
@@ -204,22 +211,22 @@ const trigger = debounce(async (search: string, uids?: string[]) => {
 let prevSearch = "";
 
 const triggerWhenSearchChange = async (next: string) => {
-   const nextStr = next.trim();
-   const selectedPagesUids = ui.pages.selected.peek();
+  const nextStr = next.trim();
+  const selectedPagesUids = ui.pages.selected.peek();
 
-   if (nextStr !== prevSearch) {
-     ui.loading.set(!!nextStr);
-     try {
-       await trigger(
-         nextStr,
-         selectedPagesUids.map((item) => item.id)
-       );
-     } catch (e) {
-       console.log(e, " ---");
-       ui.loading.set(false);
-     }
-   }
-}
+  if (nextStr !== prevSearch) {
+    ui.loading.set(!!nextStr);
+    try {
+      await trigger(
+        nextStr,
+        selectedPagesUids.map((item) => item.id)
+      );
+    } catch (e) {
+      console.log(e, " ---");
+      ui.loading.set(false);
+    }
+  }
+};
 const disposeSearch = query.search.onChange(async (next) => {
   triggerWhenSearchChange(next);
 });
@@ -389,6 +396,17 @@ extension_helper.on_uninstall(() => {
   disposeUiSelectablePages();
 });
 
+const saveToSearchViewed = (items: ResultItem[]) => {
+  const viewed = ui.history.viewed.peek();
+  ui.history.viewed.push(
+    ...items
+      .filter(
+        (item) => viewed.findIndex((vItem) => item.id === vItem.id) === -1
+      )
+      .map((item) => ({ id: item.id, text: item.text as string }))
+  );
+};
+
 export const store = {
   db: observable({
     ui,
@@ -469,12 +487,12 @@ export const store = {
     changeSearch(s: string) {
       query.search.set(s);
     },
-    searchAgain() { 
-      triggerWhenSearchChange(query.search.peek())
+    searchAgain() {
+      triggerWhenSearchChange(query.search.peek());
     },
     saveHistory(str: string) {
       ui.history.search.push({
-        id: Date.now(),
+        id: Date.now() + "",
         text: str,
       });
     },
@@ -484,12 +502,23 @@ export const store = {
     useHistory(str: string) {
       store.actions.changeSearch(str);
     },
-    deleteHistory(id: number) {
+    deleteHistory(id: string) {
       const i = ui.history.search.findIndex((item) => item.id === id);
       console.log("delete:", i, id);
       if (i > -1) {
         ui.history.search.splice(i, 1);
       }
+    },
+    history: {
+      deleteViewedItem(id: string) {
+        const index = ui.history.viewed
+          .peek()
+          .findIndex((item) => item.id === id);
+        if (index > -1) ui.history.viewed.splice(index, 1);
+      },
+      clearViewed() {
+        ui.history.viewed.set([]);
+      },
     },
     toggleMultiple() {
       ui.multiple.toggle();
@@ -503,13 +532,9 @@ export const store = {
     confirm: {
       openInSidebar(items: ResultItem[]) {
         items.forEach((item) => {
-          window.roamAlphaAPI.ui.rightSidebar.addWindow({
-            window: {
-              "block-uid": item.id,
-              type: "block",
-            },
-          });
+          opens.sidebar(item.id);
         });
+        saveToSearchViewed(items);
       },
       saveAsReference(items: ResultItem[]) {
         const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
@@ -537,18 +562,11 @@ export const store = {
       },
       openInMain(item: ResultItem) {
         if (item.isPage) {
-          window.roamAlphaAPI.ui.mainWindow.openPage({
-            page: {
-              uid: item.id,
-            },
-          });
+          opens.main.page(item.id);
         } else {
-          window.roamAlphaAPI.ui.mainWindow.openBlock({
-            block: {
-              uid: item.id,
-            },
-          });
+          opens.main.block(item.id);
         }
+        saveToSearchViewed([item]);
       },
     },
     confirmMultiple() {
@@ -630,6 +648,11 @@ export const store = {
     },
     getHistory() {
       return ui.history;
+    },
+    history: {
+      getViewed() {
+        return ui.history.viewed;
+      },
     },
     selectedCount() {
       return ui.result.get().filter((o) => o.isSelected).length;
@@ -745,7 +768,7 @@ ui.visible.onChange((next) => {
     el.classList.remove("invisible");
     renewCache();
     renewAllPages();
-    triggerWhenSearchChange(query.search.peek())
+    triggerWhenSearchChange(query.search.peek());
   }
 });
 ui.open.onChange((next) => {
@@ -754,6 +777,10 @@ ui.open.onChange((next) => {
   } else {
   }
 });
+
+export const initStore = (extensionAPI: RoamExtensionAPI) => {
+  ui.history.viewed.set(recentlyViewed.getAll());
+};
 
 // @ts-ignore
 window._store = store;

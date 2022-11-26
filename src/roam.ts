@@ -1,5 +1,4 @@
 import { PullBlock } from "roamjs-components/types";
-import { debounce } from "./helper";
 
 type ReversePullBlock = {
   ":block/uid": string;
@@ -35,7 +34,6 @@ export const getParentsStrFromBlockUid = (uid: string) => {
 };
 
 const cache = new Map<string, PullBlock[]>();
-const DELAY = 2000;
 
 const cleanCache = () => {
   cache.clear();
@@ -123,4 +121,31 @@ export const renewAllPages = () => {
         ]
     `
   ) as PullBlock[];
+};
+
+export const opens = {
+  main: {
+    page(id: string) {
+      window.roamAlphaAPI.ui.mainWindow.openPage({
+        page: {
+          uid: id,
+        },
+      });
+    },
+    block(id: string) {
+      window.roamAlphaAPI.ui.mainWindow.openBlock({
+        block: {
+          uid: id,
+        },
+      });
+    },
+  },
+  sidebar(id: string) {
+    window.roamAlphaAPI.ui.rightSidebar.addWindow({
+      window: {
+        "block-uid": id,
+        type: "block",
+      },
+    });
+  },
 };

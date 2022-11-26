@@ -2,13 +2,14 @@ import "./styles.css";
 import App from "./components/App";
 import { CONSTNATS, extension_helper } from "./helper";
 import ReactDOM from "react-dom";
-import { store } from "./store";
+import { store, initStore } from "./store";
+import { initExtention } from "./extentionApi";
 
 const initListener = () => {
   const handler = (e: KeyboardEvent) => {
     // console.log(e.code, ' = code')
-    if (e.shiftKey && e.ctrlKey && e.code === 'KeyP') {
-      store.actions.toggleDialog()
+    if (e.shiftKey && e.ctrlKey && e.code === "KeyP") {
+      store.actions.toggleDialog();
     }
   };
   document.addEventListener("keydown", handler);
@@ -18,9 +19,10 @@ const initListener = () => {
 };
 
 export default {
-  onload: (extensionAPI: RoamExtensionAPI) => {
+  onload: ({ extensionAPI }: { extensionAPI: RoamExtensionAPI }) => {
     initListener();
-
+    initExtention(extensionAPI);
+    initStore(extensionAPI);
     const el = document.createElement("div");
     document.body.appendChild(el);
     el.className = CONSTNATS.el;

@@ -17,3 +17,6 @@ type SelectDate =
       end: Dayjs;
     }
   | undefined;
+
+
+  type BaseUiItem = { id: string; text: string };
