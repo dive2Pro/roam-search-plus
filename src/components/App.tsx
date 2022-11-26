@@ -61,55 +61,59 @@ function _App() {
                 }
                 value={store.ui.getSearch()}
                 onChange={(e) => store.actions.changeSearch(e.target.value)}
-                onKeyPress={e => {
-                  console.log(e.key, ' == key')
-                  if (e.key === 'Enter') {
+                onKeyPress={(e) => {
+                  console.log(e.key, " == key");
+                  if (e.key === "Enter") {
                     store.actions.searchAgain();
                   }
                 }}
               />
             </div>
-            <div>
-              <ButtonGroup className="sub-bg">
-                {/* <Checkbox
+            {store.ui.result.size() > 0 ? (
+              <>
+                <div>
+                  <ButtonGroup className="sub-bg">
+                    {/* <Checkbox
                   checked={store.ui.isMultipleSelection()}
                   onChange={(e) => store.actions.toggleMultiple()}
                   label="Multiple Select"
                 ></Checkbox>
                 <Divider /> */}
-                <Popover
-                  position={Position.BOTTOM}
-                  modifiers={{
-                    arrow: {
-                      enabled: false,
-                    },
-                  }}
-                  content={
-                    <Menu>
-                      {store.ui.sort.selection().map((item, index) => {
-                        return (
-                          <MenuItem
-                            onClick={() => store.actions.changeSort(index)}
-                            text={item.text}
-                          />
-                        );
-                      })}
-                    </Menu>
-                  }
-                >
-                  <div>
-                    Sort By:{" "}
-                    <Button
-                      rightIcon={<Icon icon="chevron-down" size={12} />}
-                      minimal
-                      text={store.ui.sort.selectedText()}
-                    ></Button>
-                  </div>
-                </Popover>
-              </ButtonGroup>
-            </div>
+                    <Popover
+                      position={Position.BOTTOM}
+                      modifiers={{
+                        arrow: {
+                          enabled: false,
+                        },
+                      }}
+                      content={
+                        <Menu>
+                          {store.ui.sort.selection().map((item, index) => {
+                            return (
+                              <MenuItem
+                                onClick={() => store.actions.changeSort(index)}
+                                text={item.text}
+                              />
+                            );
+                          })}
+                        </Menu>
+                      }
+                    >
+                      <div>
+                        Sort By:{" "}
+                        <Button
+                          rightIcon={<Icon icon="chevron-down" size={12} />}
+                          minimal
+                          text={store.ui.sort.selectedText()}
+                        ></Button>
+                      </div>
+                    </Popover>
+                  </ButtonGroup>
+                </div>
 
-            <Divider />
+                <Divider />
+              </>
+            ) : null}
 
             {store.ui.isTyped() ? <ListContainer /> : <QueryHistory />}
 

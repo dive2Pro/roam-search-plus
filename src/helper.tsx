@@ -1,8 +1,10 @@
 import { getCache } from "./roam";
+import dayjs from "dayjs";
+
 
 export const CONSTNATS = {
   el: "advanced-search-el",
-  history: 'as-history'
+  history: "as-history",
 };
 let uninstalls: Function[] = [];
 
@@ -44,7 +46,7 @@ export function getDiff<T>(arr1: T[], arr2: T[]) {
 }
 
 export const pull = (uidOrTitle: string) => {
-  return getCache().get(uidOrTitle)
+  return getCache().get(uidOrTitle);
   // return (
   //   window.roamAlphaAPI.data.pull("[*]", [":block/uid", uidOrTitle]) ||
   //   window.roamAlphaAPI.data.pull("[*]", [":node/title", uidOrTitle])
@@ -102,3 +104,19 @@ export function highlightText(text: string, query: string) {
   }
   return <>{tokens}</>;
 }
+
+export const date = {
+  fromNow(time: number) {
+    // TODO: 有一些页面没有 edit time 和 create time. 使用第一个 child 的时间
+    if (!dayjs(time).isValid()) {
+    return ''
+  }
+    return dayjs(time).fromNow();
+  },
+  format(time: number, str = "HH:mm MMM DD, YYYY") {
+    if (!dayjs(time).isValid()) {
+      return "";
+    }
+    return dayjs(time).format("HH:mm MMM DD, YYYY");
+  },
+};

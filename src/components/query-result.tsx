@@ -3,7 +3,7 @@ import { For, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
 import React, { useEffect, useLayoutEffect, useState } from "react";
-import { highlightText } from "../helper";
+import { date, highlightText } from "../helper";
 import { Virtuoso } from "react-virtuoso";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -126,10 +126,10 @@ const Row = observer((props: { item: ResultItem }) => {
         {content}
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
           <span className="date date-fromnow">
-            {dayjs(props.item.editTime).fromNow()}
+            {date.fromNow(props.item.editTime)}
           </span>
           <span className="date date-common">
-            {dayjs(props.item.editTime).format("HH:mm MMM DD, YYYY")}
+            {date.format(props.item.editTime)}
           </span>
         </div>
       </div>
