@@ -184,14 +184,16 @@ export const QueryResult = observer(() => {
       store.actions.setHeight(vHeight);
     });
   }, [list]);
-  console.log(list, ' - render')
+  console.log("render again", list);
   return (
     <Virtuoso
       className="infinite-scroll"
       style={store.ui.result.getListStyle()}
       totalCount={list.length}
       data={list}
-      itemContent={(index, data) => <Item key={data.id + index} item={data} />}
+      itemContent={(index, data) => (
+        <Item key={data.id + index + data.children.length} item={data} />
+      )}
     ></Virtuoso>
   );
 });

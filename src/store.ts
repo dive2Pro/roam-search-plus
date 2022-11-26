@@ -297,11 +297,27 @@ const disposeUiResult = observe(async () => {
     });
   }
 
+  console.log(ui.conditions.includeCode.get(), " - get render");
   if (!ui.conditions.includeCode.get()) {
-    uiResult = uiResult.filter((item) => {
-      const text = item.text as string;
-      return item.isPage || !(text.startsWith("```") && text.endsWith("```"));
-    });
+    uiResult = uiResult
+      .filter((item) => {
+        const text = item.text as string;
+        return item.isPage || !(text.startsWith("```") && text.endsWith("```"));
+      })
+      .map((item) => {
+        if (item.children.length) {
+          return {
+            ...item,
+            children: item.children.filter((oi) => {
+              const childText = oi.text as string;
+              return !(
+                childText.startsWith("```") && childText.endsWith("```")
+              );
+            }),
+          };
+        }
+        return item;
+      });
   }
 
   const sortFns = [
