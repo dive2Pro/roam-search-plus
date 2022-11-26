@@ -1,6 +1,6 @@
 import { PullBlock } from "roamjs-components/types";
 import { debounce, getDiff, getSame, pull, pull_many } from "./helper";
-import { getBlocksContainsStr } from "./roam";
+import { getAllBlocks, getBlocksContainsStr, getCache } from "./roam";
 
 let conditionRule = "";
 
@@ -31,7 +31,11 @@ export const Query = (config: {
   uids?: string[];
 }) => {
   console.time("SSSS");
-
+  const filterStringByKeywordsIntensive = (
+    blocks: PullBlock[],
+    keyword: string,
+    intensive = true
+  ) => {};
   conditionRule = `
       [
         [
@@ -95,6 +99,11 @@ export const Query = (config: {
   }
 
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
+    return getAllBlocks().filter((item) => {
+      return keywords.every((keyword) => {
+        return item[":block/string"] && item[":block/string"].includes(keyword);
+      });
+    });
     return keywords.reduce((p, c, index) => {
       let queryArgs = [
         `
@@ -127,16 +136,18 @@ export const Query = (config: {
         ];
       }
 
-      const r = window.roamAlphaAPI.data.fast.q.apply(
-        null,
-        queryArgs
-      ) as unknown as string[];
-      console.log(r, " = r");
+      // const r = window.roamAlphaAPI.data.fast.q.apply(
+      //   null,
+      //   queryArgs
+      // ) as unknown as string[];
+      const r = getAllBlocks().filter((item) => {
+        return item[":block/string"].includes(c);
+      });
       if (index === 0) {
         return r;
       }
-      return getSame(p, r);
-    }, [] as string[]);
+      return;
+    }, [] as PullBlock[]);
   };
 
   function* findBlocksContainsStringInPages(
@@ -224,7 +235,7 @@ export const Query = (config: {
         queryArgs(keyword)
       ) as unknown as string[];
       yield result;
-      console.log(result, " -------@@", keywords, keyword, pages);
+      // console.log(result, " -------@@", keywords, keyword, pages);
       if (pages === undefined) {
         pages = result;
       } else {
@@ -232,7 +243,7 @@ export const Query = (config: {
       }
     }
     // const pages = keywords.reduce((p, c, index) => {
-    console.log("pages = ", pages);
+    // console.log("pages = ", pages);
     // }, [] as string[]);
     return pages;
   }
@@ -244,16 +255,16 @@ export const Query = (config: {
     console.log(" ---000-==");
     const allRelatedPagesGenerator = timeSlice_(findAllRelatedPages);
     const pages = await allRelatedPagesGenerator(keywords);
-    console.log(" ---111-==, ", Date.now(), pages);
+    // console.log(" ---111-==, ", Date.now(), pages);
     const allRelatedBlockGroupByPages = timeSlice_(
       findBlocksContainsStringInPages
     );
     const blocksInSamePage = await allRelatedBlockGroupByPages(keywords, pages);
     // 找到正好包含所有 keywords 的 block. 记录下来
-    console.log(" ---222-==", Date.now(), pages, blocksInSamePage);
+    // console.log(" ---222-==", Date.now(), pages, blocksInSamePage);
     const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
     // getDiff(topLevelBlocks, blocksInSamePage);
-    console.log(" ---333-==", Date.now());
+    // console.log(" ---333-==", Date.now());
 
     // 找到 相同 page 下满足条件的 block
     const pageUidBlockUidAry = window.roamAlphaAPI.q(
@@ -298,14 +309,39 @@ export const Query = (config: {
     if (keywords.length <= 1) {
       return [topLevelBlocks, undefined] as const;
     }
-    const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
+    // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
     console.log("find low");
+    const blocks = getAllBlocks().filter((item) => {
+      return keywords.some((keyword) =>
+        item[":block/string"]?.includes(keyword)
+      );
+    });
+    const lowBlocks = blocks.filter((b) => {
+      return !topLevelBlocks.find((tb) => tb[":block/uid"] === b[":block/uid"]);
+    });
+    const map = new Map<string, PullBlock[]>();
+    lowBlocks.forEach((b) => {
+      if (map.has(b.page)) {
+        map.get(b.page).push(b);
+      } else {
+        map.set(b.page, [b]);
+      }
+    });
+
+    const lowBlocksResult = [...map.entries()].map((item) => {
+      return {
+        page: item[0],
+        children: item[1],
+      };
+    });
+
     return [
       topLevelBlocks,
-      (await allRelatedGenerator(keywords, topLevelBlocks)) as {
-        page: string;
-        children: string[];
-      }[],
+      lowBlocksResult,
+      // (await allRelatedGenerator(keywords, topLevelBlocks)) as {
+      //   page: string;
+      //   children: string[];
+      // }[],
     ] as const;
   }
 
@@ -313,7 +349,7 @@ export const Query = (config: {
     let result: string[];
     // TODO: 优化流程处理
     if (config.uids.length) {
-      result = config.uids;      
+      result = config.uids;
     }
     for (let c of keywords) {
       if (result === undefined) {
@@ -368,24 +404,26 @@ export const Query = (config: {
         const result = [
           pull_many(pageUids),
           // pageUids,
-          pull_many(topLevelBlocks),
-          // topLevelBlocks,
+          // pull_many(topLevelBlocks),
+          topLevelBlocks,
           //   .map((item) => {
           //   return {
           //     ...item,
           //     parents: getParentsInfoOfBlockUid(item[":block/uid"]),
           //   };
           // }),
-          lowLevelBlocks.map((item) => {
-            return {
-              page: pull(item.page),
-              children: pull_many(item.children),
-            };
-          }),
+          lowLevelBlocks
+            .map((item) => {
+              return {
+                page: pull(item.page),
+                children: item.children,
+              };
+            })
+            .filter((item) => item.page),
 
           // lowLevelBlocks,
         ] as const;
-        console.log("end!!!!!!");
+        console.log("end!!!!!!", result);
         console.timeEnd("SSSS");
 
         return result;

@@ -40,21 +40,68 @@ const cleanCache = () => {
 };
 
 let ALLBLOCKS: Map<string, PullBlock> = new Map();
+let PAGES: PullBlock[] = [];
+type BlockWithPage = PullBlock & { page: string };
+let BLOCKS: BlockWithPage[] = [];
+export const getAllPages = () => {
+  return PAGES;
+};
+export const getAllBlocks = () => {
+    return BLOCKS;
+}
+
 export const renewCache = () => {
   ALLBLOCKS.clear();
-  (
+
+  BLOCKS = (
     window.roamAlphaAPI.data.fast.q(
       `
     [
-            :find [(pull ?e [*]) ...]
+            :find (pull ?e [*]) ?e2
             :where                
-                [?e :block/uid ?u]
+                [?e :block/page ?p]
+                [?p :block/uid ?e2]
         ]
     `
-    ) as PullBlock[]
-  ).forEach((block) => {
+    ) as unknown as []
+  ).map((item) => ({
+    ...(item[0] as PullBlock),
+    page: item[1],
+  }));
+  PAGES = window.roamAlphaAPI.data.fast.q(
+    `
+    [
+            :find [(pull ?e [*]) ...]
+            :where                
+                [?e :node/title]
+        ]
+    `
+  ) as unknown as PullBlock[];
+  [...BLOCKS, ...PAGES].forEach((block) => {
     ALLBLOCKS.set(block[":block/uid"], block);
   });
+  console.log(BLOCKS.length, PAGES.length);
+  //   (
+  //     window.roamAlphaAPI.data.fast.q(
+  //       `
+  //     [
+  //             :find [(pull ?e [*]) ...]
+  //             :where
+  //                 [?e :block/uid ?u]
+  //         ]
+  //     `
+  //     ) as PullBlock[]
+  //   ).forEach((block) => {
+  //     ALLBLOCKS.set(block[":block/uid"], block);
+  //     if (block[":block/page"]) {
+  //       BLOCKS.push({
+  //         ...block,
+  //         page: "",
+  //       });
+  //     } else {
+  //       PAGES.push(block);
+  //     }
+  //   });
   console.log(ALLBLOCKS);
 };
 
@@ -104,23 +151,6 @@ export const getPageUidsFromUids = (uids: string[]) => {
     `,
     uids
   ) as unknown as string[];
-};
-
-let PAGES: PullBlock[];
-export const getAllPages = () => {
-  return PAGES;
-};
-
-export const renewAllPages = () => {
-  PAGES = window.roamAlphaAPI.data.fast.q(
-    `
-    [
-            :find [(pull ?e [*]) ...]
-            :where                
-                [?e :node/title ?u]
-        ]
-    `
-  ) as PullBlock[];
 };
 
 export const opens = {

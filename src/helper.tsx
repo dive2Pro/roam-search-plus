@@ -1,7 +1,6 @@
 import { getCache } from "./roam";
 import dayjs from "dayjs";
 
-
 export const CONSTNATS = {
   el: "advanced-search-el",
   history: "as-history",
@@ -54,9 +53,12 @@ export const pull = (uidOrTitle: string) => {
 };
 
 export const pull_many = (uids: string[]) => {
-  return uids.map((uid) => {
-    return getCache().get(uid);
-  });
+  return uids
+    .map((uid) => {
+      const r = getCache().get(uid);
+      return r;
+    })
+    .filter((item) => item);
   // return window.roamAlphaAPI.data.pull_many(
   //   "[*]",
   //   uids.map((uid) => {
@@ -109,8 +111,8 @@ export const date = {
   fromNow(time: number) {
     // TODO: 有一些页面没有 edit time 和 create time. 使用第一个 child 的时间
     if (!dayjs(time).isValid()) {
-    return ''
-  }
+      return "";
+    }
     return dayjs(time).fromNow();
   },
   format(time: number, str = "HH:mm MMM DD, YYYY") {

@@ -18,7 +18,6 @@ import {
   getPageUidsFromUids,
   getParentsStrFromBlockUid,
   opens,
-  renewAllPages,
   renewCache,
 } from "./roam";
 
@@ -203,7 +202,7 @@ const trigger = debounce(async (search: string, uids?: string[]) => {
       }),
     ];
 
-    console.log(" ui result = ", result);
+    // console.log(" ui result = ", result);
     ui.result.set(result);
   });
   ui.loading.set(false);
@@ -403,7 +402,11 @@ const saveToSearchViewed = (items: ResultItem[]) => {
       .filter(
         (item) => viewed.findIndex((vItem) => item.id === vItem.id) === -1
       )
-      .map((item) => ({ id: item.id, text: item.text as string, isPage: item.isPage }))
+      .map((item) => ({
+        id: item.id,
+        text: item.text as string,
+        isPage: item.isPage,
+      }))
   );
 };
 
@@ -520,8 +523,8 @@ export const store = {
         ui.history.viewed.set([]);
       },
       clearSearch() {
-        ui.history.search.set([])
-      }
+        ui.history.search.set([]);
+      },
     },
     toggleMultiple() {
       ui.multiple.toggle();
@@ -721,10 +724,12 @@ export const store = {
         // const selected = ui.pages.selected.get();
 
         // return ui.pages.items.get();
-        return getAllPages().map((item) => ({
-          id: item[":block/uid"],
-          text: item[":node/title"],
-        }));
+        return getAllPages()
+          .map((item) => ({
+            id: item[":block/uid"],
+            text: item[":node/title"],
+          }))
+          .filter((item) => item.text);
         // .filter((item) => !selected.some((id) => id === item.id));
       },
       isSelected(id: string) {
@@ -768,16 +773,17 @@ export const store = {
 };
 
 renewCache();
-renewAllPages();
 ui.visible.onChange((next) => {
   const el = document.querySelector("." + CONSTNATS.el);
   if (!next) {
     el.classList.add("invisible");
   } else {
     el.classList.remove("invisible");
-    renewCache();
-    renewAllPages();
-    triggerWhenSearchChange(query.search.peek());
+    setTimeout(() => {
+      renewCache();
+      triggerWhenSearchChange(query.search.peek());
+
+    }, 10);
   }
 });
 ui.open.onChange((next) => {
