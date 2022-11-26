@@ -69,7 +69,7 @@ function _App() {
                 }}
               />
             </div>
-            {store.ui.result.size() > 0 ? (
+            { store.ui.hasResult() ? (
               <>
                 <div>
                   <ButtonGroup className="sub-bg">

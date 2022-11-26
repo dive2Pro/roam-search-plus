@@ -11,3 +11,4 @@
 - [ ] Most ref pages;
 - [ ] reset inputs
 - [x] history
+- [ ] Case intensive

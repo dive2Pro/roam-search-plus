@@ -761,6 +761,9 @@ export const store = {
     size: {
       resultList() {},
     },
+    hasResult() {
+      return store.ui.getSearch().length > 0 && store.ui.result.size() > 0;
+    },
   },
 };
 
