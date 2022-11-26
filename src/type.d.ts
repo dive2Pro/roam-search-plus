@@ -19,4 +19,6 @@ type SelectDate =
   | undefined;
 
 
-  type BaseUiItem = { id: string; text: string };
+type BaseUiItem = { id: string; text: string };
+  
+type RecentlyViewedItem = BaseUiItem & { isPage: boolean }

@@ -10,4 +10,4 @@
 - [ ] RegExp search
 - [ ] Most ref pages;
 - [ ] reset inputs
-- [ ] history
+- [x] history

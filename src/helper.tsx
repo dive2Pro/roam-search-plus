@@ -2,6 +2,7 @@ import { getCache } from "./roam";
 
 export const CONSTNATS = {
   el: "advanced-search-el",
+  history: 'as-history'
 };
 let uninstalls: Function[] = [];
 

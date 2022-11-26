@@ -9,8 +9,8 @@ const KEYS = {
 };
 
 export const recentlyViewed = {
-  save(items: BaseUiItem[]) {
-    extentionAPI.settings.set(KEYS.recentlyViewed, items);
+  save(items: RecentlyViewedItem[]) {
+    extentionAPI.settings.set(KEYS.recentlyViewed, JSON.stringify(items));
   },
   delete(id: string) {
     recentlyViewed.save(
@@ -22,11 +22,9 @@ export const recentlyViewed = {
   },
   getAll() {
     try {
-      const result = extentionAPI.settings.get(KEYS.recentlyViewed);
-      if (Array.isArray) {
-        return result as BaseUiItem[];
-      }
-      return JSON.parse((result as string) || "[]") as BaseUiItem[];
+      let result = extentionAPI.settings.get(KEYS.recentlyViewed) as string;
+      // return [];
+      return JSON.parse((result as string) || "[]") as RecentlyViewedItem[];
     } catch (e) {
       console.log(e, " parse settings recently");
       return [];

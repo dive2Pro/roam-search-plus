@@ -76,7 +76,7 @@ const ui = observable({
         text: "qwe33",
       },
     ],
-    viewed: [] as BaseUiItem[],
+    viewed: [] as RecentlyViewedItem[],
   },
   sort: {
     selection: [
@@ -403,7 +403,7 @@ const saveToSearchViewed = (items: ResultItem[]) => {
       .filter(
         (item) => viewed.findIndex((vItem) => item.id === vItem.id) === -1
       )
-      .map((item) => ({ id: item.id, text: item.text as string }))
+      .map((item) => ({ id: item.id, text: item.text as string, isPage: item.isPage }))
   );
 };
 
@@ -519,6 +519,9 @@ export const store = {
       clearViewed() {
         ui.history.viewed.set([]);
       },
+      clearSearch() {
+        ui.history.search.set([])
+      }
     },
     toggleMultiple() {
       ui.multiple.toggle();
@@ -652,6 +655,9 @@ export const store = {
     history: {
       getViewed() {
         return ui.history.viewed;
+      },
+      getSearch() {
+        return ui.history.search;
       },
     },
     selectedCount() {

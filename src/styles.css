@@ -95,10 +95,10 @@
   background-color: inherit;
 }
 
-.query-history-item:hover .bp3-icon {
+.query-history-item:hover .bp3-icon-small-cross {
   opacity: 1;
 }
-.query-history-item .bp3-icon {
+.query-history-item .bp3-icon-small-cross {
   opacity: 0;
 }
 
@@ -236,9 +236,35 @@
 
 
 .sidebar {
-  color: var(--c2);
+  color: #828282;
+}
+.sidebar .bp3-button-text {
+  color: #828282;
 }
 
 .sidebar-title {
   margin: 10px 0;
+}
+
+.as-history {
+  color: #828282;
+}
+
+.as-history .header .bp3-button-text {
+  color: #828282;
+}
+
+.as-history .header {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  justify-content: space-between;
+}
+
+.as-history section:hover button {
+  opacity: 1;
+}
+
+.as-history .header button {
+  opacity: 0;
 }
