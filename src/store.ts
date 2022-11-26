@@ -203,22 +203,25 @@ const trigger = debounce(async (search: string, uids?: string[]) => {
 }, 500);
 let prevSearch = "";
 
-const disposeSearch = query.search.onChange(async (next) => {
-  const nextStr = next.trim();
-  const selectedPagesUids = ui.pages.selected.peek();
+const triggerWhenSearchChange = async (next: string) => {
+   const nextStr = next.trim();
+   const selectedPagesUids = ui.pages.selected.peek();
 
-  if (nextStr !== prevSearch) {
-    ui.loading.set(!!nextStr);
-    try {
-      await trigger(
-        nextStr,
-        selectedPagesUids.map((item) => item.id)
-      );
-    } catch (e) {
-      console.log(e, " ---");
-      ui.loading.set(false);
-    }
-  }
+   if (nextStr !== prevSearch) {
+     ui.loading.set(!!nextStr);
+     try {
+       await trigger(
+         nextStr,
+         selectedPagesUids.map((item) => item.id)
+       );
+     } catch (e) {
+       console.log(e, " ---");
+       ui.loading.set(false);
+     }
+   }
+}
+const disposeSearch = query.search.onChange(async (next) => {
+  triggerWhenSearchChange(next);
 });
 
 const dispose = observe(async () => {
@@ -465,6 +468,9 @@ export const store = {
     },
     changeSearch(s: string) {
       query.search.set(s);
+    },
+    searchAgain() { 
+      triggerWhenSearchChange(query.search.peek())
     },
     saveHistory(str: string) {
       ui.history.search.push({
@@ -739,6 +745,7 @@ ui.visible.onChange((next) => {
     el.classList.remove("invisible");
     renewCache();
     renewAllPages();
+    triggerWhenSearchChange(query.search.peek())
   }
 });
 ui.open.onChange((next) => {

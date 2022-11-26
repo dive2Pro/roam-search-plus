@@ -178,13 +178,8 @@ export const Query = (config: {
   }
 
   function* findAllRelatedPages(keywords: string[]) {
-    if (config.uids && config.uids.length) {
-      console.log("only uids", config.uids);
-      return config.uids;
-    }
-    let pages: string[];
-    for (let keyword of keywords) {
-      const result = window.roamAlphaAPI.data.fast.q(
+    let queryArgs = (keyword: string) => {
+      return [
         `
         [
             :find [?uid ...]
@@ -196,7 +191,37 @@ export const Query = (config: {
                 [?p :block/uid ?uid]
                 
         ]
-    `
+    `,
+      ] as [string] | [string, string[]];
+    };
+    if (config.uids && config.uids.length) {
+      console.log("only uids", config.uids);
+      queryArgs = (keyword: string) => {
+        return [
+          `
+        [
+            :find [?uid ...]
+            :in $ [?page ...]
+            :where
+                [?p :block/uid ?page];
+                [?b :block/string ?s]
+                [?b :block/parents ?p]
+                [(clojure.string/includes? ?s  "${keyword}")]
+                [?p :node/title ?t]
+                [?p :block/uid ?uid]
+                
+        ]
+    `,
+          config.uids,
+        ];
+      };
+    }
+
+    let pages: string[];
+    for (let keyword of keywords) {
+      const result = window.roamAlphaAPI.data.fast.q.apply(
+        null,
+        queryArgs(keyword)
       ) as unknown as string[];
       yield result;
       console.log(result, " -------@@", keywords, keyword, pages);
@@ -226,7 +251,7 @@ export const Query = (config: {
     const blocksInSamePage = await allRelatedBlockGroupByPages(keywords, pages);
     // 找到正好包含所有 keywords 的 block. 记录下来
     console.log(" ---222-==", Date.now(), pages, blocksInSamePage);
-    const lowLevelBlocks = getDiff(topLevelBlocks,blocksInSamePage);
+    const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
     // getDiff(topLevelBlocks, blocksInSamePage);
     console.log(" ---333-==", Date.now());
 
@@ -288,7 +313,7 @@ export const Query = (config: {
     let result: string[];
     // TODO: 优化流程处理
     if (config.uids.length) {
-      return config.uids;
+      result = config.uids;      
     }
     for (let c of keywords) {
       if (result === undefined) {

@@ -61,6 +61,12 @@ function _App() {
                 }
                 value={store.ui.getSearch()}
                 onChange={(e) => store.actions.changeSearch(e.target.value)}
+                onKeyPress={e => {
+                  console.log(e.key, ' == key')
+                  if (e.key === 'Enter') {
+                    store.actions.searchAgain();
+                  }
+                }}
               />
             </div>
             <div>
