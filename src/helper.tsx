@@ -4,6 +4,8 @@ import dayjs from "dayjs";
 export const CONSTNATS = {
   el: "advanced-search-el",
   history: "as-history",
+  leftSidebarMenu: 'roam-sidebar-content',
+  sidebarEl: 'as-sidebar-el'
 };
 let uninstalls: Function[] = [];
 

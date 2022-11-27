@@ -38,8 +38,6 @@
   opacity: 1;
 }
 
-
-
 .selected-result {
   position: absolute;
   top: 0;
@@ -135,6 +133,10 @@
 
 .advanced-search-el {
   transition: opacity 0.25s cubic-bezier(0.075, 0.82, 0.165, 1);
+}
+
+.advanced-search-el button {
+  outline: none;
 }
 
 .search-block-item .bp3-breadcrumb {
@@ -307,4 +309,8 @@
 }
 .w-100p .bp3-popover-target {
   width: 100%;
+}
+
+.no-outline {
+  outline: none;
 }

@@ -4,6 +4,7 @@ import { CONSTNATS, extension_helper } from "./helper";
 import ReactDOM from "react-dom";
 import { store, initStore } from "./store";
 import { initExtention } from "./extentionApi";
+import { Button, Tooltip } from "@blueprintjs/core";
 
 const initListener = () => {
   const handler = (e: KeyboardEvent) => {
@@ -18,11 +19,42 @@ const initListener = () => {
   });
 };
 
+const initSidebarIcon = () => {
+  const menu = document.querySelector("." + CONSTNATS.leftSidebarMenu);
+  const target = document.querySelectorAll(".log-button")[3];
+  const el = document.createElement("div");
+  ReactDOM.render(
+    <Tooltip content={"Ctrl+shift+p"}
+      hoverOpenDelay={500}
+      position="bottom">
+      <Button
+        text="Advanced search"
+        icon="search"
+        small
+        fill
+        alignText="left"
+        minimal
+        className="log-button no-outline"
+        onClick={store.actions.toggleDialog}
+      />
+    </Tooltip>,
+
+    el
+  );
+  menu.insertBefore(el, target);
+
+  extension_helper.on_uninstall(() => {
+    ReactDOM.unmountComponentAtNode(el)
+    menu.removeChild(el);
+  });
+};
+
 export default {
   onload: ({ extensionAPI }: { extensionAPI: RoamExtensionAPI }) => {
     initListener();
     initExtention(extensionAPI);
     initStore(extensionAPI);
+    initSidebarIcon();
     const el = document.createElement("div");
     document.body.appendChild(el);
     el.className = CONSTNATS.el;
