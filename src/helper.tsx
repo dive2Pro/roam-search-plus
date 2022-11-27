@@ -127,3 +127,8 @@ export const date = {
     return dayjs(time).format("HH:mm MMM DD, YYYY");
   },
 };
+
+
+export const clone = <T,>(obj: T) => {
+  return JSON.parse(JSON.stringify(obj)) as T
+}

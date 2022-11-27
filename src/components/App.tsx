@@ -11,6 +11,7 @@ import {
   Icon,
   ButtonGroup,
   Toaster,
+  ControlGroup,
 } from "@blueprintjs/core";
 
 import { store } from "../store";
@@ -36,7 +37,7 @@ function _App() {
       >
         <div style={{ display: "flex" }}>
           <section className="flex-column" style={{ width: 600, padding: 10 }}>
-            <div>
+            <ControlGroup>
               <InputGroup
                 placeholder="search..."
                 leftIcon={
@@ -69,7 +70,7 @@ function _App() {
                   }
                 }}
               />
-            </div>
+            </ControlGroup>
 
             {store.ui.isTyped() ? <ListContainer /> : <QueryHistory />}
 
@@ -148,7 +149,7 @@ function _App() {
                             Toaster.create().show({
                               message: "references copied",
                             });
-                            store.actions.toggleDialog()
+                            store.actions.toggleDialog();
                           }}
                         />
                       </Menu>

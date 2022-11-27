@@ -15,11 +15,11 @@
 - [x] "keywords as one word"
 - [x] toggle Only blocks
 - [x] left sidebar icon
+- [x] copy result as references (one line | multiple lines)
+- [x] reset inputs
 
 ## TODO
 
-- [ ] copy result as references (one line | multiple lines)
-- [ ] reset inputs
 
 ---
 

@@ -55,7 +55,7 @@ export const Sidebar = observer(() => {
         width: 220,
         backgroundColor: "hsl(204,33%,97%)",
         padding: 10,
-        display: store.ui.isTyped() ? "block" : "none",
+        display: store.ui.isTyped() ? "flex" : "none",
       }}
       className="sidebar"
     >
@@ -125,10 +125,10 @@ export const Sidebar = observer(() => {
             }
           />
         </div> */}
-        {store.ui.pages.getSelected().length === 0 ? null : (
+        {store.ui.conditions.pages.getSelected().length === 0 ? null : (
           <div>
             <div className="sidebar-title bp3-button-text">Search in pages</div>
-            {store.ui.pages.getSelected().map((item) => {
+            {store.ui.conditions.pages.getSelected().map((item) => {
               return (
                 <Button
                   key={item.id}
@@ -139,7 +139,7 @@ export const Sidebar = observer(() => {
                   rightIcon={
                     <Icon
                       onClick={() => {
-                        store.actions.changeSelectedPages(item);
+                        store.actions.conditions.changeSelectedPages(item);
                       }}
                       icon="small-cross"
                     />
@@ -222,7 +222,7 @@ export const Sidebar = observer(() => {
           </>
         )}
 
-        {store.ui.pages.hasCurrentPage() ? (
+        {store.ui.conditions.pages.hasCurrentPage() ? (
           <Button
             minimal
             icon="application"
@@ -262,7 +262,7 @@ export const Sidebar = observer(() => {
             </Button>
           </Popover>
         )}
-        {store.ui.pages.getSelected().length > 0 ? null : (
+        {store.ui.conditions.pages.getSelected().length > 0 ? null : (
           <SelectPages>
             <Button
               icon="search-template"
@@ -274,6 +274,12 @@ export const Sidebar = observer(() => {
           </SelectPages>
         )}
       </div>
+      <div style={{ flex: 1 }}></div>
+
+          
+      {store.ui.conditions.hasChanged() ? (
+        <Button icon="reset" minimal fill text="Reset" onClick={store.actions.conditions.reset} />
+      ) : null}
     </section>
   );
 });
@@ -281,18 +287,18 @@ export const Sidebar = observer(() => {
 const SelectPages = observer((props: { children: ReactNode }) => {
   return (
     <Select
-      items={store.ui.pages.get()}
+      items={store.ui.conditions.pages.get()}
       itemPredicate={(query, item, index) => {
         return item.text.indexOf(query) > -1;
       }}
       onItemSelect={(item) => {
-        store.actions.changeSelectedPages(item);
+        store.actions.conditions.changeSelectedPages(item);
       }}
       className="w-100p"
       itemRenderer={(item, itemProps) => {
         return (
           <SelectMenuItem
-            selected={store.ui.pages.isSelected(item.id)}
+            selected={store.ui.conditions.pages.isSelected(item.id)}
             {...itemProps}
             onClick={itemProps.handleClick}
             shouldDismissPopover={false}
