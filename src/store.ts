@@ -65,6 +65,7 @@ const ui = observable({
   conditions: {
     onlyPage: false,
     includeCode: true,
+    caseIntensive: true,
     inPages: [] as string[], // 可选页面
   },
   copySelectedTarget,
@@ -129,97 +130,102 @@ const keywordsBuildFrom = (search: string) => {
 };
 
 let cancelPre = () => {};
-const trigger = debounce(async (search: string, uids?: string[]) => {
-  cancelPre();
-  if (!search) {
-    return;
-  }
-  console.log(search, " start search");
-  const queryAPi = Query({
-    search: keywordsBuildFrom(search),
-    uids,
-  });
-  cancelPre = queryAPi.cancel;
-  await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
-    // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
-    query.result.set({
-      pages,
-      topBlocks,
-      lowBlocks,
+const trigger = debounce(
+  async (search: string, caseIntensive: boolean, uids?: string[]) => {
+    cancelPre();
+    if (!search) {
+      return;
+    }
+    console.log(search, " start search");
+    const queryAPi = Query({
+      search: keywordsBuildFrom(search),
+      uids,
+      caseIntensive,
     });
+    cancelPre = queryAPi.cancel;
+    await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
+      // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
+      query.result.set({
+        pages,
+        topBlocks,
+        lowBlocks,
+      });
 
-    const result: ResultItem[] = [
-      ...pages.map((block) => {
-        return {
-          id: block[":block/uid"],
-          text: block[":node/title"],
-          editTime: block[":edit/time"] || block[":create/time"],
-          createTime: block[":create/time"],
-          isPage: true,
-          paths: [],
-          isSelected: false,
-          children: [],
-        };
-      }),
-      ...topBlocks.map((block) => {
-        return {
-          id: block[":block/uid"],
-          text: block[":block/string"],
-          editTime: block[":edit/time"] || block[":create/time"],
-          createTime: block[":create/time"],
-          isPage: false,
-          // paths: block.parents.map(
-          //   (item) => item[":block/string"] || item[":node/title"]
-          // ),
-          paths: [],
-          isSelected: false,
-          children: [],
-        };
-      }),
-      ...(lowBlocks || []).map((item) => {
-        return {
-          id: item.page[":block/uid"],
-          text: item.page[":node/title"],
-          editTime: item.page[":edit/time"] || item.page[":create/time"],
-          createTime: item.page[":create/time"],
-          isPage: true,
-          paths: [],
-          isSelected: false,
-          children: item.children.map((block) => {
-            return {
-              id: block[":block/uid"],
-              text: block[":block/string"],
-              editTime: block[":edit/time"] || block[":create/time"],
-              createTime: block[":create/time"],
-              isPage: false,
-              // paths: block.parents.map(
-              //   (item) => item[":block/string"] || item[":node/title"]
-              // ),
-              paths: [],
-              isSelected: false,
-              children: [],
-            };
-          }),
-        };
-      }),
-    ];
+      const result: ResultItem[] = [
+        ...pages.map((block) => {
+          return {
+            id: block[":block/uid"],
+            text: block[":node/title"],
+            editTime: block[":edit/time"] || block[":create/time"],
+            createTime: block[":create/time"],
+            isPage: true,
+            paths: [],
+            isSelected: false,
+            children: [],
+          };
+        }),
+        ...topBlocks.map((block) => {
+          return {
+            id: block[":block/uid"],
+            text: block[":block/string"],
+            editTime: block[":edit/time"] || block[":create/time"],
+            createTime: block[":create/time"],
+            isPage: false,
+            // paths: block.parents.map(
+            //   (item) => item[":block/string"] || item[":node/title"]
+            // ),
+            paths: [],
+            isSelected: false,
+            children: [],
+          };
+        }),
+        ...(lowBlocks || []).map((item) => {
+          return {
+            id: item.page[":block/uid"],
+            text: item.page[":node/title"],
+            editTime: item.page[":edit/time"] || item.page[":create/time"],
+            createTime: item.page[":create/time"],
+            isPage: true,
+            paths: [],
+            isSelected: false,
+            children: item.children.map((block) => {
+              return {
+                id: block[":block/uid"],
+                text: block[":block/string"],
+                editTime: block[":edit/time"] || block[":create/time"],
+                createTime: block[":create/time"],
+                isPage: false,
+                // paths: block.parents.map(
+                //   (item) => item[":block/string"] || item[":node/title"]
+                // ),
+                paths: [],
+                isSelected: false,
+                children: [],
+              };
+            }),
+          };
+        }),
+      ];
 
-    // console.log(" ui result = ", result);
-    ui.result.set(result);
-  });
-  ui.loading.set(false);
-}, 500);
+      // console.log(" ui result = ", result);
+      ui.result.set(result);
+    });
+    ui.loading.set(false);
+  },
+  500
+);
 let prevSearch = "";
 
 const triggerWhenSearchChange = async (next: string) => {
   const nextStr = next.trim();
   const selectedPagesUids = ui.pages.selected.peek();
-
+  const caseIntensive = ui.conditions.caseIntensive.peek();
   if (nextStr !== prevSearch) {
     ui.loading.set(!!nextStr);
     try {
       await trigger(
         nextStr,
+        caseIntensive,
         selectedPagesUids.map((item) => item.id)
       );
     } catch (e) {
@@ -235,12 +241,14 @@ const disposeSearch = query.search.onChange(async (next) => {
 const dispose = observe(async () => {
   const search = query.search.peek().trim();
   const selectedPagesUids = ui.pages.selected.get();
+  const caseIntensive = ui.conditions.caseIntensive.get();
 
   ui.loading.set(!!search);
 
   try {
     await trigger(
       search,
+      caseIntensive,
       selectedPagesUids.map((item) => item.id)
     );
   } catch (e) {
@@ -619,6 +627,9 @@ export const store = {
       toggleIncludeCodeblock() {
         ui.conditions.includeCode.toggle();
       },
+      toggleCaseIntensive() {
+        ui.conditions.caseIntensive.toggle();
+      },
     },
     changeTags(tags: string[]) {
       ui.tags.set(tags);
@@ -716,6 +727,9 @@ export const store = {
       isIncludeCodeblock() {
         return ui.conditions.includeCode.get();
       },
+      isCaseIntensive() {
+        return ui.conditions.caseIntensive.get();
+      },
     },
     tags: {
       getTags() {
@@ -748,9 +762,8 @@ export const store = {
         return ui.pages.selected.get();
       },
       hasCurrentPage() {
-        return (
-          ui.pages.selected.get().length === 0 && ui.pages.current.get()
-        );
+        const c = ui.pages.current.get();
+        return ui.pages.selected.get().length === 0 && c.id;
       },
     },
     result: {
@@ -798,7 +811,13 @@ ui.visible.onChange(async (next) => {
       renewCache();
       triggerWhenSearchChange(query.search.peek());
     }, 10);
-    ui.pages.current.set(await getCurrentPage());
+    const page = await getCurrentPage();
+    if (page) {
+      ui.pages.current.set({
+        id: page[":block/uid"],
+        text: page[":node/title"],
+      });
+    }
   }
 });
 ui.open.onChange((next) => {

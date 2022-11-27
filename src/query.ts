@@ -1,6 +1,11 @@
 import { PullBlock } from "roamjs-components/types";
 import { debounce, getDiff, getSame, pull, pull_many } from "./helper";
-import { getAllBlocks, getBlocksContainsStr, getCache } from "./roam";
+import {
+  getAllBlocks,
+  getAllPages,
+  getBlocksContainsStr,
+  getCache,
+} from "./roam";
 
 let conditionRule = "";
 
@@ -29,6 +34,7 @@ export const Query = (config: {
   modificationDate?: SelectDate;
   creationDate?: SelectDate;
   uids?: string[];
+  caseIntensive: boolean;
 }) => {
   console.time("SSSS");
   const filterStringByKeywordsIntensive = (
@@ -71,6 +77,13 @@ export const Query = (config: {
       throw new Error("Cancel");
     }
   };
+  const includes = (p: string, n: string) => {
+    if (config.caseIntensive) {
+      return p.includes(n);
+    } else {
+      return p.toLowerCase().includes(n.toLowerCase());
+    }
+  };
 
   function timeSlice_<T, D>(fnc: any, time = 16, cb = setTimeout) {
     return function (...args: T[]) {
@@ -106,11 +119,13 @@ export const Query = (config: {
             return pageUid === item.page;
           })
         ) {
-          return false
+          return false;
         }
       }
       return keywords.every((keyword) => {
-        return item[":block/string"] && item[":block/string"].includes(keyword);
+        return (
+          item[":block/string"] && includes(item[":block/string"], keyword)
+        );
       });
     });
   };
@@ -278,7 +293,7 @@ export const Query = (config: {
     console.log("find low");
     const blocks = getAllBlocks().filter((item) => {
       return keywords.some((keyword) =>
-        item[":block/string"]?.includes(keyword)
+        includes(item[":block/string"], keyword)
       );
     });
     const lowBlocks = blocks.filter((b) => {
@@ -310,56 +325,25 @@ export const Query = (config: {
     ] as const;
   }
 
-  function* findAllRelatedPageUids(keywords: string[]) {
-    let result: string[];
-    // TODO: 优化流程处理
-    if (config.uids.length) {
-      result = config.uids;
-    }
-    for (let c of keywords) {
-      if (result === undefined) {
-        result = window.roamAlphaAPI.data.q(
-          `
-        [
-            :find [?uid ...]
-            :in $ %
-            :where
-                
-                [?b :block/uid ?uid]
-                [?b :node/title ?s]
-                [(clojure.string/includes? ?s  "${c}")]
-        ]
-    `,
-          conditionRule
-        ) as unknown as string[];
-      } else {
-        result = window.roamAlphaAPI.data.q(
-          `
-        [
-            :find [?uid ...]
-            :in $ % [?uid ...]
-            :where
-                
-                [?b :block/uid ?uid]
-                [?b :node/title ?s]
-                [(clojure.string/includes? ?s  "${c}")]
-        ]
-            `,
-          conditionRule,
-          result
-        ) as unknown as string[];
+  function findAllRelatedPageUids(keywords: string[]) {
+    return getAllPages().filter((page) => {
+      if (config.uids?.length) {
+        if (!config.uids.some((uid) => page[":block/uid"] === uid)) {
+          return false;
+        }
       }
-      yield result;
-    }
-    return result;
+      const r = keywords.every((keyword) => {
+        return includes(page[":node/title"], keyword);
+      });
+      return r;
+    });
   }
   const { search } = config;
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const ary = search;
   console.log(search.length, config, "rule =", conditionRule, " startting ");
-  const allRelatedPageUidsGenerator = timeSlice_(findAllRelatedPageUids);
   const promise = Promise.all([
-    allRelatedPageUidsGenerator(ary),
+    findAllRelatedPageUids(ary),
     findAllRelatedBlocks(ary),
   ]);
 
@@ -367,8 +351,8 @@ export const Query = (config: {
     promise: promise.then(
       ([pageUids, [topLevelBlocks, lowLevelBlocks = []]]) => {
         const result = [
-          pull_many(pageUids),
-          // pageUids,
+          // pull_many(pageUids),
+          pageUids,
           // pull_many(topLevelBlocks),
           topLevelBlocks,
           //   .map((item) => {

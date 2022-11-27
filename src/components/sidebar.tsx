@@ -72,6 +72,14 @@ export const Sidebar = observer(() => {
           checked={store.ui.conditions.isIncludeCodeblock()}
           alignIndicator="right"
         />
+        <Switch
+          label="Case Intensive"
+          onChange={(e) => {
+            store.actions.conditions.toggleCaseIntensive();
+          }}
+          checked={store.ui.conditions.isCaseIntensive()}
+          alignIndicator="right"
+        />
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
         <Switch label="Have Twitter" alignIndicator="left" />
