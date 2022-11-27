@@ -78,6 +78,9 @@ export const Query = (config: {
     }
   };
   const includes = (p: string, n: string) => {
+    if (!p) {
+      return false;
+    }
     if (config.caseIntensive) {
       return p.includes(n);
     } else {
@@ -291,14 +294,35 @@ export const Query = (config: {
     }
     // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
     console.log("find low");
-    const blocks = getAllBlocks().filter((item) => {
-      return keywords.some((keyword) =>
-        includes(item[":block/string"], keyword)
-      );
-    });
-    const lowBlocks = blocks.filter((b) => {
+
+    let lowBlocks = getAllBlocks().filter((b) => {
       return !topLevelBlocks.find((tb) => tb[":block/uid"] === b[":block/uid"]);
     });
+
+    // keywords.forEach((keyword) => {
+    //   lowBlocks.filter((item) => {
+    //     return includes(item[":block/uid"], keyword);
+    //   });
+    // });
+
+    const validateMap = new Map<string, boolean[]>();
+
+    lowBlocks = lowBlocks.filter((item) => {
+      return keywords.every((keyword, index) => {
+        const r = includes(item[":block/string"], keyword);
+        if (!validateMap.has(item.page)) {
+          validateMap.set(item.page, []);
+        }
+        validateMap.get(item.page)[index] = r;
+        return r;
+      });
+    });
+
+    lowBlocks = lowBlocks.filter((block) => {
+      return validateMap.get(block.page).every((v) => v);
+    });
+    // console.log(keywords, validateMap, lowBlocks);
+
     const map = new Map<string, PullBlock[]>();
     lowBlocks.forEach((b) => {
       if (map.has(b.page)) {
