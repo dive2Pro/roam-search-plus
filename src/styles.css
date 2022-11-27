@@ -19,6 +19,7 @@
 }
 .result-container {
   position: relative;
+  flex: 1;
 }
 
 .result-item-container .bp3-icon {
@@ -53,6 +54,25 @@
   flex-direction: row;
 }
 
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-row-center {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.h-46 {
+  height: 46px;
+}
+
+.h-200 {
+  height: 100px;
+}
 .query-history-item {
 }
 .result-breadcrumbs {
@@ -90,7 +110,8 @@
   margin-top: 5px;
   padding: 5px;
 }
-.result-item-child .bp4-card, .bp3-elevation-0 {
+.result-item-child .bp4-card,
+.bp3-elevation-0 {
   box-shadow: unset;
   background-color: inherit;
 }
@@ -233,7 +254,6 @@
     transform: rotate(360deg);
   }
 }
-
 
 .sidebar {
   color: #828282;

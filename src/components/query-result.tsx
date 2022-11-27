@@ -1,4 +1,16 @@
-import { Icon, Checkbox, Classes, Card } from "@blueprintjs/core";
+import {
+  Icon,
+  Checkbox,
+  Classes,
+  Card,
+  Button,
+  ButtonGroup,
+  Divider,
+  Menu,
+  MenuItem,
+  Popover,
+  Position,
+} from "@blueprintjs/core";
 import { For, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
@@ -209,7 +221,54 @@ const SelectedResult = observer(() => {
 export const ListContainer = observer(() => {
   return (
     <div className="result-container">
-      <QueryResult />
+      {store.ui.isLoading() ? (
+        <div className="flex-row-center h-200">Searching...</div>
+      ) : store.ui.hasResult() ? (
+        <>
+          <div>
+            <ButtonGroup className="sub-bg">
+              {/* <Checkbox
+                  checked={store.ui.isMultipleSelection()}
+                  onChange={(e) => store.actions.toggleMultiple()}
+                  label="Multiple Select"
+                ></Checkbox>
+                <Divider /> */}
+              <Popover
+                position={Position.BOTTOM}
+                modifiers={{
+                  arrow: {
+                    enabled: false,
+                  },
+                }}
+                content={
+                  <Menu>
+                    {store.ui.sort.selection().map((item, index) => {
+                      return (
+                        <MenuItem
+                          onClick={() => store.actions.changeSort(index)}
+                          text={item.text}
+                        />
+                      );
+                    })}
+                  </Menu>
+                }
+              >
+                <div>
+                  Sort By:{" "}
+                  <Button
+                    rightIcon={<Icon icon="chevron-down" size={12} />}
+                    minimal
+                    text={store.ui.sort.selectedText()}
+                  ></Button>
+                </div>
+              </Popover>
+            </ButtonGroup>
+          </div>
+
+          <Divider />
+          <QueryResult />
+        </>
+      ) : null}
       {store.ui.isShowSelectedTarget() ? <SelectedResult /> : null}
     </div>
   );

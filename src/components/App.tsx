@@ -34,7 +34,7 @@ function _App() {
         portalClassName="top-dialog"
       >
         <div style={{ display: "flex" }}>
-          <section style={{ width: 600, padding: 10 }}>
+          <section className="flex-column" style={{ width: 600, padding: 10 }}>
             <div>
               <InputGroup
                 placeholder="search..."
@@ -69,55 +69,10 @@ function _App() {
                 }}
               />
             </div>
-            { store.ui.hasResult() ? (
-              <>
-                <div>
-                  <ButtonGroup className="sub-bg">
-                    {/* <Checkbox
-                  checked={store.ui.isMultipleSelection()}
-                  onChange={(e) => store.actions.toggleMultiple()}
-                  label="Multiple Select"
-                ></Checkbox>
-                <Divider /> */}
-                    <Popover
-                      position={Position.BOTTOM}
-                      modifiers={{
-                        arrow: {
-                          enabled: false,
-                        },
-                      }}
-                      content={
-                        <Menu>
-                          {store.ui.sort.selection().map((item, index) => {
-                            return (
-                              <MenuItem
-                                onClick={() => store.actions.changeSort(index)}
-                                text={item.text}
-                              />
-                            );
-                          })}
-                        </Menu>
-                      }
-                    >
-                      <div>
-                        Sort By:{" "}
-                        <Button
-                          rightIcon={<Icon icon="chevron-down" size={12} />}
-                          minimal
-                          text={store.ui.sort.selectedText()}
-                        ></Button>
-                      </div>
-                    </Popover>
-                  </ButtonGroup>
-                </div>
-
-                <Divider />
-              </>
-            ) : null}
 
             {store.ui.isTyped() ? <ListContainer /> : <QueryHistory />}
 
-            <div className={Classes.DIALOG_FOOTER}>
+            <div>
               {store.ui.isMultipleSelection() ? (
                 <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                   {store.ui.isShowSelectedTarget() ? (
@@ -165,7 +120,7 @@ function _App() {
                   </Popover>
                 </div>
               ) : (
-                <sub>Ctrl + as reference</sub>
+                <sub>Shift + Open in sidebar</sub>
               )}
             </div>
           </section>
