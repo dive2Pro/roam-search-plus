@@ -1,6 +1,6 @@
 # Roam search+
 
-> more friendly search  
+> Search keywords do not need to be in a block
 
 ![](images/ad-search.png)
 
