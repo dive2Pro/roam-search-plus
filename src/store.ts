@@ -15,6 +15,7 @@ import {
 import { Query } from "./query";
 import {
   getAllPages,
+  getCurrentPage,
   getPageUidsFromUids,
   getParentsStrFromBlockUid,
   opens,
@@ -602,6 +603,13 @@ export const store = {
         const today = new Date();
         store.actions.changeModifyRange([today, today]);
       },
+      async currentPage() {
+        const page = await getCurrentPage();
+        store.actions.changeSelectedPages({
+          id: page[":block/uid"],
+          text: page[":node/title"],
+        });
+      },
     },
     conditions: {
       toggleOnlyPage() {
@@ -738,6 +746,9 @@ export const store = {
       getSelected() {
         return ui.pages.selected.get();
       },
+      async hasCurrentPage() {
+        return getCurrentPage() !== null;
+      },
     },
     result: {
       size() {
@@ -759,6 +770,7 @@ export const store = {
     },
     isLoading() {
       return ui.loading.get();
+      // return true;
     },
     getPathsFromUid(uid: string) {
       return getParentsStrFromBlockUid(uid);
@@ -782,7 +794,6 @@ ui.visible.onChange((next) => {
     setTimeout(() => {
       renewCache();
       triggerWhenSearchChange(query.search.peek());
-
     }, 10);
   }
 });

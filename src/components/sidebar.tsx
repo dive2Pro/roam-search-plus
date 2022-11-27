@@ -172,9 +172,15 @@ export const Sidebar = observer(() => {
         <Button minimal icon="calendar" onClick={store.actions.quick.lastWeek}>
           Modifyied Last week
         </Button>
-        <Button minimal icon="search-text">
-          Search in current page
-        </Button>
+        {store.ui.pages.hasCurrentPage() ? (
+          <Button
+            minimal
+            icon="search-text"
+            onClick={store.actions.quick.currentPage}
+          >
+            Search in current page
+          </Button>
+        ) : null}
 
         <div className="sidebar-title bp3-button-text">Custom Search</div>
         {store.ui.date.lastEdit() ? null : (

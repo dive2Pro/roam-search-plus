@@ -47,8 +47,8 @@ export const getAllPages = () => {
   return PAGES;
 };
 export const getAllBlocks = () => {
-    return BLOCKS;
-}
+  return BLOCKS;
+};
 
 export const renewCache = () => {
   ALLBLOCKS.clear();
@@ -151,6 +151,14 @@ export const getPageUidsFromUids = (uids: string[]) => {
     `,
     uids
   ) as unknown as string[];
+};
+
+export const getCurrentPage = async () => {
+  const page = await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+  if (!page) {
+    return null;
+  }
+  return window.roamAlphaAPI.pull("[*]", [":block/uid", page]);
 };
 
 export const opens = {
