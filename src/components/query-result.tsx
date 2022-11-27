@@ -73,12 +73,12 @@ const Row = observer((props: { item: ResultItem }) => {
     e.stopPropagation();
     if (e.shiftKey) {
       store.actions.confirm.openInSidebar([item]);
-    // } else if (e.altKey) {
+      // } else if (e.altKey) {
       // store.actions.confirm.saveAsReference([item]);
     } else {
       store.actions.confirm.openInMain(item);
     }
-    store.actions.history.saveSearch(store.ui.getSearch())
+    store.actions.history.saveSearch(store.ui.getSearch());
     store.actions.closeDialog();
   };
 
@@ -221,7 +221,7 @@ const SelectedResult = observer(() => {
 export const ListContainer = observer(() => {
   return (
     <div className="result-container">
-      {store.ui.isLoading() ? (
+      {store.ui.isLoading() && store.ui.result.size() === 0 ? (
         <div className="flex-row-center h-200">Searching...</div>
       ) : store.ui.hasResult() ? (
         <>

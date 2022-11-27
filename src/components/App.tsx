@@ -10,6 +10,7 @@ import {
   MenuItem,
   Icon,
   ButtonGroup,
+  Toaster,
 } from "@blueprintjs/core";
 
 import { store } from "../store";
@@ -119,9 +120,47 @@ function _App() {
                     </Button>
                   </Popover>
                 </div>
-              ) : (
-                <sub>+shift Open in sidebar</sub>
-              )}
+              ) : null}
+            </div>
+
+            <div className={Classes.DIALOG_FOOTER}>
+              {store.ui.result.size() > 0 ? (
+                <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                  <Popover
+                    position="right"
+                    interactionKind="hover"
+                    content={
+                      <Menu>
+                        <MenuItem
+                          text="As one line"
+                          onClick={() => {
+                            store.actions.confirm.copyResult(true);
+                            Toaster.create().show({
+                              message: "references copied",
+                            });
+                            store.actions.toggleDialog();
+                          }}
+                        />
+                        <MenuItem
+                          text="As multiple lines"
+                          onClick={() => {
+                            store.actions.confirm.copyResult();
+                            Toaster.create().show({
+                              message: "references copied",
+                            });
+                            store.actions.toggleDialog()
+                          }}
+                        />
+                      </Menu>
+                    }
+                  >
+                    <Button rightIcon="chevron-right" intent="primary">
+                      Copy results
+                    </Button>
+                  </Popover>
+                </div>
+              ) : null}
+              <sub className="hint">shift+ open in sidebar</sub>
             </div>
           </section>
           <Sidebar />

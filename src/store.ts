@@ -602,6 +602,19 @@ export const store = {
         }
         saveToSearchViewed([item]);
       },
+      copyResult(oneline = false) {
+        const pasteStr = ui.list
+          .get()
+          .map((item) => {
+            if (item.isPage) {
+              return `[[${item.text}]]`;
+            } else {
+              return `((${item.id}))`;
+            }
+          })
+          .join(oneline ? " " : "\n");
+        navigator.clipboard.writeText(pasteStr);
+      },
     },
     confirmMultiple() {
       const search = query.search.peek();

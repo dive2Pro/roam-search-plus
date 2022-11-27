@@ -135,7 +135,7 @@
   transition: opacity 0.25s cubic-bezier(0.075, 0.82, 0.165, 1);
 }
 
-.advanced-search-el button {
+.advanced-search-el button, .advanced-search-el .bp3-menu-item {
   outline: none;
 }
 
@@ -313,4 +313,14 @@
 
 .no-outline {
   outline: none;
+}
+.hint {
+  color: #828282;
+  position: absolute;
+  bottom: 2px;
+}
+
+.advanced-search-el .bp3-dialog-footer {
+  position: relative;
+  min-height: 20px;
 }
