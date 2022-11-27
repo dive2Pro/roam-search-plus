@@ -135,7 +135,11 @@
   transition: opacity 0.25s cubic-bezier(0.075, 0.82, 0.165, 1);
 }
 
-.advanced-search-el button, .advanced-search-el .bp3-menu-item {
+.advanced-search-el button{
+  outline: none;
+}
+
+.advanced-search-el .bp3-menu-item  {
   outline: none;
 }
 

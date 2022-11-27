@@ -19,9 +19,18 @@ import { enableLegendStateReact, observer } from "@legendapp/state/react";
 import { ListContainer } from "./query-result";
 import { Sidebar } from "./sidebar";
 import { QueryHistory } from "./history-result";
+import { useEffect, useRef } from "react";
 enableLegendStateReact();
 
 function _App() {
+  const ref = useRef<HTMLInputElement>();
+  useEffect(() => {
+    return store.actions.onVisibleChange((b) => {
+      if (b && ref.current) {
+        ref.current.focus();
+      }
+    })
+  }, [])
   return (
     <>
       <Dialog
@@ -47,6 +56,7 @@ function _App() {
                     "search"
                   )
                 }
+                inputRef={ref}
                 autoFocus
                 fill
                 rightElement={
@@ -125,11 +135,12 @@ function _App() {
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>
-              {store.ui.result.size() > 0 ? (
+              {store.ui.result.size() > 0 && store.ui.isTyped() ? (
                 <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                   <Popover
                     position="right"
                     interactionKind="hover"
+                    usePortal={false}
                     content={
                       <Menu>
                         <MenuItem
@@ -137,7 +148,9 @@ function _App() {
                           onClick={() => {
                             store.actions.confirm.copyResult(true);
                             Toaster.create().show({
-                              message: "references copied",
+                              intent: 'success',
+                              icon: 'small-tick',
+                              message: "References copied",
                             });
                             store.actions.toggleDialog();
                           }}
@@ -147,7 +160,9 @@ function _App() {
                           onClick={() => {
                             store.actions.confirm.copyResult();
                             Toaster.create().show({
-                              message: "references copied",
+                              intent: "success",
+                              icon: "small-tick",
+                              message: "References copied",
                             });
                             store.actions.toggleDialog();
                           }}

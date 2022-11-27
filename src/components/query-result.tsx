@@ -268,7 +268,9 @@ export const ListContainer = observer(() => {
           <Divider />
           <QueryResult />
         </>
-      ) : null}
+      ) : (
+        <div className="flex-row-center h-200">No results</div>
+      )}
       {store.ui.isShowSelectedTarget() ? <SelectedResult /> : null}
     </div>
   );

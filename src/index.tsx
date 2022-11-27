@@ -26,9 +26,10 @@ const initSidebarIcon = () => {
   ReactDOM.render(
     <Tooltip content={"Ctrl+shift+p"}
       hoverOpenDelay={500}
+      className="w-100p"
       position="bottom">
       <Button
-        text="Advanced search"
+        text="Search+"
         icon="search"
         small
         fill

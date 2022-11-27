@@ -93,8 +93,8 @@ const defaultConditions = {
 };
 
 const ui = observable({
-  open: true,
-  visible: true,
+  open: false,
+  visible: false,
 
   multiple: false,
   selectedTarget: [] as ResultItem[],
@@ -703,6 +703,9 @@ export const store = {
       const height = Math.max(MIN, Math.min(vHeight, MAX));
       ui.height.set(height);
     },
+    onVisibleChange(cb: (b: boolean) => void) {
+      return ui.visible.onChange(cb)
+    }
   },
   ui: {
     isOpen() {
@@ -823,13 +826,14 @@ export const store = {
       },
       hasChanged() {
         const nowConditions = ui.conditions.get();
-        console.log(nowConditions, ' --- ', defaultConditions)
+        console.log(nowConditions, " --- ", defaultConditions);
         return [
           nowConditions.caseIntensive !== defaultConditions.caseIntensive,
           nowConditions.includeBlock !== defaultConditions.includeBlock,
           nowConditions.includePage !== defaultConditions.includePage,
           nowConditions.includeCode !== defaultConditions.includeCode,
-          nowConditions.pages.selected.length !== defaultConditions.pages.selected.length,
+          nowConditions.pages.selected.length !==
+            defaultConditions.pages.selected.length,
           nowConditions.sort.selected !== defaultConditions.sort.selected,
         ].some((v) => v);
       },
