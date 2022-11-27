@@ -13,6 +13,7 @@ import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select } from "@blueprintjs/select";
 import { observable } from "@legendapp/state";
 import { observer } from "@legendapp/state/react";
+import { ReactNode } from "react";
 import { MOMENT_FORMATS } from "../moment";
 import { store } from "../store";
 
@@ -108,7 +109,7 @@ export const Sidebar = observer(() => {
                 <Button
                   key={item.id}
                   minimal
-                  icon="calendar"
+                  icon="application"
                   fill
                   alignText="left"
                   rightIcon={
@@ -125,7 +126,15 @@ export const Sidebar = observer(() => {
               );
             })}
 
-            <SelectPages text="Add page" />
+            <SelectPages>
+              <Button
+                icon="add"
+                alignText="left"
+                fill
+                minimal
+                text="add page"
+              />
+            </SelectPages>
           </div>
         )}
         {store.ui.date.lastEdit() ? (
@@ -163,19 +172,38 @@ export const Sidebar = observer(() => {
           </div>
         ) : null}
         <div className="sidebar-title bp3-button-text">Quick Search</div>
-        <Button minimal icon="person">
+        <Button minimal icon="person" fill alignText="left">
           Created By Me
         </Button>
-        <Button minimal icon="calendar" onClick={store.actions.quick.today}>
-          Modifyied Today
-        </Button>
-        <Button minimal icon="calendar" onClick={store.actions.quick.lastWeek}>
-          Modifyied Last week
-        </Button>
+        {store.ui.date.lastEdit() ? null : (
+          <>
+            <Button
+              minimal
+              icon="calendar"
+              fill
+              alignText="left"
+              onClick={store.actions.quick.today}
+            >
+              Modifyied Today
+            </Button>
+            <Button
+              minimal
+              icon="calendar"
+              fill
+              alignText="left"
+              onClick={store.actions.quick.lastWeek}
+            >
+              Modifyied Last week
+            </Button>
+          </>
+        )}
+
         {store.ui.pages.hasCurrentPage() ? (
           <Button
             minimal
-            icon="search-text"
+            icon="application"
+            fill
+            alignText="left"
             onClick={store.actions.quick.currentPage}
           >
             Search in current page
@@ -211,14 +239,22 @@ export const Sidebar = observer(() => {
           </Popover>
         )}
         {store.ui.pages.getSelected().length > 0 ? null : (
-          <SelectPages text="Search in page" />
+          <SelectPages>
+            <Button
+              icon="search-template"
+              alignText="left"
+              fill
+              minimal
+              text="Search in page"
+            />
+          </SelectPages>
         )}
       </div>
     </section>
   );
 });
 
-const SelectPages = observer((props: { text: string }) => {
+const SelectPages = observer((props: { children: ReactNode }) => {
   return (
     <Select
       items={store.ui.pages.get()}
@@ -228,6 +264,7 @@ const SelectPages = observer((props: { text: string }) => {
       onItemSelect={(item) => {
         store.actions.changeSelectedPages(item);
       }}
+      className="w-100p"
       itemRenderer={(item, itemProps) => {
         return (
           <SelectMenuItem
@@ -240,13 +277,7 @@ const SelectPages = observer((props: { text: string }) => {
         );
       }}
     >
-      <Button
-        icon="search-template"
-        alignText="left"
-        fill
-        minimal
-        text={props.text}
-      />
+      {props.children}
     </Select>
   );
 });

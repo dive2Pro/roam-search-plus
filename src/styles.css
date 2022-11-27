@@ -288,3 +288,15 @@
 .as-history .header button {
   opacity: 0;
 }
+
+.w-100p {
+  width: 100%;
+  display: block;
+}
+
+.sidebar .bp3-popover-target {
+  width: 100%;
+}
+.w-100p .bp3-popover-target {
+  width: 100%;
+}

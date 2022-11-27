@@ -100,54 +100,19 @@ export const Query = (config: {
 
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
     return getAllBlocks().filter((item) => {
+      if (config.uids?.length) {
+        if (
+          !config.uids.some((pageUid) => {
+            return pageUid === item.page;
+          })
+        ) {
+          return false
+        }
+      }
       return keywords.every((keyword) => {
         return item[":block/string"] && item[":block/string"].includes(keyword);
       });
     });
-    return keywords.reduce((p, c, index) => {
-      let queryArgs = [
-        `
-        [
-            :find  [?uid ...]
-            :in $ 
-            :where
-
-                [?b :block/string ?s]
-                [?b :block/uid ?uid]
-                [(clojure.string/includes? ?s  "${c}")]
-        ]
-      `,
-      ] as [string, string[]] | [string];
-      if (config.uids?.length) {
-        queryArgs = [
-          `
-        [
-            :find  [?uid ...]
-            :in $ [?page ...]
-            :where
-                [?b :block/page ?p]
-                [?p :block/uid ?page]
-                [?b :block/string ?s]
-                [?b :block/uid ?uid]
-                [(clojure.string/includes? ?s  "${c}")]
-        ]
-      `,
-          config.uids,
-        ];
-      }
-
-      // const r = window.roamAlphaAPI.data.fast.q.apply(
-      //   null,
-      //   queryArgs
-      // ) as unknown as string[];
-      const r = getAllBlocks().filter((item) => {
-        return item[":block/string"].includes(c);
-      });
-      if (index === 0) {
-        return r;
-      }
-      return;
-    }, [] as PullBlock[]);
   };
 
   function* findBlocksContainsStringInPages(

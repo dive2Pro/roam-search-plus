@@ -100,6 +100,7 @@ const ui = observable({
       id: string;
       text: string;
     }[],
+    current: {} as { id: string; text: string },
   },
   result: [] as ResultItem[],
   loading: false,
@@ -746,8 +747,10 @@ export const store = {
       getSelected() {
         return ui.pages.selected.get();
       },
-      async hasCurrentPage() {
-        return getCurrentPage() !== null;
+      hasCurrentPage() {
+        return (
+          ui.pages.selected.get().length === 0 && ui.pages.current.get()
+        );
       },
     },
     result: {
@@ -785,7 +788,7 @@ export const store = {
 };
 
 renewCache();
-ui.visible.onChange((next) => {
+ui.visible.onChange(async (next) => {
   const el = document.querySelector("." + CONSTNATS.el);
   if (!next) {
     el.classList.add("invisible");
@@ -795,6 +798,7 @@ ui.visible.onChange((next) => {
       renewCache();
       triggerWhenSearchChange(query.search.peek());
     }, 10);
+    ui.pages.current.set(await getCurrentPage());
   }
 });
 ui.open.onChange((next) => {
