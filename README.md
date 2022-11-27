@@ -17,14 +17,17 @@
 - [x] left sidebar icon
 
 ## TODO
-- [ ] toggle Exactly
+
 - [ ] copy result as references (one line | multiple lines)
-- [ ] user involve
 - [ ] reset inputs
+
 ---
 
 ## Next...
 
+
+- [ ] toggle Exactly
+- [ ] user involve
 - [ ] multiple choice
 - [ ] tags involve
 - [ ] RegExp search

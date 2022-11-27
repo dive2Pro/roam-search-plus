@@ -120,7 +120,7 @@ function _App() {
                   </Popover>
                 </div>
               ) : (
-                <sub>Shift + Open in sidebar</sub>
+                <sub>+shift Open in sidebar</sub>
               )}
             </div>
           </section>

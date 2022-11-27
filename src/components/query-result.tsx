@@ -72,13 +72,13 @@ const Row = observer((props: { item: ResultItem }) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.shiftKey) {
-      // store.actions.closeDialog();
       store.actions.confirm.openInSidebar([item]);
-    } else if (e.altKey) {
-      store.actions.confirm.saveAsReference([item]);
+    // } else if (e.altKey) {
+      // store.actions.confirm.saveAsReference([item]);
     } else {
       store.actions.confirm.openInMain(item);
     }
+    store.actions.history.saveSearch(store.ui.getSearch())
     store.actions.closeDialog();
   };
 

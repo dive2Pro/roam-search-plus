@@ -196,9 +196,9 @@ export const Sidebar = observer(() => {
           </div>
         ) : null}
         <div className="sidebar-title bp3-button-text">Quick Search</div>
-        <Button minimal icon="person" fill alignText="left">
+        {/* <Button minimal icon="person" fill alignText="left">
           Created By Me
-        </Button>
+        </Button> */}
         {store.ui.date.lastEdit() ? null : (
           <>
             <Button

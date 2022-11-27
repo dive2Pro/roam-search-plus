@@ -4,7 +4,7 @@ import { observable, ObservableObject, observe } from "@legendapp/state";
 import dayjs, { Dayjs } from "dayjs";
 import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
-import { recentlyViewed } from "./extentionApi";
+import { recentlyViewed, searchHistory } from "./extentionApi";
 import {
   CONSTNATS,
   debounce,
@@ -73,12 +73,7 @@ const ui = observable({
   copySelectedTarget,
   previewSelected: false,
   history: {
-    search: [
-      {
-        id: "1",
-        text: "qwe33",
-      },
-    ],
+    search: [] as BaseUiItem[],
     viewed: [] as RecentlyViewedItem[],
   },
   sort: {
@@ -113,6 +108,10 @@ const ui = observable({
 
 ui.history.viewed.onChange((items) => {
   recentlyViewed.save(items);
+});
+
+ui.history.search.onChange((items) => {
+  searchHistory.save(items);
 });
 
 const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
@@ -518,26 +517,30 @@ export const store = {
     searchAgain() {
       triggerWhenSearchChange(query.search.peek());
     },
-    saveHistory(str: string) {
-      ui.history.search.push({
-        id: Date.now() + "",
-        text: str,
-      });
-    },
     clearSearch() {
       store.actions.changeSearch("");
     },
     useHistory(str: string) {
       store.actions.changeSearch(str);
     },
-    deleteHistory(id: string) {
-      const i = ui.history.search.findIndex((item) => item.id === id);
-      console.log("delete:", i, id);
-      if (i > -1) {
-        ui.history.search.splice(i, 1);
-      }
-    },
+
     history: {
+      saveSearch(str: string) {
+        ui.history.search.set([
+          ...ui.history.search.peek().filter((item) => item.text !== str),
+          {
+            id: Date.now() + "",
+            text: str,
+          },
+        ]);
+      },
+      deleteSearch(id: string) {
+        const i = ui.history.search.findIndex((item) => item.id === id);
+        console.log("delete:", i, id);
+        if (i > -1) {
+          ui.history.search.splice(i, 1);
+        }
+      },
       deleteViewedItem(id: string) {
         const index = ui.history.viewed
           .peek()
@@ -602,7 +605,7 @@ export const store = {
     },
     confirmMultiple() {
       const search = query.search.peek();
-      store.actions.saveHistory(search);
+      store.actions.history.saveSearch(search);
     },
     clearLastEdit() {
       query.modificationDate.set(undefined);
@@ -856,6 +859,7 @@ ui.open.onChange((next) => {
 
 export const initStore = (extensionAPI: RoamExtensionAPI) => {
   ui.history.viewed.set(recentlyViewed.getAll());
+  ui.history.search.set(searchHistory.getAll());
 };
 
 // @ts-ignore

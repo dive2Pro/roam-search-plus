@@ -22,7 +22,7 @@ const HistoryItem = observer(({ item }: { item: Item }) => {
           className=""
           onClick={(e) => {
             e.preventDefault();
-            store.actions.deleteHistory(item.id.peek());
+            store.actions.history.deleteSearch(item.id.peek());
           }}
           icon="small-cross"
         />
@@ -47,6 +47,7 @@ const RecentlyViewedItem = observer(
           } else {
             opens.main.page(item.id.peek());
           }
+          store.actions.toggleDialog()
         }}
         rightIcon={
           <Icon
