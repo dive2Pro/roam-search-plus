@@ -300,9 +300,9 @@ export const Query = (config: {
     });
 
     if (config.uids?.length) {
-      lowBlocks = lowBlocks.filter(block => {
-        return config.uids.some(uid => uid === block.page)
-      })
+      lowBlocks = lowBlocks.filter((block) => {
+        return config.uids.some((uid) => uid === block.page);
+      });
     }
 
     // keywords.forEach((keyword) => {
@@ -314,7 +314,7 @@ export const Query = (config: {
     const validateMap = new Map<string, boolean[]>();
 
     lowBlocks = lowBlocks.filter((item) => {
-      return keywords.every((keyword, index) => {
+      return keywords.some((keyword, index) => {
         const r = includes(item[":block/string"], keyword);
         if (!validateMap.has(item.page)) {
           validateMap.set(item.page, []);
@@ -325,7 +325,9 @@ export const Query = (config: {
     });
 
     lowBlocks = lowBlocks.filter((block) => {
-      return validateMap.get(block.page).every((v) => v);
+      return keywords.every((k, i) => {
+        return validateMap.get(block.page)[i];
+      });
     });
     // console.log(keywords, validateMap, lowBlocks);
 
