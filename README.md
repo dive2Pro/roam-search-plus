@@ -13,9 +13,9 @@
 - [x] pages involve
 - [x] keywords related in context
 - [x] "keywords as one word"
+- [x] toggle Only blocks
 
 ## TODO
-- [ ] toggle Only blocks
 - [ ] toggle Exactly
 - [ ] copy result as references (one line | multiple lines)
 - [ ] user involve

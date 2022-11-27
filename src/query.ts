@@ -299,6 +299,12 @@ export const Query = (config: {
       return !topLevelBlocks.find((tb) => tb[":block/uid"] === b[":block/uid"]);
     });
 
+    if (config.uids?.length) {
+      lowBlocks = lowBlocks.filter(block => {
+        return config.uids.some(uid => uid === block.page)
+      })
+    }
+
     // keywords.forEach((keyword) => {
     //   lowBlocks.filter((item) => {
     //     return includes(item[":block/uid"], keyword);
