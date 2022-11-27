@@ -1,36 +1,40 @@
-# roam-advanced-search
+# Roam search+
 
-## DONE
+> more friendly search  
 
-- [x] open in sidebar & main window
-- [x] sorts 
-- [x] toggle code block 
-- [x] Only page 
-- [x] modifyed range
-- [x] history & recently viewed 
-- [x] search case intensive
-- [x] quick page & date select
-- [x] pages involve
-- [x] keywords related in context
-- [x] "keywords as one word"
-- [x] toggle Only blocks
-- [x] left sidebar icon
-- [x] copy result as references (one line | multiple lines)
-- [x] reset inputs
+![](images/ad-search.png)
+
+
+## Features
+
+- search within specific pages
+- search within a specific time range
+- sort by 
+  - priority: page title, block, keywords
+  - modified time
+  - created time
+- supports "expressions in quotes" and case intensive
+- supports copy result as references
+- opens in main window or sidebar
+- record your queries and browsing history
+
+## Usage
+
+You can open the search dialog in two ways
+
+- click in sidebar menu ![](images/side-menu.png)
+
+- ctrl + shift + p
+
 
 ## TODO
 
-
----
-
-## Next...
-
-
-- [ ] toggle Exactly
-- [ ] user involve
+- [ ] users involve
 - [ ] multiple choice
 - [ ] tags involve
 - [ ] RegExp search
-- [ ] Most ref pages;
 - [ ] panel settings
-- [ ] save settings as config like tab
+- [ ] save inputs as config like tab
+- [ ] arrow key to select
+- [ ] resistance to typos
+- [ ] toggle Exactly
