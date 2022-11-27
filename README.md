@@ -20,7 +20,7 @@
 - [ ] copy result as references (one line | multiple lines)
 - [ ] user involve
 - [ ] reset inputs
-
+- [ ] left sidebar icon
 ---
 
 ## Next...

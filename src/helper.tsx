@@ -72,6 +72,9 @@ function escapeRegExpChars(text: string) {
 }
 
 export function highlightText(text: string, query: string) {
+  if (text.indexOf("![](data:image") > -1) {
+    return <>{text}</>
+  }
   let lastIndex = 0;
   const words = query
     .split(/\s+/)

@@ -8,6 +8,10 @@ import {
   Intent,
   MenuItem,
   MenuItemProps,
+  Radio,
+  RadioGroup,
+  Menu,
+  Divider,
 } from "@blueprintjs/core";
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select } from "@blueprintjs/select";
@@ -57,22 +61,6 @@ export const Sidebar = observer(() => {
     >
       <div>
         <Switch
-          label="Only page"
-          onChange={(e) => {
-            store.actions.conditions.toggleOnlyPage();
-          }}
-          checked={store.ui.conditions.isOnlyPage()}
-          alignIndicator="right"
-        />
-        <Switch
-          label="Include code blocks"
-          onChange={(e) => {
-            store.actions.conditions.toggleIncludeCodeblock();
-          }}
-          checked={store.ui.conditions.isIncludeCodeblock()}
-          alignIndicator="right"
-        />
-        <Switch
           label="Case Intensive"
           onChange={(e) => {
             store.actions.conditions.toggleCaseIntensive();
@@ -80,6 +68,34 @@ export const Sidebar = observer(() => {
           checked={store.ui.conditions.isCaseIntensive()}
           alignIndicator="right"
         />
+        <div className="sidebar-title bp3-button-text">Includes</div>
+        <Switch
+          label="Include page"
+          onChange={(e) => {
+            store.actions.conditions.toggleIncludePage();
+          }}
+          checked={store.ui.conditions.isIncludePage()}
+          alignIndicator="right"
+        />
+
+        <Switch
+          label="Include blocks"
+          onChange={(e) => {
+            store.actions.conditions.toggleIncludeBlock();
+          }}
+          checked={store.ui.conditions.isIncludeBlock()}
+          alignIndicator="right"
+        />
+        <div className="sidebar-title bp3-button-text">Contents</div>
+        <Switch
+          label="Show code blocks"
+          onChange={(e) => {
+            store.actions.conditions.toggleIncludeCodeblock();
+          }}
+          checked={store.ui.conditions.isIncludeCodeblock()}
+          alignIndicator="right"
+        />
+
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
         <Switch label="Have Twitter" alignIndicator="left" />
@@ -192,7 +208,7 @@ export const Sidebar = observer(() => {
               alignText="left"
               onClick={store.actions.quick.today}
             >
-              Modifyied Today
+              Modified Today
             </Button>
             <Button
               minimal
@@ -201,7 +217,7 @@ export const Sidebar = observer(() => {
               alignText="left"
               onClick={store.actions.quick.lastWeek}
             >
-              Modifyied Last week
+              Modified Last week
             </Button>
           </>
         )}
@@ -242,7 +258,7 @@ export const Sidebar = observer(() => {
             }
           >
             <Button minimal fill alignText="left" icon="calendar">
-              Modifyied date
+              Modified date
             </Button>
           </Popover>
         )}

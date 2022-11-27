@@ -26,15 +26,19 @@
   align-self: flex-start;
   padding-top: 4px;
 }
-.result-container .infinite-scroll {
-  overflow: auto;
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
-  scrollbar-width: none; /* Firefox */
+
+.infinite-scroll::-webkit-scrollbar-thumb {
+  opacity: 0;
+}
+.infinite-scroll::-webkit-scrollbar {
+  width: 10px;
+  background-color: transparent;
+}
+.infinite-scroll:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
 }
 
-.infinite-scroll::-webkit-scrollbar {
-  display: none; /* Safari and Chrome */
-}
+
 
 .selected-result {
   position: absolute;
@@ -287,6 +291,10 @@
 
 .as-history .header button {
   opacity: 0;
+}
+
+.as-history .bp3-button-text {
+  overflow: auto;
 }
 
 .w-100p {

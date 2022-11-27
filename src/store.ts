@@ -64,6 +64,8 @@ const ui = observable({
   showSelectedTarget: false,
   conditions: {
     onlyPage: false,
+    includePage: true,
+    includeBlock: true,
     includeCode: true,
     caseIntensive: true,
     inPages: [] as string[], // 可选页面
@@ -84,10 +86,10 @@ const ui = observable({
       {
         text: "Priority",
       },
-      { text: "Modified - Descending" },
-      { text: "Modified - Ascending" },
-      { text: "Created  - Descending" },
-      { text: "Created  - Ascending" },
+      { text: "Modified - descending" },
+      { text: "Modified - ascending" },
+      { text: "Created  - descending" },
+      { text: "Created  - ascending" },
     ],
     selected: 0,
   },
@@ -287,9 +289,22 @@ function conditionFilter<T extends PullBlock>(
 const disposeUiResult = observe(async () => {
   let uiResult = ui.result.get();
 
-  if (ui.conditions.onlyPage.get()) {
-    uiResult = uiResult.filter((item) => item.isPage);
-  }
+  const includePage = ui.conditions.includePage.get();
+  const includeBlock = ui.conditions.includeBlock.get();
+  uiResult = uiResult.filter((item) => {
+    let result = true;
+    if (!includePage) {
+      result = !item.isPage;
+    }
+    if (result && !includeBlock) {
+      return item.isPage;
+    }
+    return result;
+  });
+
+  // if (ui.conditions.onlyPage.get()) {
+  //   uiResult = uiResult.filter((item) => item.isPage);
+  // }
   // uiResult.filter( item => item.isPage)
   // const resultPages = getPageUidsFromUids(uiResult.map((item) => item.id));
   // 只有选中的 page 才出现.
@@ -627,6 +642,12 @@ export const store = {
       toggleIncludeCodeblock() {
         ui.conditions.includeCode.toggle();
       },
+      toggleIncludePage() {
+        ui.conditions.includePage.toggle();
+      },
+      toggleIncludeBlock() {
+        ui.conditions.includeBlock.toggle();
+      },
       toggleCaseIntensive() {
         ui.conditions.caseIntensive.toggle();
       },
@@ -729,6 +750,12 @@ export const store = {
       },
       isCaseIntensive() {
         return ui.conditions.caseIntensive.get();
+      },
+      isIncludePage() {
+        return ui.conditions.includePage.get();
+      },
+      isIncludeBlock() {
+        return ui.conditions.includeBlock.get();
       },
     },
     tags: {
