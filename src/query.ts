@@ -319,7 +319,8 @@ export const Query = (config: {
         if (!validateMap.has(item.page)) {
           validateMap.set(item.page, []);
         }
-        validateMap.get(item.page)[index] = r;
+        if (r) validateMap.get(item.page)[index] = r;
+        // console.log(item, r, keyword, " --- -- - - - - ---");
         return r;
       });
     });
@@ -329,7 +330,7 @@ export const Query = (config: {
         return validateMap.get(block.page)[i];
       });
     });
-    // console.log(keywords, validateMap, lowBlocks);
+    // console.log(keywords, validateMap, lowBlocks, "@@@----");
 
     const map = new Map<string, PullBlock[]>();
     lowBlocks.forEach((b) => {
