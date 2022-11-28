@@ -20,6 +20,7 @@ import { ListContainer } from "./query-result";
 import { Sidebar } from "./sidebar";
 import { QueryHistory } from "./history-result";
 import { useEffect, useRef } from "react";
+import { CONSTNATS } from "../helper";
 enableLegendStateReact();
 
 function _App() {
@@ -29,23 +30,31 @@ function _App() {
       if (b && ref.current) {
         ref.current.focus();
       }
-    })
-  }, [])
+    });
+  }, []);
   return (
-    <>
-      <Dialog
-        usePortal={false}
-        isOpen={store.ui.isOpen()}
+    <div
+      className={`${CONSTNATS.el} ${
+        store.ui.isOpen() ? "visible" : "invisible"
+      }`}
+    >
+      <div
+        onClick={store.actions.toggleDialog}
+        className={`${CONSTNATS.el}-onevent`}
+      />
+      <dialog
+        open={store.ui.isOpen()}
+        className="bp3-dialog"
         style={{
           paddingBottom: 0,
-          width: "unset",
           alignItems: "flex-start",
         }}
-        onClose={() => store.actions.closeDialog()}
-        portalClassName="top-dialog"
       >
         <div style={{ display: "flex" }}>
-          <section className="flex-column" style={{ width: 600, padding: 10 }}>
+          <section
+            className="flex-column"
+            style={{ width: 600, padding: "0 10px 10px 0" }}
+          >
             <ControlGroup>
               <InputGroup
                 placeholder="search..."
@@ -57,7 +66,6 @@ function _App() {
                   )
                 }
                 inputRef={ref}
-                autoFocus
                 fill
                 rightElement={
                   store.ui.isTyped() ? (
@@ -81,9 +89,7 @@ function _App() {
                 }}
               />
             </ControlGroup>
-
             {store.ui.isTyped() ? <ListContainer /> : <QueryHistory />}
-
             <div>
               {store.ui.isMultipleSelection() ? (
                 <div className={Classes.DIALOG_FOOTER_ACTIONS}>
@@ -148,8 +154,8 @@ function _App() {
                           onClick={() => {
                             store.actions.confirm.copyResult(true);
                             Toaster.create().show({
-                              intent: 'success',
-                              icon: 'small-tick',
+                              intent: "success",
+                              icon: "small-tick",
                               message: "References copied",
                             });
                             store.actions.toggleDialog();
@@ -181,8 +187,8 @@ function _App() {
           </section>
           <Sidebar />
         </div>
-      </Dialog>
-    </>
+      </dialog>
+    </div>
   );
 }
 

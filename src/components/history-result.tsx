@@ -47,7 +47,7 @@ const RecentlyViewedItem = observer(
           } else {
             opens.main.page(item.id.peek());
           }
-          store.actions.toggleDialog()
+          store.actions.toggleDialog();
         }}
         rightIcon={
           <Icon
@@ -60,7 +60,7 @@ const RecentlyViewedItem = observer(
           />
         }
         fill
-        text={item.text}
+        text={item.text.get()}
       />
     );
   }
@@ -73,7 +73,12 @@ export const QueryHistory = observer(() => {
         <section>
           <div className="header">
             <div>Recently Viewed</div>
-            <Button text="Clear" minimal small onClick={store.actions.history.clearViewed} />
+            <Button
+              text="Clear"
+              minimal
+              small
+              onClick={store.actions.history.clearViewed}
+            />
           </div>
           <For each={store.ui.history.getViewed()} item={RecentlyViewedItem} />
         </section>
@@ -83,7 +88,12 @@ export const QueryHistory = observer(() => {
         <section>
           <div className="header">
             <div>Latest search</div>
-            <Button text="Clear" minimal small onClick={store.actions.history.clearSearch} />
+            <Button
+              text="Clear"
+              minimal
+              small
+              onClick={store.actions.history.clearSearch}
+            />
           </div>
           <div>
             <For each={store.ui.history.getSearch()} item={HistoryItem}></For>

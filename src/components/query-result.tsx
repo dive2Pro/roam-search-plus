@@ -94,7 +94,7 @@ const Row = observer((props: { item: ResultItem }) => {
               onClick={(e) => handlerClick(e, child)}
               className="result-item-child"
             >
-              <div className="flex-row">
+              <div className="flex-row" data-uid={child.id}>
                 <Icon icon="symbol-circle" size={10} />
                 <div className="result-item-content" style={{ marginLeft: 10 }}>
                   {child.text}
@@ -124,7 +124,9 @@ const Row = observer((props: { item: ResultItem }) => {
             );
           })}
         </div>
-        <div className="result-item-content">{text}</div>
+        <div className="result-item-content" >
+          {text}
+        </div>
       </>
     );
   }
@@ -132,6 +134,7 @@ const Row = observer((props: { item: ResultItem }) => {
     <section
       className="result-item-container"
       onClick={(e) => handlerClick(e, props.item)}
+      data-uid={props.item.id}
     >
       <Icon icon={props.item.isPage ? "application" : "paragraph"}></Icon>
       <div style={{ width: "100%", marginLeft: 10 }}>

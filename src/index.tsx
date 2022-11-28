@@ -24,10 +24,12 @@ const initSidebarIcon = () => {
   const target = document.querySelectorAll(".log-button")[3];
   const el = document.createElement("div");
   ReactDOM.render(
-    <Tooltip content={"Ctrl+shift+p"}
+    <Tooltip
+      content={"Ctrl+shift+p"}
       hoverOpenDelay={500}
       className="w-100p"
-      position="bottom">
+      position="bottom"
+    >
       <Button
         text="Search+"
         icon="search"
@@ -45,7 +47,7 @@ const initSidebarIcon = () => {
   menu.insertBefore(el, target);
 
   extension_helper.on_uninstall(() => {
-    ReactDOM.unmountComponentAtNode(el)
+    ReactDOM.unmountComponentAtNode(el);
     menu.removeChild(el);
   });
 };
@@ -58,8 +60,8 @@ export default {
     initSidebarIcon();
     const el = document.createElement("div");
     document.body.appendChild(el);
-    el.className = CONSTNATS.el;
     ReactDOM.render(<App />, el);
+
     extension_helper.on_uninstall(() => {
       ReactDOM.unmountComponentAtNode(el);
       document.body.removeChild(el);

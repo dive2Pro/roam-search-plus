@@ -29,6 +29,7 @@ You can open the search dialog in two ways
 
 ## TODO
 
+- [ ] more accurate context
 - [ ] users involve
 - [ ] multiple choice
 - [ ] tags involve

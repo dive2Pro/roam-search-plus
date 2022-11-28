@@ -133,13 +133,41 @@
 
 .advanced-search-el {
   transition: opacity 0.25s cubic-bezier(0.075, 0.82, 0.165, 1);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding-top: 20px;
+  display: flex;
+  justify-content: center;
+  z-index: 9;
+  pointer-events: none;
 }
 
-.advanced-search-el button{
+.advanced-search-el-onevent {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding-top: 20px;
+  background: #121417a3;
+  z-index: -1;
+}
+
+.advanced-search-el dialog {
+  width: fit-content;
+  position: initial;
+  pointer-events: all;
+  border-width: 0;
+}
+
+.advanced-search-el button {
   outline: none;
 }
 
-.advanced-search-el .bp3-menu-item  {
+.advanced-search-el .bp3-menu-item {
   outline: none;
 }
 
