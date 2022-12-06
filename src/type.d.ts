@@ -22,3 +22,9 @@ type SelectDate =
 type BaseUiItem = { id: string; text: string };
   
 type RecentlyViewedItem = BaseUiItem & { isPage: boolean }
+
+
+type User = {
+  ":user/display-name": string;
+  ":db/id": string;
+};

@@ -161,6 +161,41 @@ export const Sidebar = observer(() => {
             </SelectPages>
           </div>
         )}
+        {store.ui.conditions.users.getSelected().length === 0 ? null : (
+          <div>
+            <div className="sidebar-title bp3-button-text">Created By Users</div>
+            {store.ui.conditions.users.getSelected().map((item) => {
+              return (
+                <Button
+                  key={item.id}
+                  minimal
+                  icon="person"
+                  fill
+                  alignText="left"
+                  rightIcon={
+                    <Icon
+                      onClick={() => {
+                        store.actions.conditions.changeSelectedUsers(item);
+                      }}
+                      icon="small-cross"
+                    />
+                  }
+                >
+                  {item.text}
+                </Button>
+              );
+            })}
+            <SelectCreateUsers>
+              <Button
+                icon="add"
+                alignText="left"
+                fill
+                minimal
+                text="Users"
+              />
+            </SelectCreateUsers>
+          </div>
+        )}
         {store.ui.date.lastEdit() ? (
           <div>
             <div className="sidebar-title bp3-button-text">Latest Edit</div>
@@ -196,9 +231,19 @@ export const Sidebar = observer(() => {
           </div>
         ) : null}
         <div className="sidebar-title bp3-button-text">Quick Search</div>
-        {/* <Button minimal icon="person" fill alignText="left">
-          Created By Me
-        </Button> */}
+        {store.ui.conditions.users.getSelected().length > 0 ? null : (
+          <Button
+            minimal
+            icon="person"
+            fill
+            alignText="left"
+            onClick={() => {
+              store.actions.quick.me();
+            }}
+          >
+            Created By Me
+          </Button>
+        )}
         {store.ui.date.lastEdit() ? null : (
           <>
             <Button
@@ -273,12 +318,24 @@ export const Sidebar = observer(() => {
             />
           </SelectPages>
         )}
+        {store.ui.conditions.users.getSelected().length > 0 ? null : (
+          <SelectCreateUsers>
+            <Button minimal icon="person" fill alignText="left">
+              Select Users
+            </Button>
+          </SelectCreateUsers>
+        )}
       </div>
       <div style={{ flex: 1 }}></div>
 
-          
       {store.ui.conditions.hasChanged() ? (
-        <Button icon="reset" minimal fill text="Reset" onClick={store.actions.conditions.reset} />
+        <Button
+          icon="reset"
+          minimal
+          fill
+          text="Reset"
+          onClick={store.actions.conditions.reset}
+        />
       ) : null}
     </section>
   );
@@ -299,6 +356,34 @@ const SelectPages = observer((props: { children: ReactNode }) => {
         return (
           <SelectMenuItem
             selected={store.ui.conditions.pages.isSelected(item.id)}
+            {...itemProps}
+            onClick={itemProps.handleClick}
+            shouldDismissPopover={false}
+            text={item.text}
+          />
+        );
+      }}
+    >
+      {props.children}
+    </Select>
+  );
+});
+
+const SelectCreateUsers = observer((props: { children: ReactNode }) => {
+  return (
+    <Select
+      items={store.ui.conditions.users.get()}
+      itemPredicate={(query, item, index) => {
+        return item.text.indexOf(query) > -1;
+      }}
+      onItemSelect={(item) => {
+        store.actions.conditions.changeSelectedUsers(item);
+      }}
+      className="w-100p"
+      itemRenderer={(item, itemProps) => {
+        return (
+          <SelectMenuItem
+            selected={store.ui.conditions.users.isSelected(item.id)}
             {...itemProps}
             onClick={itemProps.handleClick}
             shouldDismissPopover={false}

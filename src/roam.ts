@@ -43,6 +43,12 @@ let ALLBLOCKS: Map<string, PullBlock> = new Map();
 let PAGES: PullBlock[] = [];
 type BlockWithPage = PullBlock & { page: string };
 let BLOCKS: BlockWithPage[] = [];
+let USERS: User[] = [];
+
+export const getAllUsers = () => {
+  return USERS;
+};
+
 export const getAllPages = () => {
   return PAGES;
 };
@@ -77,6 +83,18 @@ export const renewCache = () => {
         ]
     `
   ) as unknown as PullBlock[];
+  const userIds = window.roamAlphaAPI.data.fast.q(
+    `
+    [
+          :find [(pull ?cu [*])...]
+          :where
+           [?b :block/uid]
+           [?b :create/user ?cu]
+        ]
+    `
+  ) as unknown as User[];
+  USERS = userIds.filter( user => user[":user/display-name"]);
+  console.log(USERS.map(item=> ({...item})), '---');
   [...BLOCKS, ...PAGES].forEach((block) => {
     ALLBLOCKS.set(block[":block/uid"], block);
   });
@@ -104,6 +122,19 @@ export const renewCache = () => {
   //   });
   console.log(ALLBLOCKS);
 };
+
+export const getMe = () => {
+  const uid = window.roamAlphaAPI.util.dateToPageUid(new Date());
+  const result = window.roamAlphaAPI.data.fast.q(`
+    [
+      :find  (pull ?e [*]) .
+      :where
+        [?b :block/uid "${uid}"]
+        [?b :create/user ?e]
+    ]
+  `) as unknown as User; 
+  return result
+}
 
 export const getCache = () => {
   return ALLBLOCKS;

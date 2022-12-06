@@ -15,7 +15,7 @@
   - created time
 - supports "expressions in quotes" and case intensive
 - supports copy result as references
-- opens in main window or sidebar
+- open in main window or sidebar
 - record your queries and browsing history
 
 ## Usage
@@ -29,8 +29,8 @@ You can open the search dialog in two ways
 
 ## TODO
 
-- [ ] more accurate context
-- [ ] users involve
+- [x] more accurate context
+- [x] users involve
 - [ ] multiple choice
 - [ ] tags involve
 - [ ] RegExp search

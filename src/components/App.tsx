@@ -147,6 +147,7 @@ function _App() {
                     position="right"
                     interactionKind="hover"
                     usePortal={false}
+                    autoFocus={false}
                     content={
                       <Menu>
                         <MenuItem

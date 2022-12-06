@@ -21,7 +21,9 @@ import {
 import { Query } from "./query";
 import {
   getAllPages,
+  getAllUsers,
   getCurrentPage,
+  getMe,
   getPageUidsFromUids,
   getParentsStrFromBlockUid,
   opens,
@@ -37,6 +39,7 @@ export type ResultItem = {
   paths: string[];
   isSelected: boolean;
   children: ResultItem[];
+  createUser: string | number
 };
 
 const query = observable({
@@ -90,6 +93,10 @@ const defaultConditions = {
     ],
     selected: 0,
   },
+  users: {
+    items: [] as User[],
+    selected: [] as { id: string; text: string }[],
+  },
 };
 
 const ui = observable({
@@ -99,7 +106,7 @@ const ui = observable({
   multiple: false,
   selectedTarget: [] as ResultItem[],
   showSelectedTarget: false,
-  conditions: clone(defaultConditions) ,
+  conditions: clone(defaultConditions),
   copySelectedTarget,
   previewSelected: false,
   history: {
@@ -175,6 +182,7 @@ const trigger = debounce(
             paths: [],
             isSelected: false,
             children: [],
+            createUser: block[":create/user"]?.[":db/id"],
           };
         }),
         ...topBlocks.map((block) => {
@@ -184,6 +192,7 @@ const trigger = debounce(
             editTime: block[":edit/time"] || block[":create/time"],
             createTime: block[":create/time"],
             isPage: false,
+            createUser: block[":create/user"]?.[":db/id"],
             // paths: block.parents.map(
             //   (item) => item[":block/string"] || item[":node/title"]
             // ),
@@ -198,6 +207,7 @@ const trigger = debounce(
             text: item.page[":node/title"],
             editTime: item.page[":edit/time"] || item.page[":create/time"],
             createTime: item.page[":create/time"],
+            createUser: item.page[":create/user"]?.[":db/id"],
             isPage: true,
             paths: [],
             isSelected: false,
@@ -214,6 +224,7 @@ const trigger = debounce(
                 paths: [],
                 isSelected: false,
                 children: [],
+                createUser: block[":create/user"]?.[":db/id"]
               };
             }),
           };
@@ -303,17 +314,21 @@ const disposeUiResult = observe(async () => {
 
   const includePage = ui.conditions.includePage.get();
   const includeBlock = ui.conditions.includeBlock.get();
+  const users = ui.conditions.users.selected.get();
   uiResult = uiResult.filter((item) => {
     let result = true;
     if (!includePage) {
       result = !item.isPage;
     }
     if (result && !includeBlock) {
-      return item.isPage;
+      result = item.isPage;
+    }
+
+    if (result && users.length) {
+      result = users.some( user => user.id === item.createUser)
     }
     return result;
   });
-
   // if (ui.conditions.onlyPage.get()) {
   //   uiResult = uiResult.filter((item) => item.isPage);
   // }
@@ -663,6 +678,13 @@ export const store = {
           text: page[":node/title"],
         });
       },
+      me() {
+        const me = getMe();
+        store.actions.conditions.changeSelectedUsers({
+          id: me[":db/id"],
+          text: me[":user/display-name"],
+        });
+      },
     },
     conditions: {
       toggleOnlyPage() {
@@ -689,6 +711,15 @@ export const store = {
           ui.conditions.pages.selected.push(obj);
         }
       },
+      changeSelectedUsers(user: { id: string; text: string }) {
+        const selected = ui.conditions.users.selected.peek();
+        const index = selected.findIndex((item) => item.id === user.id);
+        if (index > -1) {
+          ui.conditions.users.selected.splice(index, 1);
+        } else {
+          ui.conditions.users.selected.push(user);
+        }
+      },
       reset() {
         ui.conditions.set(clone(defaultConditions));
       },
@@ -704,8 +735,8 @@ export const store = {
       ui.height.set(height);
     },
     onVisibleChange(cb: (b: boolean) => void) {
-      return ui.visible.onChange(cb)
-    }
+      return ui.visible.onChange(cb);
+    },
   },
   ui: {
     isOpen() {
@@ -798,16 +829,12 @@ export const store = {
       },
       pages: {
         get() {
-          // const selected = ui.pages.selected.get();
-
-          // return ui.pages.items.get();
           return getAllPages()
             .map((item) => ({
               id: item[":block/uid"],
               text: item[":node/title"],
             }))
             .filter((item) => item.text);
-          // .filter((item) => !selected.some((id) => id === item.id));
         },
         isSelected(id: string) {
           return (
@@ -822,6 +849,24 @@ export const store = {
         hasCurrentPage() {
           const c = ui.conditions.pages.current.get();
           return ui.conditions.pages.selected.get().length === 0 && c.id;
+        },
+      },
+      users: {
+        get() {
+          return getAllUsers().map((item) => ({
+            id: item[":db/id"],
+            text: item[":user/display-name"],
+          }));
+        },
+        isSelected(id: string) {
+          return (
+            ui.conditions.users.selected
+              .get()
+              .findIndex((item) => item.id === id) > -1
+          );
+        },
+        getSelected() {
+          return ui.conditions.users.selected.get();
         },
       },
       hasChanged() {
