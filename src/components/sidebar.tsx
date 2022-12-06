@@ -53,8 +53,6 @@ export const Sidebar = observer(() => {
     <section
       style={{
         width: 220,
-        backgroundColor: "hsl(204,33%,97%)",
-        padding: 10,
         display: store.ui.isTyped() ? "flex" : "none",
       }}
       className="sidebar"

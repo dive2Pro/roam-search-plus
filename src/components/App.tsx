@@ -50,10 +50,10 @@ function _App() {
           alignItems: "flex-start",
         }}
       >
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex" }} className="search-content">
           <section
             className="flex-column"
-            style={{ width: 600, padding: "0 10px 10px 0" }}
+            style={{ width: 600 }}
           >
             <ControlGroup>
               <InputGroup

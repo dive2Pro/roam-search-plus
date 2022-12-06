@@ -145,6 +145,10 @@
   pointer-events: none;
 }
 
+.bp3-dark .advanced-search-el  .bp3-control {
+  color: inherit;
+}
+
 .advanced-search-el-onevent {
   position: absolute;
   top: 0;
@@ -161,6 +165,11 @@
   position: initial;
   pointer-events: all;
   border-width: 0;
+  padding: 0;
+}
+
+.advanced-search-el .search-content > * {
+  padding: 14px;
 }
 
 .advanced-search-el button {
@@ -296,7 +305,11 @@
 .sidebar {
   color: #828282;
   display: flex;
+  background-color: hsl(204, 33%, 97%);
   flex-direction: column;
+}
+.bp3-dark .sidebar {
+  background-color: #394b59;
 }
 .sidebar .bp3-button-text {
   color: #828282;

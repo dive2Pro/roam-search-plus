@@ -243,6 +243,7 @@ export const ListContainer = observer(() => {
                     enabled: false,
                   },
                 }}
+                autoFocus={false}
                 content={
                   <Menu>
                     {store.ui.sort.selection().map((item, index) => {
