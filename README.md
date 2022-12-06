@@ -2,7 +2,7 @@
 
 > Search keywords do not need to be in a block
 
-![](images/ad-search.png)
+![](https://github.com/dive2Pro/roam-search-plus/blob/main/images/SCR-20221206-rsg.png)
 
 
 ## Features
@@ -22,7 +22,7 @@
 
 You can open the search dialog in two ways
 
-- click in sidebar menu ![](images/side-menu.png)
+- click in sidebar menu ![](https://github.com/dive2Pro/roam-search-plus/blob/main/images/side-menu.png)
 
 - ctrl + shift + p
 
