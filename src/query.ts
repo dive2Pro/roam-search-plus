@@ -1,33 +1,11 @@
 import { PullBlock } from "roamjs-components/types";
-import { debounce, getDiff, getSame, pull, pull_many } from "./helper";
+import { pull } from "./helper";
 import {
   getAllBlocks,
   getAllPages,
-  getBlocksContainsStr,
-  getCache,
 } from "./roam";
 
 let conditionRule = "";
-
-const ancestorrule = `[ 
-   [ (ancestor ?child ?parent) 
-        [?parent :block/children ?child] ]
-   [ (ancestor ?child ?a) 
-        [?parent :block/children ?child ] 
-        (ancestor ?parent ?a) ] ] ]`;
-
-const getParentsInfoOfBlockUid = (uid: string) => {
-  const result = window.roamAlphaAPI.data.fast
-    .q(
-      `[:find (pull ?p [:block/uid :block/string :node/title]) :where [?b :block/uid "${uid}"] [?b :block/parents ?p] ]`
-    )
-    .map((item) => item[0]);
-  return result as {
-    ":block/uid": string;
-    ":block/string": string;
-    ":node/title": string;
-  }[];
-};
 
 export const Query = (config: {
   search: string[];
@@ -88,32 +66,6 @@ export const Query = (config: {
     }
   };
 
-  function timeSlice_<T, D>(fnc: any, time = 16, cb = setTimeout) {
-    return function (...args: T[]) {
-      const fnc_ = fnc(...args);
-      if (fnc.constructor.name !== "GeneratorFunction") return fnc_;
-
-      let data: any;
-
-      return new Promise<D>(async function go(resolve, reject) {
-        try {
-          const start = performance.now();
-
-          do {
-            check();
-            data = fnc_.next(await data?.value);
-          } while (!data.done && performance.now() - start < time);
-
-          if (data.done) return resolve(data.value);
-
-          cb(() => go(resolve, reject));
-        } catch (e) {
-          reject(e);
-        }
-      });
-    };
-  }
-
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
     return getAllBlocks().filter((item) => {
       if (config.uids?.length) {
@@ -132,160 +84,6 @@ export const Query = (config: {
       });
     });
   };
-
-  function* findBlocksContainsStringInPages(
-    keywords: string[],
-    pages: string[]
-  ) {
-    let result: string[];
-    for (let c of keywords) {
-      const uids = window.roamAlphaAPI.data.fast.q(
-        `
-        [
-            :find  [?uid ...]
-            :in $  [?page ...] %
-            :where
-                
-                [?b :block/string ?s]
-                [?b :block/uid ?uid]
-                [?b :block/parents ?p]
-                [?p :block/uid ?pd]
-                [?b :block/parents ?p2]
-                [(clojure.string/includes? ?s  "${c}")]
-                [?p :node/title ?t]
-                [?p :block/uid ?page]
-
-        ]
-    `,
-        pages,
-        conditionRule
-      ) as unknown as string[];
-      yield result;
-      if (result === undefined) {
-        result = uids;
-      } else {
-        result = Array.from(new Set([...result, ...uids]));
-      }
-    }
-
-    return result;
-  }
-
-  function* findAllRelatedPages(keywords: string[]) {
-    let queryArgs = (keyword: string) => {
-      return [
-        `
-        [
-            :find [?uid ...]
-            :where
-                [?b :block/string ?s]
-                [?b :block/parents ?p]
-                [(clojure.string/includes? ?s  "${keyword}")]
-                [?p :node/title ?t]
-                [?p :block/uid ?uid]
-                
-        ]
-    `,
-      ] as [string] | [string, string[]];
-    };
-    if (config.uids && config.uids.length) {
-      console.log("only uids", config.uids);
-      queryArgs = (keyword: string) => {
-        return [
-          `
-        [
-            :find [?uid ...]
-            :in $ [?page ...]
-            :where
-                [?p :block/uid ?page];
-                [?b :block/string ?s]
-                [?b :block/parents ?p]
-                [(clojure.string/includes? ?s  "${keyword}")]
-                [?p :node/title ?t]
-                [?p :block/uid ?uid]
-                
-        ]
-    `,
-          config.uids,
-        ];
-      };
-    }
-
-    let pages: string[];
-    for (let keyword of keywords) {
-      const result = window.roamAlphaAPI.data.fast.q.apply(
-        null,
-        queryArgs(keyword)
-      ) as unknown as string[];
-      yield result;
-      // console.log(result, " -------@@", keywords, keyword, pages);
-      if (pages === undefined) {
-        pages = result;
-      } else {
-        pages = getSame(pages, result);
-      }
-    }
-    // const pages = keywords.reduce((p, c, index) => {
-    // console.log("pages = ", pages);
-    // }, [] as string[]);
-    return pages;
-  }
-
-  async function findAllRelatedBlockGroupByPages(
-    keywords: string[],
-    topLevelBlocks: string[]
-  ) {
-    console.log(" ---000-==");
-    const allRelatedPagesGenerator = timeSlice_(findAllRelatedPages);
-    const pages = await allRelatedPagesGenerator(keywords);
-    // console.log(" ---111-==, ", Date.now(), pages);
-    const allRelatedBlockGroupByPages = timeSlice_(
-      findBlocksContainsStringInPages
-    );
-    const blocksInSamePage = await allRelatedBlockGroupByPages(keywords, pages);
-    // 找到正好包含所有 keywords 的 block. 记录下来
-    // console.log(" ---222-==", Date.now(), pages, blocksInSamePage);
-    const lowLevelBlocks = getDiff(topLevelBlocks, blocksInSamePage);
-    // getDiff(topLevelBlocks, blocksInSamePage);
-    // console.log(" ---333-==", Date.now());
-
-    // 找到 相同 page 下满足条件的 block
-    const pageUidBlockUidAry = window.roamAlphaAPI.q(
-      `
-    [
-      :find ?pid ?uid
-      :in $ [?uid ...] %
-      :where
-        [?page :node/title ?e]
-        [?page :block/uid ?pid]
-        [?b :block/uid ?uid]
-        (ancestor ?b ?page)
-    ]
-    `,
-      lowLevelBlocks,
-      ancestorrule
-    ) as unknown as [string, string][];
-    const mapped = pageUidBlockUidAry.reduce((p, [pageUid, blockUid]) => {
-      if (p.has(pageUid)) {
-        p.get(pageUid).push(blockUid);
-      } else {
-        p.set(pageUid, [blockUid]);
-      }
-      return p;
-    }, new Map<string, string[]>());
-    const result: { page: string; children: string[] }[] = [];
-    for (let item of mapped) {
-      const [key, values] = item;
-      result.push({
-        // page: pull(key),
-        page: key,
-        // children: pull_many(values),
-        children: values,
-      });
-      //  key;
-    }
-    return result;
-  }
 
   async function findAllRelatedBlocks(keywords: string[]) {
     const topLevelBlocks = findBlocksContainsAllKeywords(keywords);
@@ -324,8 +122,13 @@ export const Query = (config: {
         return r;
       });
     });
+    // 如果 lowBlocks 出现过的页面, 
 
     lowBlocks = lowBlocks.filter((block) => {
+      // 如果 topLevel 和 lowBlocks 是在相同的页面, 那么即使 lowBlocks 中没有出现所有的 keywords, 它们也应该出现在结果中.
+      if (topLevelBlocks.some(tb => tb.page === block.page)) {
+        return true
+      }
       return keywords.every((k, i) => {
         return validateMap.get(block.page)[i];
       });
