@@ -39,3 +39,4 @@ You can open the search dialog in two ways
 - [ ] arrow key to select
 - [ ] resistance to typos
 - [ ] toggle Exactly
+- [ ] mobile support
