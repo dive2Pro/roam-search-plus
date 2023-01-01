@@ -21,6 +21,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { UnderMobile } from "./commons/under-mobile";
 import { MobileSidebar } from "./sidebar";
+import { isAutoCloseWhenShiftClick } from "../config";
 dayjs.extend(relativeTime);
 
 const Row = observer((props: { item: ResultItem }) => {
@@ -75,13 +76,14 @@ const Row = observer((props: { item: ResultItem }) => {
     e.stopPropagation();
     if (e.shiftKey) {
       store.actions.confirm.openInSidebar([item]);
-      // } else if (e.altKey) {
-      // store.actions.confirm.saveAsReference([item]);
+      if (isAutoCloseWhenShiftClick()) {
+        store.actions.closeDialog();
+      }
     } else {
       store.actions.confirm.openInMain(item);
+      store.actions.closeDialog();
     }
     store.actions.history.saveSearch(store.ui.getSearch());
-    store.actions.closeDialog();
   };
 
   let content;
@@ -224,54 +226,54 @@ const SelectedResult = observer(() => {
 export const ListContainer = observer(() => {
   return (
     <div className="result-container">
-      {store.ui.isLoading() && store.ui.result.size() === 0 ? (
-        <div className="flex-row-center h-200">Searching...</div>
-      ) : store.ui.hasResult() ? (
-        <>
-          <div>
-            <ButtonGroup className="sub-bg">
-              {/* <Checkbox
+      <div>
+        <ButtonGroup className="sub-bg">
+          {/* <Checkbox
                   checked={store.ui.isMultipleSelection()}
                   onChange={(e) => store.actions.toggleMultiple()}
                   label="Multiple Select"
                 ></Checkbox>
                 <Divider /> */}
-              <Popover
-                position={Position.BOTTOM}
-                modifiers={{
-                  arrow: {
-                    enabled: false,
-                  },
-                }}
-                autoFocus={false}
-                content={
-                  <Menu>
-                    {store.ui.sort.selection().map((item, index) => {
-                      return (
-                        <MenuItem
-                          onClick={() => store.actions.changeSort(index)}
-                          text={item.text}
-                        />
-                      );
-                    })}
-                  </Menu>
-                }
-              >
-                <div>
-                  Sort By:{" "}
-                  <Button
-                    rightIcon={<Icon icon="chevron-down" size={12} />}
-                    minimal
-                    text={store.ui.sort.selectedText()}
-                  ></Button>
-                </div>
-              </Popover>
-            </ButtonGroup>
-            <UnderMobile>
-              <MobileSidebar />
-            </UnderMobile>
-          </div>
-          <Divider />
+          <Popover
+            position={Position.BOTTOM}
+            modifiers={{
+              arrow: {
+                enabled: false,
+              },
+            }}
+            autoFocus={false}
+            content={
+              <Menu>
+                {store.ui.sort.selection().map((item, index) => {
+                  return (
+                    <MenuItem
+                      onClick={() => store.actions.changeSort(index)}
+                      text={item.text}
+                    />
+                  );
+                })}
+              </Menu>
+            }
+          >
+            <div>
+              Sort By:{" "}
+              <Button
+                rightIcon={<Icon icon="chevron-down" size={12} />}
+                minimal
+                text={store.ui.sort.selectedText()}
+              ></Button>
+            </div>
+          </Popover>
+        </ButtonGroup>
+        <UnderMobile>
+          <MobileSidebar />
+        </UnderMobile>
+      </div>
+      <Divider />
+      {store.ui.isLoading() && store.ui.result.size() === 0 ? (
+        <div className="flex-row-center h-200">Searching...</div>
+      ) : store.ui.hasResult() ? (
+        <>
           <QueryResult />
         </>
       ) : (

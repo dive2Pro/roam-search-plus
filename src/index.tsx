@@ -5,12 +5,16 @@ import ReactDOM from "react-dom";
 import { store, initStore } from "./store";
 import { initExtention } from "./extentionApi";
 import { Button, Tooltip } from "@blueprintjs/core";
+import { initSettings } from "./config";
 
 const initListener = () => {
   const handler = (e: KeyboardEvent) => {
-    // console.log(e.code, ' = code')
     if (e.shiftKey && e.ctrlKey && e.code === "KeyP") {
       store.actions.toggleDialog();
+    } else if (e.code === "Escape") {
+      if (store.ui.isOpen() && !store.ui.isFilterOpen()) {
+        store.actions.toggleDialog();
+      }
     }
   };
   document.addEventListener("keydown", handler);
@@ -40,7 +44,6 @@ const appendToToolbar = (name: string) => {
 }
 
 const initToolbarIcon = () => {
-
   const el = appendToToolbar('search-text');
   ReactDOM.render(
     <Button
@@ -96,6 +99,7 @@ export default {
     initListener();
     initExtention(extensionAPI);
     initStore(extensionAPI);
+    initSettings(extensionAPI);
     window.roamAlphaAPI.platform.isMobile
       ? initToolbarIcon()
       : initSidebarIcon();
