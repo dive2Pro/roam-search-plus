@@ -515,14 +515,12 @@ export const store = {
         store.actions.openDialog();
       }
     },
-    toggleFilter() { 
-      ui.filter.open.set(prev => !prev)
+    toggleFilter() {
+      ui.filter.open.set((prev) => !prev);
     },
     openDialog() {
       ui.open.set(true);
       ui.visible.set(true);
-      // window.roamAlphaAPI.ui.getFocusedBlock()
-      // TODO 根据结果是 写入 还是 复制到粘贴板
     },
     closeDialog() {
       // ui.open.set(false);
@@ -727,6 +725,8 @@ export const store = {
       },
       reset() {
         ui.conditions.set(clone(defaultConditions));
+        query.modificationDate.set(undefined);
+        query.creationDate.set(undefined);
       },
     },
     changeTags(tags: string[]) {
@@ -745,10 +745,12 @@ export const store = {
   },
   ui: {
     isFilterOpen() {
-      return ui.filter.open.get()
+      return ui.filter.open.get();
     },
     isOpen() {
-      return window.roamAlphaAPI.platform.isMobile ? ui.visible.get() : ui.open.get();
+      const visible = ui.visible.get();
+      const open = ui.open.get();
+      return window.roamAlphaAPI.platform.isMobile ? visible : open;
     },
     getSearch() {
       return query.search.get();
@@ -879,8 +881,11 @@ export const store = {
       },
       hasChanged() {
         const nowConditions = ui.conditions.get();
-        console.log(nowConditions, " --- ", defaultConditions);
+        // console.log(nowConditions, " --- ", defaultConditions, query.people.get());
         return [
+          query.modificationDate.get() !== undefined,
+          query.creationDate.get() !== undefined,
+          nowConditions.users.selected.length !== 0,
           nowConditions.caseIntensive !== defaultConditions.caseIntensive,
           nowConditions.includeBlock !== defaultConditions.includeBlock,
           nowConditions.includePage !== defaultConditions.includePage,

@@ -369,7 +369,6 @@
     display: flex;
     justify-content: center;
     z-index: 9;
-    pointer-events: none;
   }
   .advanced-search-el .main-view {
     width: 600px;

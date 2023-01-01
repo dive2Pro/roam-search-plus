@@ -12,6 +12,7 @@ import {
   RadioGroup,
   Menu,
   Divider,
+  DrawerSize,
 } from "@blueprintjs/core";
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select } from "@blueprintjs/select";
@@ -406,7 +407,7 @@ export const MobileSidebar = observer(() => {
         Filter
       </Button>
       <BottomPopup
-        size="540px"
+        size={'85%'}
         title={"Filter"}
         isOpen={store.ui.isFilterOpen()}
         onClose={() => store.actions.toggleFilter()}

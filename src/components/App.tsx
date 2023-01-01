@@ -24,7 +24,7 @@ import { CONSTNATS } from "../helper";
 import { BottomPopup } from "./bottom-popup";
 enableLegendStateReact();
 
-function App() {
+const App = observer(() => {
   const ref = useRef<HTMLInputElement>();
   useEffect(() => {
     return store.actions.onVisibleChange((b) => {
@@ -33,6 +33,7 @@ function App() {
       }
     });
   }, []);
+  console.log(store.ui.isOpen() , ' = open')
   return (
     <div
       className={`${CONSTNATS.el} ${
@@ -40,7 +41,7 @@ function App() {
       }`}
     >
       <div
-        onClick={store.actions.toggleDialog}
+        onClickCapture={store.actions.toggleDialog}
         className={`${CONSTNATS.el}-onevent`}
       />
       <dialog
@@ -190,7 +191,7 @@ function App() {
       </dialog>
     </div>
   );
-}
+});
 
 const MobileApp = observer(() => {
   const ref = useRef<HTMLInputElement>();
