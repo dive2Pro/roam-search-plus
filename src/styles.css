@@ -386,6 +386,9 @@
   .search-content {
     width: 100%;
   }
+  .query-history-item .bp3-icon-small-cross {
+    opacity: 1;
+  }
   .as-history .header button {
     opacity: 1;
   }

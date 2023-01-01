@@ -243,6 +243,9 @@ const trigger = debounce(
 let prevSearch = "";
 
 const triggerWhenSearchChange = async (next: string) => {
+  if (!next) {
+    return;
+  }
   const nextStr = next.trim();
   const selectedPagesUids = ui.conditions.pages.selected.peek();
   const caseIntensive = ui.conditions.caseIntensive.peek();
