@@ -40,7 +40,6 @@
 
 .selected-result {
   position: absolute;
-  top: 0;
   bottom: 0;
   right: 0;
   left: 0;
@@ -131,21 +130,7 @@
   opacity: 1;
 }
 
-.advanced-search-el {
-  transition: opacity 0.25s cubic-bezier(0.075, 0.82, 0.165, 1);
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding-top: 20px;
-  display: flex;
-  justify-content: center;
-  z-index: 9;
-  pointer-events: none;
-}
-
-.bp3-dark .advanced-search-el  .bp3-control {
+.bp3-dark .advanced-search-el .bp3-control {
   color: inherit;
 }
 
@@ -370,4 +355,50 @@
 .advanced-search-el .bp3-dialog-footer {
   position: relative;
   min-height: 20px;
+}
+
+@media only screen and (min-width: 600px) {
+  .advanced-search-el {
+    transition: opacity 0.25s cubic-bezier(0.075, 0.82, 0.165, 1);
+    padding-top: 20px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 9;
+    pointer-events: none;
+  }
+  .advanced-search-el .main-view {
+    width: 600px;
+  }
+
+  .selected-result {
+    top: 0;
+  }
+  .sidebar {
+    width: 220px;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  .search-content {
+    width: 100%;
+  }
+  .as-history .header button {
+    opacity: 1;
+  }
+  .advanced-search-el .bp3-dialog {
+    width: 100%;
+  }
+
+  .bp3-drawer .sidebar {
+    width: unset;
+    padding: 10px;
+  }
+  .bp3-drawer .sidebar > div:first-child {
+    overflow: auto;
+  }
 }

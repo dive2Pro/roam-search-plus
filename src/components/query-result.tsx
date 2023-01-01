@@ -19,6 +19,8 @@ import { date, highlightText } from "../helper";
 import { Virtuoso } from "react-virtuoso";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { UnderMobile } from "./commons/under-mobile";
+import { MobileSidebar } from "./sidebar";
 dayjs.extend(relativeTime);
 
 const Row = observer((props: { item: ResultItem }) => {
@@ -124,9 +126,7 @@ const Row = observer((props: { item: ResultItem }) => {
             );
           })}
         </div>
-        <div className="result-item-content" >
-          {text}
-        </div>
+        <div className="result-item-content">{text}</div>
       </>
     );
   }
@@ -199,7 +199,7 @@ export const QueryResult = observer(() => {
       store.actions.setHeight(vHeight);
     });
   }, [list]);
-  console.log("render again", list);
+  // console.log("render again", list);
   return (
     <Virtuoso
       className="infinite-scroll"
@@ -267,8 +267,10 @@ export const ListContainer = observer(() => {
                 </div>
               </Popover>
             </ButtonGroup>
+            <UnderMobile>
+              <MobileSidebar />
+            </UnderMobile>
           </div>
-
           <Divider />
           <QueryResult />
         </>

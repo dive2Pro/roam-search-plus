@@ -39,7 +39,7 @@ export type ResultItem = {
   paths: string[];
   isSelected: boolean;
   children: ResultItem[];
-  createUser: string | number
+  createUser: string | number;
 };
 
 const query = observable({
@@ -102,7 +102,9 @@ const defaultConditions = {
 const ui = observable({
   open: false,
   visible: false,
-
+  filter: {
+    open: false,
+  },
   multiple: false,
   selectedTarget: [] as ResultItem[],
   showSelectedTarget: false,
@@ -224,7 +226,7 @@ const trigger = debounce(
                 paths: [],
                 isSelected: false,
                 children: [],
-                createUser: block[":create/user"]?.[":db/id"]
+                createUser: block[":create/user"]?.[":db/id"],
               };
             }),
           };
@@ -325,7 +327,7 @@ const disposeUiResult = observe(async () => {
     }
 
     if (result && users.length) {
-      result = users.some( user => user.id === item.createUser)
+      result = users.some((user) => user.id === item.createUser);
     }
     return result;
   });
@@ -512,6 +514,9 @@ export const store = {
       } else {
         store.actions.openDialog();
       }
+    },
+    toggleFilter() { 
+      ui.filter.open.set(prev => !prev)
     },
     openDialog() {
       ui.open.set(true);
@@ -739,8 +744,11 @@ export const store = {
     },
   },
   ui: {
+    isFilterOpen() {
+      return ui.filter.open.get()
+    },
     isOpen() {
-      return ui.open.get();
+      return window.roamAlphaAPI.platform.isMobile ? ui.visible.get() : ui.open.get();
     },
     getSearch() {
       return query.search.get();
@@ -932,10 +940,15 @@ export const store = {
 renewCache();
 ui.visible.onChange(async (next) => {
   const el = document.querySelector("." + CONSTNATS.el);
+  if (el) {
+    if (!next) {
+      el.classList.add("invisible");
+    } else {
+      el.classList.remove("invisible");
+    }
+  }
   if (!next) {
-    el.classList.add("invisible");
   } else {
-    el.classList.remove("invisible");
     setTimeout(() => {
       renewCache();
       triggerWhenSearchChange(query.search.peek());

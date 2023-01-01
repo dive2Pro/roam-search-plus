@@ -17,9 +17,10 @@ import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select } from "@blueprintjs/select";
 import { observable } from "@legendapp/state";
 import { observer } from "@legendapp/state/react";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { MOMENT_FORMATS } from "../moment";
 import { store } from "../store";
+import { BottomPopup } from "./bottom-popup";
 
 function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
   return (
@@ -52,7 +53,6 @@ export const Sidebar = observer(() => {
   return (
     <section
       style={{
-        width: 220,
         display: store.ui.isTyped() ? "flex" : "none",
       }}
       className="sidebar"
@@ -161,7 +161,9 @@ export const Sidebar = observer(() => {
         )}
         {store.ui.conditions.users.getSelected().length === 0 ? null : (
           <div>
-            <div className="sidebar-title bp3-button-text">Created By Users</div>
+            <div className="sidebar-title bp3-button-text">
+              Created By Users
+            </div>
             {store.ui.conditions.users.getSelected().map((item) => {
               return (
                 <Button
@@ -184,13 +186,7 @@ export const Sidebar = observer(() => {
               );
             })}
             <SelectCreateUsers>
-              <Button
-                icon="add"
-                alignText="left"
-                fill
-                minimal
-                text="Users"
-              />
+              <Button icon="add" alignText="left" fill minimal text="Users" />
             </SelectCreateUsers>
           </div>
         )}
@@ -392,5 +388,31 @@ const SelectCreateUsers = observer((props: { children: ReactNode }) => {
     >
       {props.children}
     </Select>
+  );
+});
+
+export const MobileSidebar = observer(() => {
+  return (
+    <>
+      <Button
+        icon="filter"
+        intent="primary"
+        onClick={() => {
+          store.actions.toggleFilter();
+        }}
+        minimal
+        small
+      >
+        Filter
+      </Button>
+      <BottomPopup
+        size="540px"
+        title={"Filter"}
+        isOpen={store.ui.isFilterOpen()}
+        onClose={() => store.actions.toggleFilter()}
+      >
+        <Sidebar />
+      </BottomPopup>
+    </>
   );
 });
