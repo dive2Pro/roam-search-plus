@@ -204,11 +204,11 @@ export const QueryResult = observer(() => {
 
       // list.length > 20 ? MAX : list.length > 10 ? Math.min(MIN + 200, MAX) : MIN;
       // const height = MAX;
-      console.log(" lahyout effect", vHeight);
+      // console.log(" lahyout effect", vHeight);
       store.actions.setHeight(vHeight);
     });
   }, [list]);
-  console.log("render again", list);
+  // console.log("render again", list);
   return (
     <Virtuoso
       className="infinite-scroll"

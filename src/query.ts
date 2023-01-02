@@ -1,10 +1,6 @@
 import { PullBlock } from "roamjs-components/types";
 import { pull } from "./helper";
-import {
-  CacheBlockType,
-  getAllBlocks,
-  getAllPages,
-} from "./roam";
+import { CacheBlockType, getAllBlocks, getAllPages } from "./roam";
 
 let conditionRule = "";
 
@@ -68,7 +64,8 @@ export const Query = (config: {
   };
 
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
-    return getAllBlocks().filter((item) => {
+    const lowBlocks: CacheBlockType[] = [];
+    const result = getAllBlocks().filter((item) => {
       if (config.uids?.length) {
         if (
           !config.uids.some((pageUid) => {
@@ -78,31 +75,46 @@ export const Query = (config: {
           return false;
         }
       }
-      return keywords.every((keyword) => {
+      const r = keywords.every((keyword) => {
         return (
-          item.block[":block/string"] && includes(item.block[":block/string"], keyword)
+          item.block[":block/string"] &&
+          includes(item.block[":block/string"], keyword)
         );
       });
+      if (!r) {
+        lowBlocks.push(item)
+      }
+      return r;
     });
+    return [result, lowBlocks]
   };
-
+  const timemeasure = (name: string, cb: () => void) => {
+    console.time(name);
+    cb();
+    console.timeEnd(name);
+  };
   async function findAllRelatedBlocks(keywords: string[]) {
-    const topLevelBlocks = findBlocksContainsAllKeywords(keywords);
+    let [topLevelBlocks, lowBlocks] = findBlocksContainsAllKeywords(keywords);
     if (keywords.length <= 1) {
       return [topLevelBlocks, undefined] as const;
     }
     // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
     console.log("find low");
 
-    let lowBlocks = getAllBlocks().filter((b) => {
-      return !topLevelBlocks.find((tb) => tb.block[":block/uid"] === b.block[":block/uid"]);
-    });
+    // let lowBlocks: CacheBlockType[] = [];
+    timemeasure("0", () => {
+      // lowBlocks = getAllBlocks().filter((b) => {
+      //   return !topLevelBlocks.find(
+      //     (tb) => tb.block[":block/uid"] === b.block[":block/uid"]
+      //   );
+      // });
 
-    if (config.uids?.length) {
-      lowBlocks = lowBlocks.filter((block) => {
-        return config.uids.some((uid) => uid === block.page);
-      });
-    }
+      if (config.uids?.length) {
+        lowBlocks = lowBlocks.filter((block) => {
+          return config.uids.some((uid) => uid === block.page);
+        });
+      }
+    });
 
     // keywords.forEach((keyword) => {
     //   lowBlocks.filter((item) => {
@@ -111,38 +123,43 @@ export const Query = (config: {
     // });
 
     const validateMap = new Map<string, boolean[]>();
+    timemeasure("1", () => {
+      lowBlocks = lowBlocks.filter((item) => {
+        return keywords.some((keyword, index) => {
+          const r = includes(item.block[":block/string"], keyword);
+          if (!validateMap.has(item.page)) {
+            validateMap.set(item.page, []);
+          }
+          if (r) validateMap.get(item.page)[index] = r;
+          // console.log(item, r, keyword, " --- -- - - - - ---");
+          return r;
+        });
+      });
+    });
 
-    lowBlocks = lowBlocks.filter((item) => {
-      return keywords.some((keyword, index) => {
-        const r = includes(item.block[":block/string"], keyword);
-        if (!validateMap.has(item.page)) {
-          validateMap.set(item.page, []);
+    // 如果 lowBlocks 出现过的页面,
+    timemeasure("2", () => {
+      lowBlocks = lowBlocks.filter((block) => {
+        // 如果 topLevel 和 lowBlocks 是在相同的页面, 那么即使 lowBlocks 中没有出现所有的 keywords, 它们也应该出现在结果中.
+        if (topLevelBlocks.some((tb) => tb.page === block.page)) {
+          return true;
         }
-        if (r) validateMap.get(item.page)[index] = r;
-        // console.log(item, r, keyword, " --- -- - - - - ---");
-        return r;
+        return keywords.every((k, i) => {
+          return validateMap.get(block.page)[i];
+        });
       });
+      // console.log(keywords, validateMap, lowBlocks, "@@@----");
     });
-    // 如果 lowBlocks 出现过的页面, 
-
-    lowBlocks = lowBlocks.filter((block) => {
-      // 如果 topLevel 和 lowBlocks 是在相同的页面, 那么即使 lowBlocks 中没有出现所有的 keywords, 它们也应该出现在结果中.
-      if (topLevelBlocks.some(tb => tb.page === block.page)) {
-        return true
-      }
-      return keywords.every((k, i) => {
-        return validateMap.get(block.page)[i];
-      });
-    });
-    // console.log(keywords, validateMap, lowBlocks, "@@@----");
-
     const map = new Map<string, CacheBlockType[]>();
-    lowBlocks.forEach((b) => {
-      if (map.has(b.page)) {
-        map.get(b.page).push(b);
-      } else {
-        map.set(b.page, [b]);
-      }
+
+    timemeasure("3", () => {
+      lowBlocks.forEach((b) => {
+        if (map.has(b.page)) {
+          map.get(b.page).push(b);
+        } else {
+          map.set(b.page, [b]);
+        }
+      });
     });
 
     const lowBlocksResult = [...map.entries()].map((item) => {

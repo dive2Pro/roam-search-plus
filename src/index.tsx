@@ -9,7 +9,6 @@ import { initSettings } from "./config";
 
 const initListener = () => {
   const handler = (e: KeyboardEvent) => {
-    console.log(e.code)
     if (e.shiftKey && e.ctrlKey && e.code === "KeyP") {
       store.actions.toggleDialog();
     } else if (e.code === "Escape") {
@@ -18,7 +17,6 @@ const initListener = () => {
       }
     }
   };
-  console.log('add --')
   document.addEventListener("keydown", handler);
   extension_helper.on_uninstall(() => {
     document.removeEventListener("keydown", handler);

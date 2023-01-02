@@ -157,7 +157,7 @@ const keywordsBuildFrom = (search: string) => {
       keywords.push(result[0].replace(/\"(.+?)\"/, "$1"));
     }
   } while (result);
-  console.log("keywords = ", keywords);
+  // console.log("keywords = ", keywords);
   return keywords;
 };
 
@@ -168,7 +168,7 @@ const trigger = debounce(
     if (!search) {
       return;
     }
-    console.log(search, " start search");
+    // console.log(search, " start search");
     const queryAPi = Query({
       search: keywordsBuildFrom(search),
       uids,
@@ -270,7 +270,6 @@ const triggerWhenSearchChange = async (next: string) => {
         selectedPagesUids.map((item) => item.id)
       );
     } catch (e) {
-      console.log(e, " ---");
       ui.loading.set(false);
     }
   }
@@ -294,7 +293,7 @@ const dispose = observe(async () => {
       selectedPagesUids.map((item) => item.id)
     );
   } catch (e) {
-    console.log(e, " ---");
+    console.error(e, " ---");
     ui.loading.set(false);
   }
 });
@@ -504,7 +503,7 @@ export const store = {
 
         ui.result.forEach((item) => {
           var a = selectedTargetStore.get(item.peek().id);
-          console.log(item, " = item");
+          // console.log(item, " = item");
         });
 
         ui.result.set(ui.result.get());
