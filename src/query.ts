@@ -89,9 +89,9 @@ export const Query = (config: {
     return [result, lowBlocks]
   };
   const timemeasure = (name: string, cb: () => void) => {
-    console.time(name);
+    // console.time(name);
     cb();
-    console.timeEnd(name);
+    // console.timeEnd(name);
   };
   async function findAllRelatedBlocks(keywords: string[]) {
     let [topLevelBlocks, lowBlocks] = findBlocksContainsAllKeywords(keywords);
@@ -99,7 +99,7 @@ export const Query = (config: {
       return [topLevelBlocks, undefined] as const;
     }
     // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
-    console.log("find low");
+    // console.log("find low");
 
     // let lowBlocks: CacheBlockType[] = [];
     timemeasure("0", () => {
@@ -195,7 +195,7 @@ export const Query = (config: {
   const { search } = config;
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const ary = search;
-  console.log(search.length, config, "rule =", conditionRule, " startting ");
+  // console.log(search.length, config, "rule =", conditionRule, " startting ");
   const promise = Promise.all([
     findAllRelatedPageUids(ary),
     findAllRelatedBlocks(ary),
@@ -226,7 +226,7 @@ export const Query = (config: {
 
           // lowLevelBlocks,
         ] as const;
-        console.log("end!!!!!!", result);
+        // console.log("end!!!!!!", result);
         console.timeEnd("SSSS");
 
         return result;

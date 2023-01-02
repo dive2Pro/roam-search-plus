@@ -13,7 +13,7 @@ const initListener = () => {
       store.actions.toggleDialog();
     } else if (e.code === "Escape") {
       if (store.ui.isOpen() && !store.ui.isFilterOpen()) {
-        // store.actions.toggleDialog();
+        store.actions.toggleDialog();
       }
     }
   };
