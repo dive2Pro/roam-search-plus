@@ -20,15 +20,21 @@ import {
 } from "./helper";
 import { Query } from "./query";
 import {
+  CacheBlockType,
+  deleteFromCacheByUid,
   getAllPages,
   getAllUsers,
   getCurrentPage,
   getMe,
   getPageUidsFromUids,
   getParentsStrFromBlockUid,
+  initCache,
   opens,
   renewCache,
+  renewCache2,
 } from "./roam";
+
+const delay = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export type ResultItem = {
   id: string;
@@ -49,12 +55,12 @@ const query = observable({
   people: [],
   inPages: [],
   result: {
-    pages: [] as PullBlock[],
-    topBlocks: [] as (PullBlock & { parents?: PullBlock[] })[],
+    pages: [] as CacheBlockType[],
+    topBlocks: [] as (CacheBlockType & { parents?: CacheBlockType[] })[],
     lowBlocks: [] as
       | {
-          page: PullBlock;
-          children: PullBlock[];
+          page: CacheBlockType;
+          children: CacheBlockType[];
         }[]
       | undefined,
   },
@@ -100,6 +106,10 @@ const defaultConditions = {
 };
 
 const ui = observable({
+  graph: {
+    loading: false,
+    loaded: false,
+  },
   open: false,
   visible: false,
   filter: {
@@ -176,25 +186,25 @@ const trigger = debounce(
       const result: ResultItem[] = [
         ...pages.map((block) => {
           return {
-            id: block[":block/uid"],
-            text: block[":node/title"],
-            editTime: block[":edit/time"] || block[":create/time"],
-            createTime: block[":create/time"],
+            id: block.block[":block/uid"],
+            text: block.block[":node/title"],
+            editTime: block.block[":edit/time"] || block.block[":create/time"],
+            createTime: block.block[":create/time"],
             isPage: true,
             paths: [],
             isSelected: false,
             children: [],
-            createUser: block[":create/user"]?.[":db/id"],
+            createUser: block.block[":create/user"]?.[":db/id"],
           };
         }),
         ...topBlocks.map((block) => {
           return {
-            id: block[":block/uid"],
-            text: block[":block/string"],
-            editTime: block[":edit/time"] || block[":create/time"],
-            createTime: block[":create/time"],
+            id: block.block[":block/uid"],
+            text: block.block[":block/string"],
+            editTime: block.block[":edit/time"] || block.block[":create/time"],
+            createTime: block.block[":create/time"],
             isPage: false,
-            createUser: block[":create/user"]?.[":db/id"],
+            createUser: block.block[":create/user"]?.[":db/id"],
             // paths: block.parents.map(
             //   (item) => item[":block/string"] || item[":node/title"]
             // ),
@@ -205,20 +215,22 @@ const trigger = debounce(
         }),
         ...(lowBlocks || []).map((item) => {
           return {
-            id: item.page[":block/uid"],
-            text: item.page[":node/title"],
-            editTime: item.page[":edit/time"] || item.page[":create/time"],
-            createTime: item.page[":create/time"],
-            createUser: item.page[":create/user"]?.[":db/id"],
+            id: item.page.block[":block/uid"],
+            text: item.page.block[":node/title"],
+            editTime:
+              item.page.block[":edit/time"] || item.page.block[":create/time"],
+            createTime: item.page.block[":create/time"],
+            createUser: item.page.block[":create/user"]?.[":db/id"],
             isPage: true,
             paths: [],
             isSelected: false,
             children: item.children.map((block) => {
               return {
-                id: block[":block/uid"],
-                text: block[":block/string"],
-                editTime: block[":edit/time"] || block[":create/time"],
-                createTime: block[":create/time"],
+                id: block.block[":block/uid"],
+                text: block.block[":block/string"],
+                editTime:
+                  block.block[":edit/time"] || block.block[":create/time"],
+                createTime: block.block[":create/time"],
                 isPage: false,
                 // paths: block.parents.map(
                 //   (item) => item[":block/string"] || item[":node/title"]
@@ -226,7 +238,7 @@ const trigger = debounce(
                 paths: [],
                 isSelected: false,
                 children: [],
-                createUser: block[":create/user"]?.[":db/id"],
+                createUser: block.block[":create/user"]?.[":db/id"],
               };
             }),
           };
@@ -437,8 +449,8 @@ const disposeUiSelectablePages = observe(() => {
     [
       ...pages,
       ...pageBlocks.map((item) => ({
-        id: item[":block/uid"],
-        text: item[":node/title"],
+        id: item.block[":block/uid"],
+        text: item.block[":node/title"],
       })),
     ].filter((item) => item.text)
   );
@@ -516,6 +528,11 @@ export const store = {
         store.actions.closeDialog();
       } else {
         store.actions.openDialog();
+        if (!ui.graph.loaded.get()) {
+          store.actions.loadingGraph();
+        } else {
+          store.actions.renewGraph();
+        }
       }
     },
     toggleFilter() {
@@ -546,6 +563,7 @@ export const store = {
       });
     },
     changeSearch(s: string) {
+      console.log(s, " ---s");
       query.search.set(s);
     },
     searchAgain() {
@@ -598,11 +616,23 @@ export const store = {
       ui.conditions.sort.selected.set(index);
     },
     confirm: {
-      openInSidebar(items: ResultItem[]) {
-        items.forEach((item) => {
-          opens.sidebar(item.id);
-        });
-        saveToSearchViewed(items);
+      openInSidebar(item: ResultItem) {
+        const opened = opens.sidebar(item.id);
+        if (!opened) {
+          deleteListItemByUid(item.id);
+        } else {
+          saveToSearchViewed([item]);
+        }
+        return opened;
+      },
+      openInMain(item: ResultItem) {
+        let opened = opens.main.page(item.id);
+        if (opened) {
+          saveToSearchViewed([item]);
+        } else {
+          deleteListItemByUid(item.id);
+        }
+        return opened;
       },
       saveAsReference(items: ResultItem[]) {
         const focusedBlock = window.roamAlphaAPI.ui.getFocusedBlock();
@@ -627,14 +657,6 @@ export const store = {
         Toaster.create().show({
           message: "references copied",
         });
-      },
-      openInMain(item: ResultItem) {
-        if (item.isPage) {
-          opens.main.page(item.id);
-        } else {
-          opens.main.block(item.id);
-        }
-        saveToSearchViewed([item]);
       },
       copyResult(oneline = false) {
         const pasteStr = ui.list
@@ -745,8 +767,22 @@ export const store = {
     onVisibleChange(cb: (b: boolean) => void) {
       return ui.visible.onChange(cb);
     },
+    async loadingGraph() {
+      ui.graph.loading.set(true);
+      await delay(10);
+      initCache();
+      ui.graph.loading.set(false);
+      ui.graph.loaded.set(true);
+    },
+    async renewGraph() {
+      await delay()
+      renewCache2();
+    },
   },
   ui: {
+    isLoadingGraph() {
+      return ui.graph.loading.get();
+    },
     isFilterOpen() {
       return ui.filter.open.get();
     },
@@ -844,8 +880,8 @@ export const store = {
         get() {
           return getAllPages()
             .map((item) => ({
-              id: item[":block/uid"],
-              text: item[":node/title"],
+              id: item.block[":block/uid"],
+              text: item.block[":node/title"],
             }))
             .filter((item) => item.text);
         },
@@ -945,7 +981,6 @@ export const store = {
   },
 };
 
-renewCache();
 ui.visible.onChange(async (next) => {
   const el = document.querySelector("." + CONSTNATS.el);
   if (el) {
@@ -958,7 +993,6 @@ ui.visible.onChange(async (next) => {
   if (!next) {
   } else {
     setTimeout(() => {
-      renewCache();
       triggerWhenSearchChange(query.search.peek());
     }, 10);
     const page = await getCurrentPage();
@@ -984,3 +1018,9 @@ export const initStore = (extensionAPI: RoamExtensionAPI) => {
 
 // @ts-ignore
 window._store = store;
+function deleteListItemByUid(id: string) {
+  deleteFromCacheByUid(id);
+  store.actions.searchAgain();
+  // const foundIndex = ui.list.findIndex(item => item.id === id);
+  // foundIndex > -1 && ui.list.splice(foundIndex, 1);
+}

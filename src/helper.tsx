@@ -1,4 +1,4 @@
-import { getCache } from "./roam";
+import { getCacheByUid } from "./roam";
 import dayjs from "dayjs";
 
 export const CONSTNATS = {
@@ -47,7 +47,7 @@ export function getDiff<T>(arr1: T[], arr2: T[]) {
 }
 
 export const pull = (uidOrTitle: string) => {
-  return getCache().get(uidOrTitle);
+  return getCacheByUid(uidOrTitle);
   // return (
   //   window.roamAlphaAPI.data.pull("[*]", [":block/uid", uidOrTitle]) ||
   //   window.roamAlphaAPI.data.pull("[*]", [":node/title", uidOrTitle])
@@ -57,7 +57,7 @@ export const pull = (uidOrTitle: string) => {
 export const pull_many = (uids: string[]) => {
   return uids
     .map((uid) => {
-      const r = getCache().get(uid);
+      const r = getCacheByUid(uid);
       return r;
     })
     .filter((item) => item);

@@ -10,6 +10,7 @@ import {
   MenuItem,
   Popover,
   Position,
+  Toaster,
 } from "@blueprintjs/core";
 import { For, observer } from "@legendapp/state/react";
 import { store, ResultItem } from "../store";
@@ -38,8 +39,6 @@ const Row = observer((props: { item: ResultItem }) => {
       if (!search || isLoading) {
         return;
       }
-      // console.log("run~~~~~", search, isLoading);
-
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
           setText(highlightText(props.item.text as string, search));
@@ -74,16 +73,24 @@ const Row = observer((props: { item: ResultItem }) => {
   const handlerClick = (e: React.MouseEvent, item: ResultItem) => {
     e.preventDefault();
     e.stopPropagation();
+    let opened = false;
     if (e.shiftKey) {
-      store.actions.confirm.openInSidebar([item]);
-      if (isAutoCloseWhenShiftClick()) {
-        store.actions.closeDialog();
+      opened = store.actions.confirm.openInSidebar(item);
+      if (opened) {
+        if (isAutoCloseWhenShiftClick()) {
+          store.actions.closeDialog();
+        }
       }
     } else {
-      store.actions.confirm.openInMain(item);
-      store.actions.closeDialog();
+      opened = store.actions.confirm.openInMain(item);
+      if (opened) store.actions.closeDialog();
     }
-    store.actions.history.saveSearch(store.ui.getSearch());
+    opened && store.actions.history.saveSearch(store.ui.getSearch());
+    !opened &&
+      Toaster.create({}).show({
+        message: `${item.isPage ? "Page" : "Block"} was deleted`,
+        intent: "warning",
+      });
   };
 
   let content;
@@ -167,7 +174,7 @@ const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
 
 const TargetCheckboxAbleRow = observer(
   (props: { item: ObservableObject<ResultItem> }) => {
-    console.log(props.item, " = item");
+    // console.log(props.item, " = item");
     return (
       <Checkbox
         checked={store.ui.isSelectedTarget(props.item.get())}
@@ -201,7 +208,7 @@ export const QueryResult = observer(() => {
       store.actions.setHeight(vHeight);
     });
   }, [list]);
-  // console.log("render again", list);
+  console.log("render again", list);
   return (
     <Virtuoso
       className="infinite-scroll"

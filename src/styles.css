@@ -404,3 +404,23 @@
     overflow: auto;
   }
 }
+
+.graph-loading {
+  position: relative;
+}
+.graph-loading .loading-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+  background: white;
+}
+
+.bp3-dark .graph-loading .loading-view {
+  background-color: #30404d;
+}

@@ -1,4 +1,4 @@
-import { Button, Icon } from "@blueprintjs/core";
+import { Button, Icon, Toaster } from "@blueprintjs/core";
 import { ObservableObject } from "@legendapp/state";
 import { observer, For } from "@legendapp/state/react";
 import { CONSTNATS } from "../helper";
@@ -43,12 +43,21 @@ const RecentlyViewedItem = observer(
         className="query-history-item"
         onClick={(e) => {
           // store.actions.useHistory(item.text.peek());
+          let opened = false;
           if (e.shiftKey) {
-            opens.sidebar(item.id.peek());
+            opened = opens.sidebar(item.id.peek());
           } else {
-            opens.main.page(item.id.peek());
+            opened = opens.main.page(item.id.peek());
           }
-          store.actions.toggleDialog();
+          if (opened) {
+            store.actions.toggleDialog();
+          } else {
+            store.actions.history.deleteViewedItem(item.id.peek());
+            Toaster.create({}).show({
+              message: `${item.isPage ? "Page" : "Block"} was deleted`,
+              intent: "warning",
+            });
+          }
         }}
         rightIcon={
           <Icon

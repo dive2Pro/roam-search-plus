@@ -1,6 +1,7 @@
 import { PullBlock } from "roamjs-components/types";
 import { pull } from "./helper";
 import {
+  CacheBlockType,
   getAllBlocks,
   getAllPages,
 } from "./roam";
@@ -79,7 +80,7 @@ export const Query = (config: {
       }
       return keywords.every((keyword) => {
         return (
-          item[":block/string"] && includes(item[":block/string"], keyword)
+          item.block[":block/string"] && includes(item.block[":block/string"], keyword)
         );
       });
     });
@@ -94,7 +95,7 @@ export const Query = (config: {
     console.log("find low");
 
     let lowBlocks = getAllBlocks().filter((b) => {
-      return !topLevelBlocks.find((tb) => tb[":block/uid"] === b[":block/uid"]);
+      return !topLevelBlocks.find((tb) => tb.block[":block/uid"] === b.block[":block/uid"]);
     });
 
     if (config.uids?.length) {
@@ -113,7 +114,7 @@ export const Query = (config: {
 
     lowBlocks = lowBlocks.filter((item) => {
       return keywords.some((keyword, index) => {
-        const r = includes(item[":block/string"], keyword);
+        const r = includes(item.block[":block/string"], keyword);
         if (!validateMap.has(item.page)) {
           validateMap.set(item.page, []);
         }
@@ -135,7 +136,7 @@ export const Query = (config: {
     });
     // console.log(keywords, validateMap, lowBlocks, "@@@----");
 
-    const map = new Map<string, PullBlock[]>();
+    const map = new Map<string, CacheBlockType[]>();
     lowBlocks.forEach((b) => {
       if (map.has(b.page)) {
         map.get(b.page).push(b);
@@ -164,12 +165,12 @@ export const Query = (config: {
   function findAllRelatedPageUids(keywords: string[]) {
     return getAllPages().filter((page) => {
       if (config.uids?.length) {
-        if (!config.uids.some((uid) => page[":block/uid"] === uid)) {
+        if (!config.uids.some((uid) => page.block[":block/uid"] === uid)) {
           return false;
         }
       }
       const r = keywords.every((keyword) => {
-        return includes(page[":node/title"], keyword);
+        return includes(page.block[":node/title"], keyword);
       });
       return r;
     });

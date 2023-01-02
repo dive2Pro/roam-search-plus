@@ -45,15 +45,166 @@ type BlockWithPage = PullBlock & { page: string };
 let BLOCKS: BlockWithPage[] = [];
 let USERS: User[] = [];
 
+export type CacheBlockType = {
+  block: PullBlock;
+  page: string;
+  isBlock: boolean;
+};
+
+let CACHE_PAGES: Map<string, CacheBlockType> = new Map();
+let CACHE_BLOCKS: Map<string, CacheBlockType> = new Map();
+let CACHE_USERS: Map<string, User> = new Map();
+
 export const getAllUsers = () => {
-  return USERS;
+  // return USERS;
+  return [...CACHE_USERS.values()];
 };
 
 export const getAllPages = () => {
-  return PAGES;
+  // return PAGES;
+  return [...CACHE_PAGES.values()];
 };
 export const getAllBlocks = () => {
-  return BLOCKS;
+  // return BLOCKS;
+  return [...CACHE_BLOCKS.values()];
+};
+
+export const initCache = () => {
+  CACHE_BLOCKS.clear();
+  CACHE_PAGES.clear();
+  CACHE_USERS.clear();
+  (
+    window.roamAlphaAPI.data.fast.q(
+      `
+    [
+            :find (pull ?e [*]) ?e2
+            :where                
+                [?e :block/page ?p]
+                [?p :block/uid ?e2]
+        ]
+    `
+    ) as unknown as []
+  ).forEach((item) => {
+    const b = {
+      block: item[0] as PullBlock,
+      page: item[1],
+      isBlock: true,
+    };
+    CACHE_BLOCKS.set(b.block[":block/uid"], b);
+  });
+
+  (
+    window.roamAlphaAPI.data.fast.q(
+      `
+    [
+            :find [(pull ?e [*]) ...]
+            :where                
+                [?e :node/title]
+        ]
+    `
+    ) as unknown as PullBlock[]
+  ).map((item) => {
+    const b = {
+      block: item,
+      page: item[":node/title"],
+      isBlock: false,
+    };
+    CACHE_PAGES.set(b.block[":block/uid"], b);
+  });
+  const userIds = window.roamAlphaAPI.data.fast.q(
+    `
+    [
+          :find [(pull ?cu [*])...]
+          :where
+           [?b :block/uid]
+           [?b :create/user ?cu]
+        ]
+    `
+  ) as unknown as User[];
+
+  userIds
+    .filter((user) => user[":user/display-name"])
+    .forEach((user) => {
+      CACHE_USERS.set(user[":db/id"], user);
+    });
+};
+
+export const renewCache2 = () => {
+  // 找到今日修改过的所有 block 和 page, users
+  // 将其插入到 allBlocks 中
+  console.time("renew")
+  const todayChangedBlocks = (
+    window.roamAlphaAPI.data.fast.q(
+      `
+    [
+            :find (pull ?e [*]) ?e2 
+            :in $ ?start_of_day
+            :where                
+                [?e :edit/time ?time]
+                [(> ?time ?start_of_day)]
+                [?e :block/page ?p]
+                [?p :block/uid ?e2]
+              
+        ]
+    `,
+      new Date().setHours(0, 0, 0, 0)
+    ) as unknown as []
+  )
+    .map((item) => ({
+      block: item[0] as PullBlock,
+      page: item[1],
+      isBlock: true,
+    }))
+    .forEach((b) => {
+      CACHE_BLOCKS.set(b.block[":block/uid"], b);
+    });
+
+  const todayChangedPages = (
+    window.roamAlphaAPI.data.fast.q(
+      `
+    [
+            :find [(pull ?e [*]) ...]
+            :in $ ?start_of_day 
+            :where                
+                [?e :edit/time ?time]
+                [(> ?time ?start_of_day)]
+                [?e :node/title]
+        ]
+    `,
+      new Date().setHours(0, 0, 0, 0)
+    ) as unknown as PullBlock[]
+  )
+    .map((item) => {
+      return {
+        block: item,
+        page: item[":node/title"],
+        isBlock: false,
+      };
+    })
+    .forEach((b) => {
+      CACHE_PAGES.set(b.block[":block/uid"], b);
+    });
+
+  const todayEditUsers = (
+    window.roamAlphaAPI.data.fast.q(
+      `
+    [
+            :find [(pull ?user [*])  ...]
+            :in $ ?start_of_day 
+            :where                
+                [?e :edit/time ?time]
+                [(> ?time ?start_of_day)]
+                [?e :create/user ?user]
+                [?e :block/uid]
+        ]
+    `,
+      new Date().setHours(0, 0, 0, 0)
+    ) as unknown as User[]
+  ).forEach((user) => {
+    CACHE_USERS.set(user[":db/id"], user);
+  });
+  console.timeEnd("renew");
+
 };
 
 export const renewCache = () => {
@@ -93,8 +244,8 @@ export const renewCache = () => {
         ]
     `
   ) as unknown as User[];
-  USERS = userIds.filter( user => user[":user/display-name"]);
-  console.log(USERS.map(item=> ({...item})), '---');
+  USERS = userIds.filter((user) => user[":user/display-name"]);
+  // console.log(USERS.map(item=> ({...item})), '---');
   [...BLOCKS, ...PAGES].forEach((block) => {
     ALLBLOCKS.set(block[":block/uid"], block);
   });
@@ -132,12 +283,20 @@ export const getMe = () => {
         [?b :block/uid "${uid}"]
         [?b :create/user ?e]
     ]
-  `) as unknown as User; 
-  return result
-}
+  `) as unknown as User;
+  return result;
+};
 
-export const getCache = () => {
-  return ALLBLOCKS;
+export const getCacheByUid = (uid: string) => {
+  if (CACHE_BLOCKS.has(uid)) {
+    return CACHE_BLOCKS.get(uid);
+  }
+  return CACHE_PAGES.get(uid);
+};
+
+export const deleteFromCacheByUid = (uid: string) => {
+  CACHE_BLOCKS.delete(uid);
+  CACHE_PAGES.delete(uid);
 };
 
 // TODO: if api available 如果 graph 没有变化, 则 cache 不清空
@@ -192,6 +351,12 @@ export const getCurrentPage = async () => {
   return window.roamAlphaAPI.pull("[*]", [":block/uid", page]);
 };
 
+const blockDeleted = (uid: string) => {
+  return !!window.roamAlphaAPI.q(
+    `[:find ?e . :where [?e :block/uid "${uid}"]]`
+  );
+};
+
 export const opens = {
   main: {
     page(id: string) {
@@ -200,6 +365,7 @@ export const opens = {
           uid: id,
         },
       });
+      return blockDeleted(id);
     },
     block(id: string) {
       window.roamAlphaAPI.ui.mainWindow.openBlock({
@@ -216,5 +382,6 @@ export const opens = {
         type: "block",
       },
     });
+    return blockDeleted(id);
   },
 };
