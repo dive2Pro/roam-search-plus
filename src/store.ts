@@ -543,7 +543,7 @@ export const store = {
     },
     closeDialog() {
       // ui.open.set(false);
-      console.log("close!!!");
+      // console.log("close!!!");
       ui.visible.set(false);
     },
     changeCreateRange(range: DateRange) {
@@ -562,7 +562,7 @@ export const store = {
       });
     },
     changeSearch(s: string) {
-      console.log(s, " ---s");
+      // console.log(s, " ---s");
       query.search.set(s);
     },
     searchAgain() {
@@ -587,7 +587,7 @@ export const store = {
       },
       deleteSearch(id: string) {
         const i = ui.history.search.findIndex((item) => item.id === id);
-        console.log("delete:", i, id);
+        // console.log("delete:", i, id);
         if (i > -1) {
           ui.history.search.splice(i, 1);
         }
@@ -611,7 +611,7 @@ export const store = {
       ui.showSelectedTarget.set(false);
     },
     changeSort(index: number) {
-      console.log(index, " -");
+      // console.log(index, " -");
       ui.conditions.sort.selected.set(index);
     },
     confirm: {

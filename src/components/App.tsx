@@ -48,7 +48,7 @@ const App = observer(() => {
       }
     });
   }, []);
-  console.log(store.ui.isOpen(), " = open");
+  // console.log(store.ui.isOpen(), " = open");
   return (
     <div
       className={`${CONSTNATS.el} ${
@@ -97,7 +97,7 @@ const App = observer(() => {
                   value={store.ui.getSearch()}
                   onChange={(e) => store.actions.changeSearch(e.target.value)}
                   onKeyPress={(e) => {
-                    console.log(e.key, " == key");
+                    // console.log(e.key, " == key");
                     if (e.key === "Enter") {
                       store.actions.searchAgain();
                     }
@@ -145,7 +145,6 @@ const App = observer(() => {
                         disabled={store.ui.selectedCount() === 0}
                         intent="primary"
                         onClick={() => {
-                          console.log("-----");
                           store.actions.confirmMultiple();
                         }}
                       >
@@ -226,6 +225,7 @@ const MobileApp = observer(() => {
       onClose={() => store.actions.toggleDialog()}
       canOutsideClickClose={!store.ui.isFilterOpen()}
       canEscapeKeyClose={!store.ui.isFilterOpen()}
+      portalClassName={`${CONSTNATS.el}-portal`}
     >
       <div className={Classes.DRAWER_BODY}>
         <LoadingGraph>
