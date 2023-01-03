@@ -225,7 +225,6 @@ const MobileApp = observer(() => {
       onClose={() => store.actions.toggleDialog()}
       canOutsideClickClose={!store.ui.isFilterOpen()}
       canEscapeKeyClose={!store.ui.isFilterOpen()}
-      portalClassName={`${CONSTNATS.el}-portal`}
     >
       <div className={Classes.DRAWER_BODY}>
         <LoadingGraph>

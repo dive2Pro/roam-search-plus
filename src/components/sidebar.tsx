@@ -19,6 +19,7 @@ import { Select } from "@blueprintjs/select";
 import { observable } from "@legendapp/state";
 import { observer } from "@legendapp/state/react";
 import { ReactNode, useState } from "react";
+import { CONSTNATS } from "../helper";
 import { MOMENT_FORMATS } from "../moment";
 import { store } from "../store";
 import { BottomPopup } from "./bottom-popup";
@@ -411,6 +412,7 @@ export const MobileSidebar = observer(() => {
         title={"Filter"}
         isOpen={store.ui.isFilterOpen()}
         onClose={() => store.actions.toggleFilter()}
+        portalClassName={`${CONSTNATS.el}-portal`}
       >
         <Sidebar />
       </BottomPopup>
