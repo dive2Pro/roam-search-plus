@@ -953,6 +953,9 @@ export const store = {
       list() {
         return ui.list.get();
       },
+      listSize() {
+        return ui.list.get().length;
+      },
       getListStyle() {
         const height = ui.height.get();
         return {

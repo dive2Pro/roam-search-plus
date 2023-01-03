@@ -200,7 +200,15 @@ const App = observer(() => {
                     </Popover>
                   </div>
                 ) : null}
-                <sub className="hint">shift+ open in sidebar</sub>
+                <sub className="hint">
+                  {store.ui.result.listSize() > 0 &&
+                  store.ui.hasValidSearch() ? (
+                    <span>
+                      <strong>+{store.ui.result.listSize()}</strong> results
+                    </span>
+                  ) : null}
+                  <span>shift+ open in sidebar</span>
+                </sub>
               </div>
             </section>
             <Sidebar />

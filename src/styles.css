@@ -351,10 +351,14 @@
   position: absolute;
   bottom: 2px;
 }
+.hint span {
+  margin-right: 6px;
+}
 
 .advanced-search-el .bp3-dialog-footer {
   position: relative;
   min-height: 20px;
+  margin: 0 5px;
 }
 
 @media only screen and (min-width: 600px) {
