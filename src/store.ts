@@ -374,7 +374,7 @@ const disposeUiResult = observe(async () => {
     });
   }
 
-  console.log(ui.conditions.includeCode.get(), " - get render");
+  // console.log(ui.conditions.includeCode.get(), " - get render");
   if (!ui.conditions.includeCode.get()) {
     uiResult = uiResult
       .filter((item) => {

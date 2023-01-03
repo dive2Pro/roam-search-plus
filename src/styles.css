@@ -403,6 +403,9 @@
   .bp3-drawer .sidebar > div:first-child {
     overflow: auto;
   }
+  .bp3-select-popover .bp3-menu {
+    max-width: 300px;
+  }
 }
 
 .graph-loading {

@@ -249,7 +249,7 @@ export const renewCache = () => {
   [...BLOCKS, ...PAGES].forEach((block) => {
     ALLBLOCKS.set(block[":block/uid"], block);
   });
-  console.log(BLOCKS.length, PAGES.length);
+  // console.log(BLOCKS.length, PAGES.length);
   //   (
   //     window.roamAlphaAPI.data.fast.q(
   //       `
@@ -271,7 +271,7 @@ export const renewCache = () => {
   //       PAGES.push(block);
   //     }
   //   });
-  console.log(ALLBLOCKS);
+  // console.log(ALLBLOCKS);
 };
 
 export const getMe = () => {

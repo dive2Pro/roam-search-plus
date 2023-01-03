@@ -347,6 +347,11 @@ const SelectPages = observer((props: { children: ReactNode }) => {
       itemPredicate={(query, item, index) => {
         return item.text.indexOf(query) > -1;
       }}
+      popoverProps={{
+        // portalClassName: `${CONSTNATS.el}-portal`,
+        // className: `${CONSTNATS.el}-portal`,
+        usePortal: usePortal()
+      }}
       onItemSelect={(item) => {
         store.actions.conditions.changeSelectedPages(item);
       }}
@@ -374,6 +379,11 @@ const SelectCreateUsers = observer((props: { children: ReactNode }) => {
       items={store.ui.conditions.users.get()}
       itemPredicate={(query, item, index) => {
         return item.text.indexOf(query) > -1;
+      }}
+      popoverProps={{
+        // portalClassName: `${CONSTNATS.el}-portal`,
+        // className: `${CONSTNATS.el}-portal`,
+        usePortal: usePortal(),
       }}
       onItemSelect={(item) => {
         store.actions.conditions.changeSelectedUsers(item);
