@@ -23,6 +23,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { UnderMobile } from "./commons/under-mobile";
 import { MobileSidebar } from "./sidebar";
 import { isAutoCloseWhenShiftClick } from "../config";
+import { usePortal } from "./commons/use-portal";
 dayjs.extend(relativeTime);
 
 const Row = observer((props: { item: ResultItem }) => {
@@ -249,6 +250,7 @@ export const ListContainer = observer(() => {
               },
             }}
             autoFocus={false}
+            usePortal={usePortal()}
             content={
               <Menu>
                 {store.ui.sort.selection().map((item, index) => {

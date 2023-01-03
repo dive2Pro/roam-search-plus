@@ -22,6 +22,7 @@ import { QueryHistory } from "./history-result";
 import { FC, useEffect, useRef } from "react";
 import { CONSTNATS } from "../helper";
 import { BottomPopup } from "./bottom-popup";
+import { usePortal } from "./commons/use-portal";
 enableLegendStateReact();
 
 const LoadingGraph: FC = observer((props) => {
@@ -128,6 +129,7 @@ const App = observer(() => {
                       interactionKind="hover"
                       position="right"
                       autoFocus={false}
+                      usePortal={usePortal()}
                       content={
                         <Menu>
                           <MenuItem
@@ -289,6 +291,7 @@ const MobileApp = observer(() => {
                       interactionKind="hover"
                       position="right"
                       autoFocus={false}
+                      usePortal={usePortal()}
                       content={
                         <Menu>
                           <MenuItem

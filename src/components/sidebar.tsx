@@ -23,6 +23,7 @@ import { CONSTNATS } from "../helper";
 import { MOMENT_FORMATS } from "../moment";
 import { store } from "../store";
 import { BottomPopup } from "./bottom-popup";
+import { usePortal } from "./commons/use-portal";
 
 function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
   return (
@@ -197,6 +198,7 @@ export const Sidebar = observer(() => {
             <div className="sidebar-title bp3-button-text">Latest Edit</div>
             <Popover
               position={Position.BOTTOM}
+              usePortal={usePortal()}
               content={
                 <DateRangePicker
                   allowSingleDayRange
@@ -279,6 +281,7 @@ export const Sidebar = observer(() => {
         {store.ui.date.lastEdit() ? null : (
           <Popover
             position={Position.BOTTOM}
+            usePortal={usePortal()}
             onClose={() => {
               const date = sidebarStore.date.modifySelected.peek();
               if (!date) {
@@ -412,7 +415,6 @@ export const MobileSidebar = observer(() => {
         title={"Filter"}
         isOpen={store.ui.isFilterOpen()}
         onClose={() => store.actions.toggleFilter()}
-        portalClassName={`${CONSTNATS.el}-portal`}
       >
         <Sidebar />
       </BottomPopup>
