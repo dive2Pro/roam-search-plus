@@ -174,14 +174,14 @@ const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
 });
 
 const TargetCheckboxAbleRow = observer(
-  (props: { item: ObservableObject<ResultItem> }) => {
+  (props: { item: ResultItem }) => {
     // console.log(props.item, " = item");
     return (
       <Checkbox
-        checked={store.ui.isSelectedTarget(props.item.get())}
+        checked={store.ui.isSelectedTarget(props.item)}
         onChange={() => store.actions.changeSelectedTarget(props.item)}
       >
-        <Row item={props.item.get()} />
+        <Row item={props.item} />
       </Checkbox>
     );
   }
@@ -226,7 +226,7 @@ export const QueryResult = observer(() => {
 const SelectedResult = observer(() => {
   return (
     <div className="selected-result">
-      <For each={store.ui.copySelectedTarget()} item={TargetCheckboxAbleRow} />
+      {/* <For each={store.ui.copySelectedTarget()} item={TargetCheckboxAbleRow} /> */}
     </div>
   );
 });
