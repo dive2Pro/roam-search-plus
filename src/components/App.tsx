@@ -200,10 +200,10 @@ const RoamMainView: FC = (props) => {
       useEffect(() => {
         const mob = new MutationObserver((mutations) => {
           const target = mutations[0].target as HTMLElement;
-          if (target.style.boxShadow != '') {
-            el.style.zIndex = '-1'
+          if (target.style.boxShadow != "") {
+            el.style.zIndex = "-1";
           } else {
-            el.style.zIndex = '4'
+            el.style.zIndex = "4";
           }
         });
         mob.observe(document.querySelector(".roam-sidebar-container"), {
@@ -234,18 +234,36 @@ const RoamMainView: FC = (props) => {
 const App = observer(() => {
   const content = (
     <LoadingGraph>
-      <div className="titlebar-container">
+      <div className="titlebar-container bp3-dialog-header">
+        <div className="bp3-heading"></div>
         <div className="window-controls-container">
-          <span
+          <ButtonGroup minimal>
+            <Button
+              icon="minus"
+              color="#FFBD44"
+              intent="warning"
+              onClick={() => {
+                store.actions.toggleDialog();
+              }}
+            />
+            <Button
+              icon={store.ui.mode.isMaximize() ? "minimize" : "maximize"}
+              intent="success"
+              onClick={() => {
+                store.actions.toggleMaximize();
+              }}
+            />
+          </ButtonGroup>
+          {/* <span
             className="window-control"
             onClick={() => {
               store.actions.toggleDialog();
             }}
             style={{
-              background: "#FFBD44",
+              // background: "#FFBD44",
             }}
           >
-            <Icon color="black" icon="minus" intent="warning" size={8} />
+            <Icon icon="minus" intent="warning" size={12} />
           </span>
           <span
             className="window-control"
@@ -261,7 +279,7 @@ const App = observer(() => {
               icon={store.ui.mode.isMaximize() ? "minimize" : "maximize"}
               size={6}
             />
-          </span>
+          </span> */}
         </div>
       </div>
       <div style={{ display: "flex" }} className="search-content">

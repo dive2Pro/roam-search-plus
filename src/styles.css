@@ -460,7 +460,7 @@
 }
 
 .window-control .bp3-icon {
-  opacity: 0;
+  opacity: 1;
 }
 
 .window-control:hover .bp3-icon {
@@ -490,7 +490,10 @@
   pointer-events: all;
   z-index: 4;
 }
-
+.advanced-search-el-max .advanced-search-el{
+  padding-top: 0px;
+  height: fit-content;
+}
 .advanced-search-el-max .infinite-scroll {
   -webkit-touch-callout: none;
   -moz-user-select: none; /*火狐*/
