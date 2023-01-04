@@ -21,7 +21,7 @@ import { enableLegendStateReact, observer } from "@legendapp/state/react";
 import { ListContainer } from "./query-result";
 import { Sidebar } from "./sidebar";
 import { QueryHistory } from "./history-result";
-import { FC, useEffect, useRef } from "react";
+import { FC, ReactNode, useEffect, useRef, useState } from "react";
 import { CONSTNATS } from "../helper";
 import { BottomPopup } from "./bottom-popup";
 import { usePortal } from "./commons/use-portal";
@@ -209,10 +209,16 @@ const RoamMainView: FC = (props) => {
         mob.observe(document.querySelector(".roam-sidebar-container"), {
           attributes: true,
         });
+        const list = store.ui.result.list();
+        store.actions.result.setList([]);
+        setTimeout(() => {
+          store.actions.result.setList(list);
+        }, 500);
         return () => {
           mob.disconnect();
         };
       }, []);
+
       if (store.ui.isOpen()) {
         el.classList.add("visible");
       } else {

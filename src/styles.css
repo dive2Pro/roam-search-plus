@@ -488,7 +488,7 @@
 .advanced-search-el-max.visible {
   opacity: 1;
   pointer-events: all;
-  z-index: 4;
+  z-index: 10;
 }
 .advanced-search-el-max .advanced-search-el{
   padding-top: 0px;

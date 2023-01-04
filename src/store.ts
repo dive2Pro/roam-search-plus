@@ -813,6 +813,11 @@ export const store = {
       await delay();
       renewCache2();
     },
+    result: {
+      setList(list: ResultItem[]) {
+        setList(list);
+      }
+    }
   },
   ui: {
     mode: {
