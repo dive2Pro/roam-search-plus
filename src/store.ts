@@ -977,7 +977,7 @@ export const store = {
 
     result: {
       size() {
-        return ui.result.get().length;
+        return getResult().length;
       },
       list() {
         return getList();
