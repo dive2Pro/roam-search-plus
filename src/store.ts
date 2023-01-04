@@ -165,13 +165,12 @@ const keywordsBuildFrom = (search: string) => {
 let _result: ResultItem[] = [];
 const setResult = (result: ResultItem[]) => {
   _result = result;
-  ui.result.set([])
-}
+  ui.result.set([]);
+};
 const getResult = () => {
   ui.result.get();
   return _result;
 };
-
 
 let _list: ResultItem[] = [];
 const setList = (result: ResultItem[]) => {
@@ -182,7 +181,6 @@ const getList = () => {
   ui.list.get();
   return _list;
 };
-
 
 let cancelPre = () => {};
 const trigger = debounce(
@@ -274,7 +272,7 @@ const trigger = debounce(
       // _result = result;
       // // console.log(" ui result = ", result);
       // ui.result.set([]);
-      setResult(result)
+      setResult(result);
     });
     ui.loading.set(false);
   },
@@ -444,7 +442,7 @@ const disposeUiResult = observe(async () => {
   // console.log("sorted-", uiResult);
   // _list = uiResult;
   // ui.list.set([]);
-  setList(uiResult)
+  setList(uiResult);
 });
 
 const disposeUiResultSort = observe(() => {
@@ -464,7 +462,6 @@ const disposeUiSelectablePages = observe(() => {
   //     list.filter((item) => !item.isPage).map((item) => item.id)
   //   )
   // );
-
   // console.log(
   //   [...pages,
   //   ...pageBlocks.map((item) => ({
@@ -553,7 +550,11 @@ export const store = {
     },
     toggleDialog() {
       if (ui.visible.get()) {
-        store.actions.closeDialog();
+        if (ui.filter.open.get()) {
+          store.actions.toggleFilter();
+        } else {
+          store.actions.closeDialog();
+        }
       } else {
         store.actions.openDialog();
         if (!ui.graph.loaded.get()) {
@@ -816,8 +817,7 @@ export const store = {
     },
     isOpen() {
       const visible = ui.visible.get();
-      const open = ui.open.get();
-      return window.roamAlphaAPI.platform.isMobile ? visible : open;
+      return visible;
     },
     getSearch() {
       return query.search.get();
