@@ -1,6 +1,7 @@
 import { TextArea, Toast, Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
 import {
+  batch,
   computed,
   observable,
   ObservableObject,
@@ -161,6 +162,28 @@ const keywordsBuildFrom = (search: string) => {
   return keywords;
 };
 
+let _result: ResultItem[] = [];
+const setResult = (result: ResultItem[]) => {
+  _result = result;
+  ui.result.set([])
+}
+const getResult = () => {
+  ui.result.get();
+  return _result;
+};
+
+
+let _list: ResultItem[] = [];
+const setList = (result: ResultItem[]) => {
+  _list = result;
+  ui.list.set([]);
+};
+const getList = () => {
+  ui.list.get();
+  return _list;
+};
+
+
 let cancelPre = () => {};
 const trigger = debounce(
   async (search: string, caseIntensive: boolean, uids?: string[]) => {
@@ -177,11 +200,15 @@ const trigger = debounce(
     cancelPre = queryAPi.cancel;
     await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
       // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
-      query.result.set({
-        pages,
-        topBlocks,
-        lowBlocks,
+      console.time("promise");
+      batch(() => {
+        // query.result.set({
+        //   pages,
+        //   topBlocks,
+        //   lowBlocks,
+        // });
       });
+      console.timeEnd("promise");
 
       const result: ResultItem[] = [
         ...pages.map((block) => {
@@ -244,9 +271,10 @@ const trigger = debounce(
           };
         }),
       ];
-
-      // console.log(" ui result = ", result);
-      ui.result.set(result);
+      // _result = result;
+      // // console.log(" ui result = ", result);
+      // ui.result.set([]);
+      setResult(result)
     });
     ui.loading.set(false);
   },
@@ -326,7 +354,7 @@ function conditionFilter<T extends PullBlock>(
 }
 
 const disposeUiResult = observe(async () => {
-  let uiResult = ui.result.get();
+  let uiResult = getResult();
 
   const includePage = ui.conditions.includePage.get();
   const includeBlock = ui.conditions.includeBlock.get();
@@ -414,8 +442,9 @@ const disposeUiResult = observe(async () => {
   ];
   uiResult = uiResult.slice().sort(sortFns[ui.conditions.sort.selected.get()]);
   // console.log("sorted-", uiResult);
-
-  ui.list.set(uiResult);
+  // _list = uiResult;
+  // ui.list.set([]);
+  setList(uiResult)
 });
 
 const disposeUiResultSort = observe(() => {
@@ -423,18 +452,18 @@ const disposeUiResultSort = observe(() => {
 });
 
 const disposeUiSelectablePages = observe(() => {
-  const list = ui.result.get();
-  const pages = list
-    .filter((item) => item.isPage)
-    .map((item) => ({
-      id: item.id,
-      text: item.text as string,
-    }));
-  const pageBlocks = pull_many(
-    getPageUidsFromUids(
-      list.filter((item) => !item.isPage).map((item) => item.id)
-    )
-  );
+  // const list = getResult();
+  // const pages = list
+  //   .filter((item) => item.isPage)
+  //   .map((item) => ({
+  //     id: item.id,
+  //     text: item.text as string,
+  //   }));
+  // const pageBlocks = pull_many(
+  //   getPageUidsFromUids(
+  //     list.filter((item) => !item.isPage).map((item) => item.id)
+  //   )
+  // );
 
   // console.log(
   //   [...pages,
@@ -444,15 +473,15 @@ const disposeUiSelectablePages = observe(() => {
   //   }))].filter(item => item.text),
   //   " ----"
   // );
-  ui.conditions.pages.items.set(
-    [
-      ...pages,
-      ...pageBlocks.map((item) => ({
-        id: item.block[":block/uid"],
-        text: item.block[":node/title"],
-      })),
-    ].filter((item) => item.text)
-  );
+  // ui.conditions.pages.items.set(
+  //   [
+  //     ...pages,
+  //     ...pageBlocks.map((item) => ({
+  //       id: item.block[":block/uid"],
+  //       text: item.block[":node/title"],
+  //     })),
+  //   ].filter((item) => item.text)
+  // );
 });
 
 extension_helper.on_uninstall(() => {
@@ -509,7 +538,7 @@ export const store = {
         ui.result.set(ui.result.get());
       }
     },
-    changeSelectedTarget(item: ObservableObject<ResultItem>) {
+    changeSelectedTarget(item: ResultItem) {
       // const index = ui.selectedTarget
       //   .get()
       //   .findIndex((o) => o.uid === item.uid.peek());
@@ -519,8 +548,8 @@ export const store = {
       // } else {
       //   ui.selectedTarget.push(item.get());
       // }
-      item.isSelected.set(!item.isSelected.get());
-      selectedTargetStore.set(item.peek().id, item);
+      // item.isSelected.set(!item.isSelected.get());
+      // selectedTargetStore.set(item.peek().id, item);
     },
     toggleDialog() {
       if (ui.visible.get()) {
@@ -658,8 +687,8 @@ export const store = {
         });
       },
       copyResult(oneline = false) {
-        const pasteStr = ui.list
-          .get()
+        const pasteStr = getList()
+          // .get()
           .map((item) => {
             if (item.isPage) {
               return `[[${item.text}]]`;
@@ -774,7 +803,7 @@ export const store = {
       ui.graph.loaded.set(true);
     },
     async renewGraph() {
-      await delay()
+      await delay();
       renewCache2();
     },
   },
@@ -951,10 +980,10 @@ export const store = {
         return ui.result.get().length;
       },
       list() {
-        return ui.list.get();
+        return getList();
       },
       listSize() {
-        return ui.list.get().length;
+        return getList().length;
       },
       getListStyle() {
         const height = ui.height.get();
@@ -978,7 +1007,7 @@ export const store = {
       resultList() {},
     },
     hasResult() {
-      return store.ui.getSearch().length > 0 && store.ui.result.size() > 0;
+      return store.ui.getSearch().length > 0 && getResult().length > 0;
     },
   },
 };
