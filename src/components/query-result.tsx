@@ -13,7 +13,14 @@ import {
   Toaster,
 } from "@blueprintjs/core";
 import { For, observer } from "@legendapp/state/react";
-import { store, ResultItem } from "../store";
+import {
+  store,
+  ResultItem,
+  transformItem,
+  QueryResultItem,
+  getId,
+  getChildren,
+} from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { date, highlightText } from "../helper";
@@ -26,9 +33,10 @@ import { isAutoCloseWhenShiftClick } from "../config";
 import { usePortal } from "./commons/use-portal";
 dayjs.extend(relativeTime);
 
-const Row = observer((props: { item: ResultItem }) => {
-  const [text, setText] = useState(<>{props.item.text}</>);
-  const [children, setChildren] = useState(props.item.children);
+const Row = observer((props: { item: QueryResultItem }) => {
+  const item = transformItem(props.item);
+  const [text, setText] = useState(<>{item.text}</>);
+  const [children, setChildren] = useState(item.children);
   const [path, setPath] = useState<string[]>([]);
 
   useEffect(() => {
@@ -42,12 +50,12 @@ const Row = observer((props: { item: ResultItem }) => {
       }
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
-          setText(highlightText(props.item.text as string, search));
+          setText(highlightText(item.text as string, search));
           setChildren(
             children.map((child) => {
               return {
                 ...child,
-                text: highlightText(child.text as string, search),
+                text: highlightText(child.text as string, search) as unknown as string,
               };
             })
           );
@@ -62,14 +70,14 @@ const Row = observer((props: { item: ResultItem }) => {
         return;
       }
 
-      setPath(store.ui.getPathsFromUid(props.item.id));
+      setPath(store.ui.getPathsFromUid(item.id));
     });
 
     return () => {
       textDispose();
       pathDispose();
     };
-  }, [props.item.id]);
+  }, [item.id]);
 
   const handlerClick = (e: React.MouseEvent, item: ResultItem) => {
     e.preventDefault();
@@ -95,7 +103,7 @@ const Row = observer((props: { item: ResultItem }) => {
   };
 
   let content;
-  if (props.item.isPage) {
+  if (item.isPage) {
     content = (
       <div>
         <div className="result-item-content">{text}</div>
@@ -143,26 +151,24 @@ const Row = observer((props: { item: ResultItem }) => {
   return (
     <section
       className="result-item-container"
-      onClick={(e) => handlerClick(e, props.item)}
-      data-uid={props.item.id}
+      onClick={(e) => handlerClick(e, item)}
+      data-uid={item.id}
     >
-      <Icon icon={props.item.isPage ? "application" : "paragraph"}></Icon>
+      <Icon icon={item.isPage ? "application" : "paragraph"}></Icon>
       <div style={{ width: "100%", marginLeft: 10 }}>
         {content}
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
           <span className="date date-fromnow">
-            {date.fromNow(props.item.editTime)}
+            {date.fromNow(item.editTime)}
           </span>
-          <span className="date date-common">
-            {date.format(props.item.editTime)}
-          </span>
+          <span className="date date-common">{date.format(item.editTime)}</span>
         </div>
       </div>
     </section>
   );
 });
 
-const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
+const CheckboxAbleRow = observer((props: { item: QueryResultItem }) => {
   return (
     <Checkbox
       checked={store.ui.isSelectedTarget(props.item)}
@@ -174,7 +180,7 @@ const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
 });
 
 const TargetCheckboxAbleRow = observer(
-  (props: { item: ObservableObject<ResultItem> }) => {
+  (props: { item: ObservableObject<QueryResultItem> }) => {
     // console.log(props.item, " = item");
     return (
       <Checkbox
@@ -209,7 +215,7 @@ export const QueryResult = observer(() => {
       store.actions.setHeight(vHeight);
     });
   }, [list]);
-  // console.log("render again", list);
+  console.log("render again", list);
   return (
     <Virtuoso
       className="infinite-scroll"
@@ -217,7 +223,10 @@ export const QueryResult = observer(() => {
       totalCount={list.length}
       data={list}
       itemContent={(index, data) => (
-        <Item key={data.id + index + data.children.length} item={data} />
+        <Item
+          key={getId(data) + index + getChildren(data).length}
+          item={data}
+        />
       )}
     ></Virtuoso>
   );
@@ -226,7 +235,7 @@ export const QueryResult = observer(() => {
 const SelectedResult = observer(() => {
   return (
     <div className="selected-result">
-      <For each={store.ui.copySelectedTarget()} item={TargetCheckboxAbleRow} />
+      {/* <For each={store.ui.copySelectedTarget()} item={TargetCheckboxAbleRow} /> */}
     </div>
   );
 });

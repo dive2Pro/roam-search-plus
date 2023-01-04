@@ -1,6 +1,7 @@
 import { TextArea, Toast, Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
 import {
+  batch,
   computed,
   observable,
   ObservableObject,
@@ -66,6 +67,10 @@ const query = observable({
   },
 });
 
+export type QueryResultItem =
+  | CacheBlockType
+  | { page: CacheBlockType; children: CacheBlockType[]; isBlock: boolean };
+
 const copySelectedTarget = observable([] as ResultItem[]);
 
 const MIN = 450;
@@ -116,7 +121,7 @@ const ui = observable({
     open: false,
   },
   multiple: false,
-  selectedTarget: [] as ResultItem[],
+  selectedTarget: [] as QueryResultItem[],
   showSelectedTarget: false,
   conditions: clone(defaultConditions),
   copySelectedTarget,
@@ -127,9 +132,9 @@ const ui = observable({
   },
 
   tags: [] as string[],
-  result: [] as ResultItem[],
+  result: [] as QueryResultItem[], // 选择结果, 目前没有用
   loading: false,
-  list: [] as ResultItem[],
+  list: [] as QueryResultItem[],
   height: MIN,
 });
 
@@ -161,10 +166,58 @@ const keywordsBuildFrom = (search: string) => {
   return keywords;
 };
 
+export const transformItem = (item: QueryResultItem) => {
+  if (isNOtLowBlock(item)) {
+    const block = item;
+
+    return {
+      id: block.block[":block/uid"],
+      text: getText(block),
+      editTime: block.block[":edit/time"] || block.block[":create/time"],
+      createTime: block.block[":create/time"],
+      isPage: false,
+      createUser: block.block[":create/user"]?.[":db/id"],
+      // paths: block.parents.map(
+      //   (item) => item[":block/string"] || item[":node/title"]
+      // ),
+      paths: [],
+      isSelected: false,
+      children: [],
+    };
+  } else {
+    return {
+      id: item.page.block[":block/uid"],
+      // text: item.page.block[":node/title"],
+      text: getText(item),
+      editTime:
+        item.page.block[":edit/time"] || item.page.block[":create/time"],
+      createTime: item.page.block[":create/time"],
+      createUser: item.page.block[":create/user"]?.[":db/id"],
+      isPage: true,
+      paths: [] as string[],
+      isSelected: false,
+      children: item.children.map((block) => {
+        return {
+          id: block.block[":block/uid"],
+          text: block.block[":block/string"],
+          editTime: block.block[":edit/time"] || block.block[":create/time"],
+          createTime: block.block[":create/time"],
+          isPage: false,
+          // paths: block.parents.map(
+          //   (item) => item[":block/string"] || item[":node/title"]
+          // ),
+          paths: [],
+          isSelected: false,
+          children: [],
+          createUser: block.block[":create/user"]?.[":db/id"],
+        };
+      }),
+    };
+  }
+};
 let cancelPre = () => {};
 const trigger = debounce(
   async (search: string, caseIntensive: boolean, uids?: string[]) => {
-    cancelPre();
     if (!search) {
       return;
     }
@@ -175,84 +228,89 @@ const trigger = debounce(
       caseIntensive,
     });
     cancelPre = queryAPi.cancel;
+    console.log(cancelPre, " = cancelpre");
     await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
       // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
-      query.result.set({
-        pages,
-        topBlocks,
-        lowBlocks,
+      // query.result.set({
+      //   pages,
+      //   topBlocks,
+      //   lowBlocks,
+      // });
+      // const result: ResultItem[] = [
+      //   ...pages.map((block) => {
+      //     return {
+      //       id: block.block[":block/uid"],
+      //       text: block.block[":node/title"],
+      //       editTime: block.block[":edit/time"] || block.block[":create/time"],
+      //       createTime: block.block[":create/time"],
+      //       isPage: true,
+      //       paths: [],
+      //       isSelected: false,
+      //       children: [],
+      //       createUser: block.block[":create/user"]?.[":db/id"],
+      //     };
+      //   }),
+      //   ...topBlocks.map((block) => {
+      //     return {
+      //       id: block.block[":block/uid"],
+      //       text: block.block[":block/string"],
+      //       editTime: block.block[":edit/time"] || block.block[":create/time"],
+      //       createTime: block.block[":create/time"],
+      //       isPage: false,
+      //       createUser: block.block[":create/user"]?.[":db/id"],
+      //       // paths: block.parents.map(
+      //       //   (item) => item[":block/string"] || item[":node/title"]
+      //       // ),
+      //       paths: [],
+      //       isSelected: false,
+      //       children: [],
+      //     };
+      //   }),
+      //   ...(lowBlocks || []).map((item) => {
+      //     return {
+      //       id: item.page.block[":block/uid"],
+      //       text: item.page.block[":node/title"],
+      //       editTime:
+      //         item.page.block[":edit/time"] || item.page.block[":create/time"],
+      //       createTime: item.page.block[":create/time"],
+      //       createUser: item.page.block[":create/user"]?.[":db/id"],
+      //       isPage: true,
+      //       paths: [],
+      //       isSelected: false,
+      //       children: item.children.map((block) => {
+      //         return {
+      //           id: block.block[":block/uid"],
+      //           text: block.block[":block/string"],
+      //           editTime:
+      //             block.block[":edit/time"] || block.block[":create/time"],
+      //           createTime: block.block[":create/time"],
+      //           isPage: false,
+      //           // paths: block.parents.map(
+      //           //   (item) => item[":block/string"] || item[":node/title"]
+      //           // ),
+      //           paths: [],
+      //           isSelected: false,
+      //           children: [],
+      //           createUser: block.block[":create/user"]?.[":db/id"],
+      //         };
+      //       }),
+      //     };
+      //   }),
+      // ];
+      // const result =
+      console.log(" ui result = ");
+      batch(() => {
+        ui.result.set([...pages, ...topBlocks, ...(lowBlocks || [])]);
       });
-
-      const result: ResultItem[] = [
-        ...pages.map((block) => {
-          return {
-            id: block.block[":block/uid"],
-            text: block.block[":node/title"],
-            editTime: block.block[":edit/time"] || block.block[":create/time"],
-            createTime: block.block[":create/time"],
-            isPage: true,
-            paths: [],
-            isSelected: false,
-            children: [],
-            createUser: block.block[":create/user"]?.[":db/id"],
-          };
-        }),
-        ...topBlocks.map((block) => {
-          return {
-            id: block.block[":block/uid"],
-            text: block.block[":block/string"],
-            editTime: block.block[":edit/time"] || block.block[":create/time"],
-            createTime: block.block[":create/time"],
-            isPage: false,
-            createUser: block.block[":create/user"]?.[":db/id"],
-            // paths: block.parents.map(
-            //   (item) => item[":block/string"] || item[":node/title"]
-            // ),
-            paths: [],
-            isSelected: false,
-            children: [],
-          };
-        }),
-        ...(lowBlocks || []).map((item) => {
-          return {
-            id: item.page.block[":block/uid"],
-            text: item.page.block[":node/title"],
-            editTime:
-              item.page.block[":edit/time"] || item.page.block[":create/time"],
-            createTime: item.page.block[":create/time"],
-            createUser: item.page.block[":create/user"]?.[":db/id"],
-            isPage: true,
-            paths: [],
-            isSelected: false,
-            children: item.children.map((block) => {
-              return {
-                id: block.block[":block/uid"],
-                text: block.block[":block/string"],
-                editTime:
-                  block.block[":edit/time"] || block.block[":create/time"],
-                createTime: block.block[":create/time"],
-                isPage: false,
-                // paths: block.parents.map(
-                //   (item) => item[":block/string"] || item[":node/title"]
-                // ),
-                paths: [],
-                isSelected: false,
-                children: [],
-                createUser: block.block[":create/user"]?.[":db/id"],
-              };
-            }),
-          };
-        }),
-      ];
-
-      // console.log(" ui result = ", result);
-      ui.result.set(result);
     });
     ui.loading.set(false);
   },
   500
 );
 let prevSearch = "";
+ui.result.onChange((v) => {
+  console.log("result changed:", v);
+});
 
 const triggerWhenSearchChange = async (next: string) => {
   if (!next) {
@@ -263,6 +321,7 @@ const triggerWhenSearchChange = async (next: string) => {
   const caseIntensive = ui.conditions.caseIntensive.peek();
   if (nextStr !== prevSearch) {
     ui.loading.set(!!nextStr);
+    cancelPre();
     try {
       await trigger(
         nextStr,
@@ -270,7 +329,8 @@ const triggerWhenSearchChange = async (next: string) => {
         selectedPagesUids.map((item) => item.id)
       );
     } catch (e) {
-      ui.loading.set(false);
+      console.error(e);
+      // ui.loading.set(false);
     }
   }
 };
@@ -294,7 +354,7 @@ const dispose = observe(async () => {
     );
   } catch (e) {
     console.error(e, " ---");
-    ui.loading.set(false);
+    // ui.loading.set(false);
   }
 });
 
@@ -325,26 +385,74 @@ function conditionFilter<T extends PullBlock>(
   return result;
 }
 
+// const isPage = ();
+const isNOtLowBlock = (item: QueryResultItem): item is CacheBlockType => {
+  return typeof item.page === "string";
+};
+
+const isPage = (item: QueryResultItem) => {
+  return !item.isBlock;
+};
+
+const createUser = (item: QueryResultItem) => {
+  return isNOtLowBlock(item)
+    ? item.block[":create/user"][":db/id"]
+    : item.page.block[":create/user"][":db/id"];
+};
+
+const editTime = (item: QueryResultItem) => {
+  return isNOtLowBlock(item)
+    ? item.block[":edit/time"]
+    : item.page.block[":edit/time"];
+};
+
+const createTime = (item: QueryResultItem) => {
+  return isNOtLowBlock(item)
+    ? item.block[":create/time"]
+    : item.page.block[":create/time"];
+};
+const getText = (item: QueryResultItem) => {
+  return isNOtLowBlock(item)
+    ? item.isBlock
+      ? item.block[":block/string"]
+      : item.block[":node/title"]
+    : item.page.block[":node/title"];
+};
+
+export const getId = (item: QueryResultItem) => {
+  return isNOtLowBlock(item)
+    ? item.block[":block/uid"]
+    : item.page.block[":block/uid"];
+};
+
+export const getChildren = (item: QueryResultItem) => {
+  return isNOtLowBlock(item) ? [] : item.children;
+};
+
 const disposeUiResult = observe(async () => {
   let uiResult = ui.result.get();
-
   const includePage = ui.conditions.includePage.get();
   const includeBlock = ui.conditions.includeBlock.get();
   const users = ui.conditions.users.selected.get();
-  uiResult = uiResult.filter((item) => {
-    let result = true;
-    if (!includePage) {
-      result = !item.isPage;
-    }
-    if (result && !includeBlock) {
-      result = item.isPage;
-    }
+  if (!includeBlock || !includeBlock || users.length > 0) {
+    uiResult = uiResult.filter((item) => {
+      let result = true;
+      if (!includePage) {
+        result = !isPage(item);
+      }
+      if (result && !includeBlock) {
+        result = isPage(item);
+      }
 
-    if (result && users.length) {
-      result = users.some((user) => user.id === item.createUser);
-    }
-    return result;
-  });
+      if (result && users.length) {
+        result = users.some(
+          (user) => String(user.id) === String(createUser(item))
+        );
+      }
+      return result;
+    });
+  }
+
   // if (ui.conditions.onlyPage.get()) {
   //   uiResult = uiResult.filter((item) => item.isPage);
   // }
@@ -360,16 +468,16 @@ const disposeUiResult = observe(async () => {
   if (modificationDate) {
     uiResult = uiResult.filter((item) => {
       return (
-        item.editTime >= modificationDate.start.valueOf() &&
-        item.editTime <= modificationDate.end.valueOf()
+        editTime(item) >= modificationDate.start.valueOf() &&
+        editTime(item) <= modificationDate.end.valueOf()
       );
     });
   }
   if (creationDate) {
     uiResult = uiResult.filter((item) => {
       return (
-        item.createTime >= creationDate.start.valueOf() &&
-        item.createTime <= creationDate.end.valueOf()
+        createTime(item) >= creationDate.start.valueOf() &&
+        createTime(item) <= creationDate.end.valueOf()
       );
     });
   }
@@ -378,15 +486,17 @@ const disposeUiResult = observe(async () => {
   if (!ui.conditions.includeCode.get()) {
     uiResult = uiResult
       .filter((item) => {
-        const text = item.text as string;
-        return item.isPage || !(text.startsWith("```") && text.endsWith("```"));
+        const text = getText(item) as string;
+        return (
+          isPage(item) || !(text.startsWith("```") && text.endsWith("```"))
+        );
       })
       .map((item) => {
-        if (item.children.length) {
+        if (getChildren(item).length) {
           return {
             ...item,
-            children: item.children.filter((oi) => {
-              const childText = oi.text as string;
+            children: getChildren(item).filter((oi) => {
+              const childText = getText(oi) as string;
               return !(
                 childText.startsWith("```") && childText.endsWith("```")
               );
@@ -399,23 +509,32 @@ const disposeUiResult = observe(async () => {
 
   const sortFns = [
     () => 0,
-    (a: ResultItem, b: ResultItem) => {
-      return b.editTime - a.editTime;
+    (a: QueryResultItem, b: QueryResultItem) => {
+      return editTime(b) - editTime(a);
     },
-    (a: ResultItem, b: ResultItem) => {
-      return a.editTime - b.editTime;
+    (a: QueryResultItem, b: QueryResultItem) => {
+      return editTime(a) - editTime(b);
     },
-    (a: ResultItem, b: ResultItem) => {
-      return b.createTime - a.createTime;
+    (a: QueryResultItem, b: QueryResultItem) => {
+      return createTime(b) - createTime(a);
+      //b.createTime - a.createTime;
     },
-    (a: ResultItem, b: ResultItem) => {
-      return a.createTime - b.createTime;
+    (a: QueryResultItem, b: QueryResultItem) => {
+      // return a.createTime - b.createTime;
+      return createTime(a) - createTime(b);
     },
   ];
-  uiResult = uiResult.slice().sort(sortFns[ui.conditions.sort.selected.get()]);
-  // console.log("sorted-", uiResult);
+  const sortIndex = ui.conditions.sort.selected.get();
+  if (sortIndex > 0) {
+    uiResult = uiResult.slice().sort(sortFns[sortIndex]);
+  }
 
-  ui.list.set(uiResult);
+  batch(() => {
+    console.time("uiresult");
+    // console.log("sorted-", uiResult);
+    ui.list.set(uiResult);
+    console.timeEnd("uiresult");
+  });
 });
 
 const disposeUiResultSort = observe(() => {
@@ -423,36 +542,35 @@ const disposeUiResultSort = observe(() => {
 });
 
 const disposeUiSelectablePages = observe(() => {
-  const list = ui.result.get();
-  const pages = list
-    .filter((item) => item.isPage)
-    .map((item) => ({
-      id: item.id,
-      text: item.text as string,
-    }));
-  const pageBlocks = pull_many(
-    getPageUidsFromUids(
-      list.filter((item) => !item.isPage).map((item) => item.id)
-    )
-  );
-
-  // console.log(
-  //   [...pages,
-  //   ...pageBlocks.map((item) => ({
-  //     id: item[":block/uid"],
-  //     text: item[":node/title"],
-  //   }))].filter(item => item.text),
-  //   " ----"
+  // const list = ui.result.get();
+  // const pages = list
+  //   .filter((item) => isPage(item))
+  //   .map((item) => ({
+  //     id: getId(item),
+  //     text: getText(item) as string,
+  //   }));
+  // const pageBlocks = pull_many(
+  //   getPageUidsFromUids(
+  //     list.filter((item) => !isPage(item)).map((item) => getId(item))
+  //   )
   // );
-  ui.conditions.pages.items.set(
-    [
-      ...pages,
-      ...pageBlocks.map((item) => ({
-        id: item.block[":block/uid"],
-        text: item.block[":node/title"],
-      })),
-    ].filter((item) => item.text)
-  );
+  // // console.log(
+  // //   [...pages,
+  // //   ...pageBlocks.map((item) => ({
+  // //     id: item[":block/uid"],
+  // //     text: item[":node/title"],
+  // //   }))].filter(item => item.text),
+  // //   " ----"
+  // // );
+  // ui.conditions.pages.items.set(
+  //   [
+  //     ...pages,
+  //     ...pageBlocks.map((item) => ({
+  //       id: item.block[":block/uid"],
+  //       text: item.block[":node/title"],
+  //     })),
+  //   ].filter((item) => item.text)
+  // );
 });
 
 extension_helper.on_uninstall(() => {
@@ -487,9 +605,9 @@ export const store = {
     changeShowSelectedTarget() {
       ui.showSelectedTarget.toggle();
       if (ui.showSelectedTarget.peek()) {
-        ui.copySelectedTarget.set(
-          observable(ui.result.get().filter((o) => o.isSelected))
-        );
+        // ui.copySelectedTarget.set(
+        // observable(ui.result.get().filter((o) => o.isSelected))
+        // );
       } else {
         // ui.copySelectedTarget.get().forEach((o) => {
         //   console.log(
@@ -502,14 +620,14 @@ export const store = {
         // });
 
         ui.result.forEach((item) => {
-          var a = selectedTargetStore.get(item.peek().id);
+          var a = selectedTargetStore.get(getId(item.peek()));
           // console.log(item, " = item");
         });
 
         ui.result.set(ui.result.get());
       }
     },
-    changeSelectedTarget(item: ObservableObject<ResultItem>) {
+    changeSelectedTarget(item: ObservableObject<QueryResultItem>) {
       // const index = ui.selectedTarget
       //   .get()
       //   .findIndex((o) => o.uid === item.uid.peek());
@@ -519,8 +637,8 @@ export const store = {
       // } else {
       //   ui.selectedTarget.push(item.get());
       // }
-      item.isSelected.set(!item.isSelected.get());
-      selectedTargetStore.set(item.peek().id, item);
+      // item.isSelected.set(!item.isSelected.get());
+      // selectedTargetStore.set(item.peek().id, item);
     },
     toggleDialog() {
       if (ui.visible.get()) {
@@ -661,10 +779,10 @@ export const store = {
         const pasteStr = ui.list
           .get()
           .map((item) => {
-            if (item.isPage) {
-              return `[[${item.text}]]`;
+            if (isPage(item)) {
+              return `[[${getText(item)}]]`;
             } else {
-              return `((${item.id}))`;
+              return `((${getId(item)}))`;
             }
           })
           .join(oneline ? " " : "\n");
@@ -774,7 +892,7 @@ export const store = {
       ui.graph.loaded.set(true);
     },
     async renewGraph() {
-      await delay()
+      await delay();
       renewCache2();
     },
   },
@@ -820,7 +938,8 @@ export const store = {
       },
     },
     selectedCount() {
-      return ui.result.get().filter((o) => o.isSelected).length;
+      // return ui.result.get().filter((o) => o.isSelected).length;
+      return 0;
     },
     sort: {
       selection() {
@@ -939,11 +1058,12 @@ export const store = {
         return ui.tags.get();
       },
     },
-    isSelectedTarget(item: ResultItem) {
+    isSelectedTarget(item: QueryResultItem) {
       // const r =
       //   ui.selectedTarget.get().findIndex((o) => o.uid === item.peek().uid) >
       //   -1;
-      return item.isSelected;
+      // return item.isSelected;
+      return false;
     },
 
     result: {

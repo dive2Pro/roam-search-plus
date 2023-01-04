@@ -49,9 +49,37 @@ export const Query = (config: {
   };
   const check = () => {
     if (cancelRef.current) {
+      console.warn("cancel by input")
       throw new Error("Cancel");
     }
   };
+
+function timeSlice_<T, D>(fnc: any, time = 16, cb = setTimeout) {
+  return function (...args: T[]) {
+    const fnc_ = fnc(...args);
+    if (fnc.constructor.name !== "GeneratorFunction") return fnc_;
+
+    let data: any;
+
+    return new Promise<D>(async function go(resolve, reject) {
+      try {
+        const start = performance.now();
+
+        do {
+          check();
+          data = fnc_.next(await data?.value);
+        } while (!data.done && performance.now() - start < time);
+
+        if (data.done) return resolve(data.value);
+
+        cb(() => go(resolve, reject));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  };
+}
+
   const includes = (p: string, n: string) => {
     if (!p) {
       return false;
@@ -63,6 +91,55 @@ export const Query = (config: {
     }
   };
 
+  function* findBlocksContainsAllKeywords2(keywords: string[]) {
+    const lowBlocks: CacheBlockType[] = [];
+    const topBlocks: CacheBlockType[] = [];
+    for (let item of getAllBlocks()) {
+       if (config.uids?.length) {
+         if (
+           !config.uids.some((pageUid) => {
+             return pageUid === item.page;
+           })
+         ) {
+           return false;
+         }
+       }
+       const r = keywords.every((keyword) => {
+         return (
+           item.block[":block/string"] &&
+           includes(item.block[":block/string"], keyword)
+         );
+       });
+       if (!r) {
+         lowBlocks.push(item);
+       } else {
+         topBlocks.push(item);
+       }
+      yield r
+    }
+    // const result = getAllBlocks().filter((item) => {
+    //   if (config.uids?.length) {
+    //     if (
+    //       !config.uids.some((pageUid) => {
+    //         return pageUid === item.page;
+    //       })
+    //     ) {
+    //       return false;
+    //     }
+    //   }
+    //   const r = keywords.every((keyword) => {
+    //     return (
+    //       item.block[":block/string"] &&
+    //       includes(item.block[":block/string"], keyword)
+    //     );
+    //   });
+    //   if (!r) {
+    //     lowBlocks.push(item);
+    //   }
+    //   return r;
+    // });
+    return [topBlocks, lowBlocks];
+  }
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
     const lowBlocks: CacheBlockType[] = [];
     const result = getAllBlocks().filter((item) => {
@@ -89,15 +166,19 @@ export const Query = (config: {
     return [result, lowBlocks]
   };
   const timemeasure = (name: string, cb: () => void) => {
-    // console.time(name);
+    console.time(name);
     cb();
-    // console.timeEnd(name);
+    console.timeEnd(name);
   };
   async function findAllRelatedBlocks(keywords: string[]) {
-    let [topLevelBlocks, lowBlocks] = findBlocksContainsAllKeywords(keywords);
+    console.time("----")
+    const timeSliceFind = timeSlice_(findBlocksContainsAllKeywords2);
+    let [topLevelBlocks, lowBlocks] = await timeSliceFind(keywords);
     if (keywords.length <= 1) {
       return [topLevelBlocks, undefined] as const;
     }
+    console.timeEnd("----");
+
     // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
     // console.log("find low");
 
@@ -220,6 +301,7 @@ export const Query = (config: {
               return {
                 page: pull(item.page),
                 children: item.children,
+                isBlock: false,
               };
             })
             .filter((item) => item.page),
@@ -233,6 +315,7 @@ export const Query = (config: {
       }
     ),
     cancel: () => {
+      console.log('cancel -----@@@')
       cancelRef.current = true;
     },
   };

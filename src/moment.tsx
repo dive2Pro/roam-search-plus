@@ -15,7 +15,7 @@ export const MomentDate: React.FC<{
   withTime?: boolean;
 }> = ({ date, withTime = false, format = withTime ? FORMAT_TIME : FORMAT }) => {
   const m = moment(date);
-  console.log(date, " -");
+  // console.log(date, " -");
   if (date) {
     return <Tag intent={Intent.PRIMARY}>{m.format(format)}</Tag>;
   } else {
