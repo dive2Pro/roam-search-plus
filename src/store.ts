@@ -132,6 +132,9 @@ const ui = observable({
   loading: false,
   list: [] as ResultItem[],
   height: MIN,
+  mode: {
+    max: false,
+  },
 });
 
 extension_helper.on_uninstall(
@@ -510,6 +513,9 @@ export const store = {
     query,
   }),
   actions: {
+    toggleMaximize() {
+      ui.mode.max.set((prev) => !prev);
+    },
     changeShowSelectedTarget() {
       ui.showSelectedTarget.toggle();
       if (ui.showSelectedTarget.peek()) {
@@ -807,8 +813,18 @@ export const store = {
       await delay();
       renewCache2();
     },
+    result: {
+      setList(list: ResultItem[]) {
+        setList(list);
+      }
+    }
   },
   ui: {
+    mode: {
+      isMaximize() {
+        return ui.mode.max.get();
+      },
+    },
     isLoadingGraph() {
       return ui.graph.loading.get();
     },

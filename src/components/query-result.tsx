@@ -78,7 +78,7 @@ const Row = observer((props: { item: ResultItem }) => {
     if (e.shiftKey) {
       opened = store.actions.confirm.openInSidebar(item);
       if (opened) {
-        if (isAutoCloseWhenShiftClick()) {
+        if (isAutoCloseWhenShiftClick() && !store.ui.mode.isMaximize()) {
           store.actions.closeDialog();
         }
       }
