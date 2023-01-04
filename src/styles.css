@@ -435,3 +435,72 @@
 .advanced-search-el-portal {
   z-index: 9999;
 }
+
+.titlebar-container {
+  line-height: 22px;
+  display: flex;
+  max-height: 27px;
+}
+
+.window-controls-container {
+  width: 70px;
+  display: flex;
+  text-align: center;
+  height: 100%;
+}
+
+.window-control {
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 5px 0 5px 5px;
+}
+
+.window-control .bp3-icon {
+  opacity: 0;
+}
+
+.window-control:hover .bp3-icon {
+  opacity: 1;
+}
+
+.bp3-dark .advanced-search-el-max {
+  background-color: var(--dark-bg, white);
+}
+.advanced-search-el-max {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  opacity: 0;
+  pointer-events: none;
+  background-color: white;
+}
+
+.roam-body-main {
+  position: relative;
+}
+
+.advanced-search-el-max.visible {
+  opacity: 1;
+  pointer-events: all;
+  z-index: 4;
+}
+
+.advanced-search-el-max .infinite-scroll {
+  -webkit-touch-callout: none;
+  -moz-user-select: none; /*火狐*/
+  -webkit-user-select: none; /*webkit浏览器*/
+  -ms-user-select: none; /*IE10*/
+  -khtml-user-select: none; /*早期浏览器*/
+  user-select: none;
+}
+
+.graph-loading {
+  box-shadow: 0px 6px 20px rgba(25, 25, 26, 0.06),
+    0px 2px 12px rgba(25, 25, 26, 0.04);
+}

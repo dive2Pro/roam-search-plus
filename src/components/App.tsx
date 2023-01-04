@@ -1,3 +1,4 @@
+import ReactDOM from "react-dom";
 import {
   Button,
   InputGroup,
@@ -12,6 +13,7 @@ import {
   ButtonGroup,
   Toaster,
   ControlGroup,
+  Intent,
 } from "@blueprintjs/core";
 
 import { store } from "../store";
@@ -192,8 +194,85 @@ const MainView = observer(() => {
   );
 });
 
+const RoamMainView: FC = (props) => {
+  useEffect(() => {
+    const App = observer(() => {
+      useEffect(() => {
+        const mob = new MutationObserver((mutations) => {
+          const target = mutations[0].target as HTMLElement;
+          if (target.style.boxShadow != '') {
+            el.style.zIndex = '-1'
+          } else {
+            el.style.zIndex = '4'
+          }
+        });
+        mob.observe(document.querySelector(".roam-sidebar-container"), {
+          attributes: true,
+        });
+        return () => {
+          mob.disconnect();
+        };
+      }, []);
+      if (store.ui.isOpen()) {
+        el.classList.add("visible");
+      } else {
+        el.classList.remove("visible");
+      }
+      return <div className={`${CONSTNATS.el} `}>{props.children}</div>;
+    });
+    const roamMain = document.querySelector(".roam-body-main");
+    const el = document.createElement("div") as HTMLElement;
+    el.className = `${CONSTNATS.el}-max`;
+    roamMain.appendChild(el);
+    ReactDOM.render(<App />, el);
+    return () => {
+      roamMain.removeChild(el);
+    };
+  }, []);
+  return null;
+};
 const App = observer(() => {
-  // console.log(store.ui.isOpen(), " = open");
+  const content = (
+    <LoadingGraph>
+      <div className="titlebar-container">
+        <div className="window-controls-container">
+          <span
+            className="window-control"
+            onClick={() => {
+              store.actions.toggleDialog();
+            }}
+            style={{
+              background: "#FFBD44",
+            }}
+          >
+            <Icon color="black" icon="minus" intent="warning" size={8} />
+          </span>
+          <span
+            className="window-control"
+            onClick={() => {
+              store.actions.toggleMaximize();
+            }}
+            style={{
+              background: "#00CA4E",
+            }}
+          >
+            <Icon
+              color="black"
+              icon={store.ui.mode.isMaximize() ? "minimize" : "maximize"}
+              size={6}
+            />
+          </span>
+        </div>
+      </div>
+      <div style={{ display: "flex" }} className="search-content">
+        <MainView />
+        <Sidebar />
+      </div>
+    </LoadingGraph>
+  );
+  if (store.ui.mode.isMaximize()) {
+    return <RoamMainView>{content}</RoamMainView>;
+  }
   return (
     <div
       className={`${CONSTNATS.el} ${
@@ -212,12 +291,7 @@ const App = observer(() => {
           alignItems: "flex-start",
         }}
       >
-        <LoadingGraph>
-          <div style={{ display: "flex" }} className="search-content">
-            <MainView />
-            <Sidebar />
-          </div>
-        </LoadingGraph>
+        {content}
       </dialog>
     </div>
   );
