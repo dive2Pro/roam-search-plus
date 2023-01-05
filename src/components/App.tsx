@@ -203,7 +203,7 @@ const RoamMainView: FC = (props) => {
           if (target.style.boxShadow != "") {
             el.style.zIndex = "-1";
           } else {
-            el.style.zIndex = "4";
+            el.style.zIndex = "10";
           }
         });
         mob.observe(document.querySelector(".roam-sidebar-container"), {

@@ -410,6 +410,12 @@
   .bp3-select-popover .bp3-menu {
     max-width: 300px;
   }
+  .graph-loading {
+    height: 100%;
+  }
+  .bp3-dialog-footer .hint {
+    bottom: 10px;
+  }
 }
 
 .graph-loading {
