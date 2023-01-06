@@ -53,7 +53,7 @@ export function findLowestParentFromResult(block: ResultItem) {
         isPage: false,
         paths: [] as string[],
         isSelected: false,
-        children: block.children,
+        children: block.children.filter(block => block.id !== lowestParent[":block/uid"]),
       };
     }
   }

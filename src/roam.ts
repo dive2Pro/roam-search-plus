@@ -402,7 +402,7 @@ export function findLowestParentFromBlocks(blocks: { uid: string }[]) {
       ) as unknown as ReversePullBlock;
     })
     .map((item) => {
-      let result: ReversePullBlock[] = [];
+      let result: ReversePullBlock[] = [item];
       let ary = item[":block/_children"];
       while (ary && ary.length) {
         const block = ary[0];
@@ -412,19 +412,21 @@ export function findLowestParentFromBlocks(blocks: { uid: string }[]) {
       return result;
     })
     .filter((item) => item.length);
-  let max = Math.max(..._parents.map((item) => item.length));
+  let max = Math.min(..._parents.map((item) => item.length));
   let lowestParent: ReversePullBlock;
   let i = 0;
   lp: for (i = 0; i < max; i++) {
     const p1 = _parents[0][i];
-    for (let k = 1; p1 && k < _parents.length; k++) {
+    ip: for (let k = 1; p1 && k < _parents.length; k++) {
       const p = _parents[k][i];
+      // console.log(p1, p);
       if (!p || !p1 || p1[":block/uid"] !== p[":block/uid"]) {
         break lp;
       }
     }
     lowestParent = p1;
   }
+  // console.log(_parents, " = parents ", i, lowestParent);
   if (i <= 1 || !lowestParent) {
     return null;
   }

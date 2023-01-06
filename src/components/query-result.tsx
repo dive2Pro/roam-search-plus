@@ -217,7 +217,7 @@ export const QueryResult = observer(() => {
       totalCount={list.length}
       data={list}
       itemContent={(index, data) => {
-        console.log('index = ', index)
+        // console.log('index = ', index)
         data = findLowestParentFromResult(data);
         return (
           <Item key={data.id + index + data.children.length} item={data} />
