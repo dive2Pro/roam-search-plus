@@ -56,6 +56,7 @@ export const Query = (config: {
     if (!p) {
       return false;
     }
+    // console.log("includes: ", p, n);
     if (config.caseIntensive) {
       return p.includes(n);
     } else {
@@ -82,11 +83,11 @@ export const Query = (config: {
         );
       });
       if (!r) {
-        lowBlocks.push(item)
+        lowBlocks.push(item);
       }
       return r;
     });
-    return [result, lowBlocks]
+    return [result, lowBlocks];
   };
   const timemeasure = (name: string, cb: () => void) => {
     // console.time(name);
@@ -125,16 +126,29 @@ export const Query = (config: {
     const validateMap = new Map<string, boolean[]>();
     timemeasure("1", () => {
       lowBlocks = lowBlocks.filter((item) => {
-        return keywords.some((keyword, index) => {
+        let result = false;
+        keywords.forEach((keyword, index) => {
           const r = includes(item.block[":block/string"], keyword);
           if (!validateMap.has(item.page)) {
             validateMap.set(item.page, []);
           }
-          if (r) validateMap.get(item.page)[index] = r;
-          // console.log(item, r, keyword, " --- -- - - - - ---");
-          return r;
+          if (r) {
+            validateMap.get(item.page)[index] = r;
+            result = r;
+          }
+          // if (r)
+          //   console.log(
+          //     item,
+          //     item.block[":block/string"],
+          //     r,
+          //     keyword,
+          //     " --- -- - - - - ---",
+          //     config
+          //   );
         });
+        return result;
       });
+      // console.log(lowBlocks, " lowblocks", validateMap);
     });
 
     // 如果 lowBlocks 出现过的页面,
@@ -193,6 +207,7 @@ export const Query = (config: {
     });
   }
   const { search } = config;
+  console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const ary = search;
   // console.log(search.length, config, "rule =", conditionRule, " startting ");
