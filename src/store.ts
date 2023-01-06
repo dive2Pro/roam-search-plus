@@ -788,7 +788,7 @@ export const store = {
       },
     },
     conditions: {
-     async toggleBlockRefToString() { 
+      async toggleBlockRefToString() {
         ui.conditions.blockRefToString.toggle();
         const search = query.search.get();
         store.actions.changeSearch("");
@@ -850,7 +850,11 @@ export const store = {
     async loadingGraph() {
       ui.graph.loading.set(true);
       await delay(10);
+      const start = Date.now();
       initCache(ui.conditions.get());
+      if (Date.now() - start < 200) {
+        await delay(200);
+      }
       ui.graph.loading.set(false);
       ui.graph.loaded.set(true);
     },
@@ -950,7 +954,7 @@ export const store = {
       },
     },
     conditions: {
-      isBlockRefToString() { 
+      isBlockRefToString() {
         return ui.conditions.blockRefToString.get();
       },
       isOnlyPage() {
