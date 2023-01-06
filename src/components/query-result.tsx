@@ -13,7 +13,7 @@ import {
   Toaster,
 } from "@blueprintjs/core";
 import { For, observer } from "@legendapp/state/react";
-import { store, ResultItem } from "../store";
+import { store, ResultItem, findLowestParentFromResult } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { date, highlightText } from "../helper";
@@ -95,26 +95,27 @@ const Row = observer((props: { item: ResultItem }) => {
   };
 
   let content;
+  const mappedChildren = children.map((child) => {
+    return (
+      <Card
+        interactive
+        onClick={(e) => handlerClick(e, child)}
+        className="result-item-child"
+      >
+        <div className="flex-row" data-uid={child.id}>
+          <Icon icon="symbol-circle" size={10} />
+          <div className="result-item-content" style={{ marginLeft: 10 }}>
+            {child.text}
+          </div>
+        </div>
+      </Card>
+    );
+  });
   if (props.item.isPage) {
     content = (
       <div>
         <div className="result-item-content">{text}</div>
-        {children.map((child) => {
-          return (
-            <Card
-              interactive
-              onClick={(e) => handlerClick(e, child)}
-              className="result-item-child"
-            >
-              <div className="flex-row" data-uid={child.id}>
-                <Icon icon="symbol-circle" size={10} />
-                <div className="result-item-content" style={{ marginLeft: 10 }}>
-                  {child.text}
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+        {mappedChildren}
       </div>
     );
   } else {
@@ -137,6 +138,7 @@ const Row = observer((props: { item: ResultItem }) => {
           })}
         </div>
         <div className="result-item-content">{text}</div>
+        {mappedChildren}
       </>
     );
   }
@@ -173,19 +175,17 @@ const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
   );
 });
 
-const TargetCheckboxAbleRow = observer(
-  (props: { item: ResultItem }) => {
-    // console.log(props.item, " = item");
-    return (
-      <Checkbox
-        checked={store.ui.isSelectedTarget(props.item)}
-        onChange={() => store.actions.changeSelectedTarget(props.item)}
-      >
-        <Row item={props.item} />
-      </Checkbox>
-    );
-  }
-);
+const TargetCheckboxAbleRow = observer((props: { item: ResultItem }) => {
+  // console.log(props.item, " = item");
+  return (
+    <Checkbox
+      checked={store.ui.isSelectedTarget(props.item)}
+      onChange={() => store.actions.changeSelectedTarget(props.item)}
+    >
+      <Row item={props.item} />
+    </Checkbox>
+  );
+});
 
 export const QueryResult = observer(() => {
   const isMultipleSelection = store.ui.isMultipleSelection();
@@ -216,9 +216,13 @@ export const QueryResult = observer(() => {
       style={store.ui.result.getListStyle()}
       totalCount={list.length}
       data={list}
-      itemContent={(index, data) => (
-        <Item key={data.id + index + data.children.length} item={data} />
-      )}
+      itemContent={(index, data) => {
+        console.log('index = ', index)
+        data = findLowestParentFromResult(data);
+        return (
+          <Item key={data.id + index + data.children.length} item={data} />
+        );
+      }}
     ></Virtuoso>
   );
 });

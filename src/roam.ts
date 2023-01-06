@@ -132,7 +132,7 @@ export const initCache = () => {
 export const renewCache2 = () => {
   // 找到今日修改过的所有 block 和 page, users
   // 将其插入到 allBlocks 中
-  console.time("renew")
+  console.time("renew");
   const todayChangedBlocks = (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -204,7 +204,6 @@ export const renewCache2 = () => {
     CACHE_USERS.set(user[":db/id"], user);
   });
   console.timeEnd("renew");
-
 };
 
 export const renewCache = () => {
@@ -385,3 +384,53 @@ export const opens = {
     return blockDeleted(id);
   },
 };
+
+export function findLowestParentFromBlocks(blocks: { uid: string }[]) {
+  // 找到 blocks 的逆向parents: _refs
+  const _parents = blocks
+    .map((block) => {
+      return window.roamAlphaAPI.pull(
+        `
+        [
+            :block/uid
+            :block/string
+            :node/title
+            {:block/_children ...}
+        ]
+    `,
+        [":block/uid", `${block.uid}`]
+      ) as unknown as ReversePullBlock;
+    })
+    .map((item) => {
+      let result: ReversePullBlock[] = [];
+      let ary = item[":block/_children"];
+      while (ary && ary.length) {
+        const block = ary[0];
+        result.unshift(block);
+        ary = block[":block/_children"];
+      }
+      return result;
+    })
+    .filter((item) => item.length);
+  let max = Math.max(..._parents.map((item) => item.length));
+  let lowestParent: ReversePullBlock;
+  let i = 0;
+  lp: for (i = 0; i < max; i++) {
+    const p1 = _parents[0][i];
+    for (let k = 1; p1 && k < _parents.length; k++) {
+      const p = _parents[k][i];
+      if (!p || !p1 || p1[":block/uid"] !== p[":block/uid"]) {
+        break lp;
+      }
+    }
+    lowestParent = p1;
+  }
+  if (i <= 1 || !lowestParent) {
+    return null;
+  }
+  // 找到 _refs 都出现过的index 最大的交集
+  return window.roamAlphaAPI.pull("[*]", [
+    ":block/uid",
+    lowestParent[":block/uid"],
+  ]);
+}

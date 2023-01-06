@@ -23,6 +23,7 @@ import { Query } from "./query";
 import {
   CacheBlockType,
   deleteFromCacheByUid,
+  findLowestParentFromBlocks,
   getAllPages,
   getAllUsers,
   getCurrentPage,
@@ -37,6 +38,28 @@ import {
 
 const delay = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export function findLowestParentFromResult(block: ResultItem) {
+  if (block.isPage && block.children.length) {
+    const lowestParent = findLowestParentFromBlocks(
+      block.children.map((item) => ({ uid: item.id }))
+    );
+    if (lowestParent) {
+      return {
+        id: lowestParent[":block/uid"],
+        text: lowestParent[":block/string"],
+        editTime: lowestParent[":edit/time"] || lowestParent[":create/time"],
+        createTime: lowestParent[":create/time"],
+        createUser: lowestParent[":create/user"]?.[":db/id"],
+        isPage: false,
+        paths: [] as string[],
+        isSelected: false,
+        children: block.children,
+      };
+    }
+  }
+
+  return block;
+}
 export type ResultItem = {
   id: string;
   text: string | ReactNode;
@@ -210,6 +233,7 @@ const trigger = debounce(
         // });
       });
       console.timeEnd("promise");
+      console.time("2222");
 
       const result: ResultItem[] = [
         ...pages.map((block) => {
@@ -242,6 +266,14 @@ const trigger = debounce(
           };
         }),
         ...(lowBlocks || []).map((item) => {
+          // 找到这些 children 层级最低的共同 parent block
+
+          // if (item.children.length > 1) {
+          //   const lowestParent = findLowestParentFromBlocks(item.children);
+          //   if (lowestParent) {
+
+          //   }
+          // }
           return {
             id: item.page.block[":block/uid"],
             text: item.page.block[":node/title"],
@@ -273,8 +305,9 @@ const trigger = debounce(
         }),
       ];
       // _result = result;
-      // // console.log(" ui result = ", result);
+      console.log(" ui result = ", result);
       // ui.result.set([]);
+      console.timeEnd("2222");
       setResult(result);
     });
     ui.loading.set(false);
@@ -299,6 +332,7 @@ const triggerWhenSearchChange = async (next: string) => {
         selectedPagesUids.map((item) => item.id)
       );
     } catch (e) {
+      console.error(e);
       ui.loading.set(false);
     }
   }
@@ -816,8 +850,8 @@ export const store = {
     result: {
       setList(list: ResultItem[]) {
         setList(list);
-      }
-    }
+      },
+    },
   },
   ui: {
     mode: {
