@@ -223,7 +223,7 @@ export const QueryResult = observer(() => {
         // console.log('index = ', index)
         data = findLowestParentFromResult(data);
         return (
-          <Item key={data.id + index + data.children.length} item={data} />
+          <Item key={data.text.toString() + "-" + data.editTime} item={data} />
         );
       }}
     ></Virtuoso>

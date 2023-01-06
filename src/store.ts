@@ -32,7 +32,6 @@ import {
   getParentsStrFromBlockUid,
   initCache,
   opens,
-  renewCache,
   renewCache2,
 } from "./roam";
 
@@ -102,6 +101,7 @@ const defaultConditions = {
   includePage: true,
   includeBlock: true,
   includeCode: true,
+  blockRefToString: true,
   caseIntensive: true,
   pages: {
     selected: [] as {
@@ -788,6 +788,13 @@ export const store = {
       },
     },
     conditions: {
+     async toggleBlockRefToString() { 
+        ui.conditions.blockRefToString.toggle();
+        const search = query.search.get();
+        store.actions.changeSearch("");
+        await store.actions.loadingGraph();
+        store.actions.changeSearch(search);
+      },
       toggleOnlyPage() {
         ui.conditions.onlyPage.toggle();
       },
@@ -843,13 +850,13 @@ export const store = {
     async loadingGraph() {
       ui.graph.loading.set(true);
       await delay(10);
-      initCache();
+      initCache(ui.conditions.get());
       ui.graph.loading.set(false);
       ui.graph.loaded.set(true);
     },
     async renewGraph() {
       await delay();
-      renewCache2();
+      renewCache2(ui.conditions.get());
     },
     result: {
       setList(list: ResultItem[]) {
@@ -943,6 +950,9 @@ export const store = {
       },
     },
     conditions: {
+      isBlockRefToString() { 
+        return ui.conditions.blockRefToString.get();
+      },
       isOnlyPage() {
         return ui.conditions.onlyPage.get();
       },
@@ -984,10 +994,12 @@ export const store = {
       },
       users: {
         get() {
-          return getAllUsers().map((item) => ({
-            id: item[":db/id"],
-            text: item[":user/display-name"],
-          }));
+          return getAllUsers()
+            .map((item) => ({
+              id: item[":db/id"],
+              text: item[":user/display-name"],
+            }))
+            .filter((item) => item.text);
         },
         isSelected(id: string) {
           return (

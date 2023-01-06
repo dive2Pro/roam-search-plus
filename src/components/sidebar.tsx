@@ -89,6 +89,14 @@ export const Sidebar = observer(() => {
         />
         <div className="sidebar-title bp3-button-text">Contents</div>
         <Switch
+          label="Block reference to string"
+          onChange={(e) => {
+            store.actions.conditions.toggleBlockRefToString();
+          }}
+          checked={store.ui.conditions.isBlockRefToString()}
+          alignIndicator="right"
+        />
+        <Switch
           label="Show code blocks"
           onChange={(e) => {
             store.actions.conditions.toggleIncludeCodeblock();
@@ -350,7 +358,7 @@ const SelectPages = observer((props: { children: ReactNode }) => {
       popoverProps={{
         // portalClassName: `${CONSTNATS.el}-portal`,
         // className: `${CONSTNATS.el}-portal`,
-        usePortal: usePortal()
+        usePortal: usePortal(),
       }}
       onItemSelect={(item) => {
         store.actions.conditions.changeSelectedPages(item);
@@ -421,7 +429,7 @@ export const MobileSidebar = observer(() => {
         Filter
       </Button>
       <BottomPopup
-        size={'85%'}
+        size={"85%"}
         title={"Filter"}
         isOpen={store.ui.isFilterOpen()}
         onClose={() => store.actions.toggleFilter()}
