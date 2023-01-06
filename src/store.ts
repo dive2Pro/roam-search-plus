@@ -39,12 +39,12 @@ import {
 const delay = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function findLowestParentFromResult(block: ResultItem) {
-  if (block.isPage && block.children.length) {
+  if (block.children.length) {
     const lowestParent = findLowestParentFromBlocks(
       block.children.map((item) => ({ uid: item.id }))
     );
     if (lowestParent) {
-      return {
+      const result = {
         id: lowestParent[":block/uid"],
         text: lowestParent[":block/string"],
         editTime: lowestParent[":edit/time"] || lowestParent[":create/time"],
@@ -53,8 +53,11 @@ export function findLowestParentFromResult(block: ResultItem) {
         isPage: false,
         paths: [] as string[],
         isSelected: false,
-        children: block.children.filter(block => block.id !== lowestParent[":block/uid"]),
+        children: block.children.filter(
+          (block) => block.id !== lowestParent[":block/uid"]
+        ),
       };
+      return result;
     }
   }
 
@@ -268,12 +271,13 @@ const trigger = debounce(
         ...(lowBlocks || []).map((item) => {
           // 找到这些 children 层级最低的共同 parent block
 
-          // if (item.children.length > 1) {
-          //   const lowestParent = findLowestParentFromBlocks(item.children);
-          //   if (lowestParent) {
-
-          //   }
-          // }
+          if (item.children.length > 1) {
+            // const lowestParent = findLowestParentFromBlocks(
+            //   item.children.map((item) => ({ uid: item.block[":block/uid"] }))
+            // );
+            // if (lowestParent) {
+            // }
+          }
           return {
             id: item.page.block[":block/uid"],
             text: item.page.block[":node/title"],
@@ -281,7 +285,7 @@ const trigger = debounce(
               item.page.block[":edit/time"] || item.page.block[":create/time"],
             createTime: item.page.block[":create/time"],
             createUser: item.page.block[":create/user"]?.[":db/id"],
-            isPage: true,
+            isPage: false,
             paths: [],
             isSelected: false,
             children: item.children.map((block) => {
@@ -305,7 +309,7 @@ const trigger = debounce(
         }),
       ];
       // _result = result;
-      console.log(" ui result = ", result);
+      // console.log(" ui result = ", result);
       // ui.result.set([]);
       console.timeEnd("2222");
       setResult(result);

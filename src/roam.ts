@@ -436,3 +436,7 @@ export function findLowestParentFromBlocks(blocks: { uid: string }[]) {
     lowestParent[":block/uid"],
   ]);
 }
+
+export function isPageByUid(uid: string) {
+  return !!window.roamAlphaAPI.q(`[:find ?e . :where [?e :block/uid "${uid}"] [?e :node/title]]`)
+}

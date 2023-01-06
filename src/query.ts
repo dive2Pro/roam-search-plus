@@ -207,7 +207,7 @@ export const Query = (config: {
     });
   }
   const { search } = config;
-  console.log(config, " ---- config");
+  // console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const ary = search;
   // console.log(search.length, config, "rule =", conditionRule, " startting ");

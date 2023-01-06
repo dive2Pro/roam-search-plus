@@ -24,6 +24,7 @@ import { UnderMobile } from "./commons/under-mobile";
 import { MobileSidebar } from "./sidebar";
 import { isAutoCloseWhenShiftClick } from "../config";
 import { usePortal } from "./commons/use-portal";
+import { isPageByUid } from "../roam";
 dayjs.extend(relativeTime);
 
 const Row = observer((props: { item: ResultItem }) => {
@@ -148,7 +149,9 @@ const Row = observer((props: { item: ResultItem }) => {
       onClick={(e) => handlerClick(e, props.item)}
       data-uid={props.item.id}
     >
-      <Icon icon={props.item.isPage ? "application" : "paragraph"}></Icon>
+      <Icon
+        icon={isPageByUid(props.item.id) ? "application" : "paragraph"}
+      ></Icon>
       <div style={{ width: "100%", marginLeft: 10 }}>
         {content}
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
