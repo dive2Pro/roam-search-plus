@@ -42,12 +42,26 @@ const Row = observer((props: { item: ResultItem }) => {
       }
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
-          setText(highlightText(props.item.text as string, search));
+          setText(
+            <>
+              {highlightText(
+                props.item.text as string,
+                search,
+                store.ui.conditions.isCaseIntensive(),
+                store.ui.conditions.isExactly()
+              )}
+            </>
+          );
           setChildren(
             children.map((child) => {
               return {
                 ...child,
-                text: highlightText(child.text as string, search),
+                text: highlightText(
+                  child.text as string,
+                  search,
+                  store.ui.conditions.isCaseIntensive(),
+                  store.ui.conditions.isExactly()
+                ),
               };
             })
           );
@@ -173,19 +187,17 @@ const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
   );
 });
 
-const TargetCheckboxAbleRow = observer(
-  (props: { item: ResultItem }) => {
-    // console.log(props.item, " = item");
-    return (
-      <Checkbox
-        checked={store.ui.isSelectedTarget(props.item)}
-        onChange={() => store.actions.changeSelectedTarget(props.item)}
-      >
-        <Row item={props.item} />
-      </Checkbox>
-    );
-  }
-);
+const TargetCheckboxAbleRow = observer((props: { item: ResultItem }) => {
+  // console.log(props.item, " = item");
+  return (
+    <Checkbox
+      checked={store.ui.isSelectedTarget(props.item)}
+      onChange={() => store.actions.changeSelectedTarget(props.item)}
+    >
+      <Row item={props.item} />
+    </Checkbox>
+  );
+});
 
 export const QueryResult = observer(() => {
   const isMultipleSelection = store.ui.isMultipleSelection();

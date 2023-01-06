@@ -77,6 +77,7 @@ const defaultConditions = {
   includeBlock: true,
   includeCode: true,
   caseIntensive: true,
+  exactly: false,
   pages: {
     selected: [] as {
       id: string;
@@ -187,7 +188,12 @@ const getList = () => {
 
 let cancelPre = () => {};
 const trigger = debounce(
-  async (search: string, caseIntensive: boolean, uids?: string[]) => {
+  async (
+    search: string,
+    caseIntensive: boolean,
+    exactly?: boolean,
+    uids?: string[]
+  ) => {
     cancelPre();
     if (!search) {
       return;
@@ -197,6 +203,7 @@ const trigger = debounce(
       search: keywordsBuildFrom(search),
       uids,
       caseIntensive,
+      exactly,
     });
     cancelPre = queryAPi.cancel;
     await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
@@ -290,12 +297,14 @@ const triggerWhenSearchChange = async (next: string) => {
   const nextStr = next.trim();
   const selectedPagesUids = ui.conditions.pages.selected.peek();
   const caseIntensive = ui.conditions.caseIntensive.peek();
+  const exactly = ui.conditions.exactly.peek();
   if (nextStr !== prevSearch) {
     ui.loading.set(!!nextStr);
     try {
       await trigger(
         nextStr,
         caseIntensive,
+        exactly,
         selectedPagesUids.map((item) => item.id)
       );
     } catch (e) {
@@ -312,6 +321,7 @@ const dispose = observe(async () => {
   const search = query.search.peek().trim();
   const selectedPagesUids = ui.conditions.pages.selected.get();
   const caseIntensive = ui.conditions.caseIntensive.get();
+  const exactly = ui.conditions.exactly.get();
 
   ui.loading.set(!!search);
 
@@ -319,6 +329,7 @@ const dispose = observe(async () => {
     await trigger(
       search,
       caseIntensive,
+      exactly,
       selectedPagesUids.map((item) => item.id)
     );
   } catch (e) {
@@ -765,6 +776,9 @@ export const store = {
       toggleCaseIntensive() {
         ui.conditions.caseIntensive.toggle();
       },
+      toggleExactly() {
+        ui.conditions.exactly.toggle();
+      },
       changeSelectedPages(obj: { id: string; text: string }) {
         const selected = ui.conditions.pages.selected.peek();
         const index = selected.findIndex((item) => item.id === obj.id);
@@ -816,8 +830,8 @@ export const store = {
     result: {
       setList(list: ResultItem[]) {
         setList(list);
-      }
-    }
+      },
+    },
   },
   ui: {
     mode: {
@@ -919,6 +933,9 @@ export const store = {
       },
       isIncludeBlock() {
         return ui.conditions.includeBlock.get();
+      },
+      isExactly() {
+        return ui.conditions.exactly.get();
       },
       pages: {
         get() {

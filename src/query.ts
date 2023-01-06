@@ -1,5 +1,5 @@
 import { PullBlock } from "roamjs-components/types";
-import { pull } from "./helper";
+import { includes, pull } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages } from "./roam";
 
 let conditionRule = "";
@@ -10,6 +10,7 @@ export const Query = (config: {
   creationDate?: SelectDate;
   uids?: string[];
   caseIntensive: boolean;
+  exactly?: boolean;
 }) => {
   console.time("SSSS");
   const filterStringByKeywordsIntensive = (
@@ -52,16 +53,6 @@ export const Query = (config: {
       throw new Error("Cancel");
     }
   };
-  const includes = (p: string, n: string) => {
-    if (!p) {
-      return false;
-    }
-    if (config.caseIntensive) {
-      return p.includes(n);
-    } else {
-      return p.toLowerCase().includes(n.toLowerCase());
-    }
-  };
 
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
     const lowBlocks: CacheBlockType[] = [];
@@ -78,15 +69,20 @@ export const Query = (config: {
       const r = keywords.every((keyword) => {
         return (
           item.block[":block/string"] &&
-          includes(item.block[":block/string"], keyword)
+          includes({
+            exactly: config.exactly,
+            caseIntensive: config.caseIntensive,
+            source: item.block[":block/string"],
+            target: keyword,
+          })
         );
       });
       if (!r) {
-        lowBlocks.push(item)
+        lowBlocks.push(item);
       }
       return r;
     });
-    return [result, lowBlocks]
+    return [result, lowBlocks];
   };
   const timemeasure = (name: string, cb: () => void) => {
     // console.time(name);
@@ -126,7 +122,12 @@ export const Query = (config: {
     timemeasure("1", () => {
       lowBlocks = lowBlocks.filter((item) => {
         return keywords.some((keyword, index) => {
-          const r = includes(item.block[":block/string"], keyword);
+          const r = includes({
+            exactly: config.exactly,
+            caseIntensive: config.caseIntensive,
+            source: item.block[":block/string"],
+            target: keyword,
+          });
           if (!validateMap.has(item.page)) {
             validateMap.set(item.page, []);
           }
@@ -187,7 +188,12 @@ export const Query = (config: {
         }
       }
       const r = keywords.every((keyword) => {
-        return includes(page.block[":node/title"], keyword);
+        return includes({
+          exactly: config.exactly,
+          caseIntensive: config.caseIntensive,
+          source: page.block[":block/string"],
+          target: keyword,
+        }); // includes(page.block[":node/title"], keyword);
       });
       return r;
     });

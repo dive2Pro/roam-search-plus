@@ -69,6 +69,14 @@ export const Sidebar = observer(() => {
           checked={store.ui.conditions.isCaseIntensive()}
           alignIndicator="right"
         />
+        <Switch
+          label="Exactly words"
+          onChange={(e) => {
+            store.actions.conditions.toggleExactly();
+          }}
+          checked={store.ui.conditions.isExactly()}
+          alignIndicator="right"
+        />
         <div className="sidebar-title bp3-button-text">Includes</div>
         <Switch
           label="Include page"
