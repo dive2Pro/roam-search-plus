@@ -580,17 +580,12 @@ export const store = {
       }
     },
     changeSelectedTarget(item: ResultItem) {
-      // const index = ui.selectedTarget
-      //   .get()
-      //   .findIndex((o) => o.uid === item.uid.peek());
-      // console.log();
-      // if (index > -1) {
-      //   ui.selectedTarget.splice(index, 1);
-      // } else {
-      //   ui.selectedTarget.push(item.get());
-      // }
-      // item.isSelected.set(!item.isSelected.get());
-      // selectedTargetStore.set(item.peek().id, item);
+      const index = ui.selectedTarget.get().findIndex((o) => o.id === item.id);
+      if (index > -1) {
+        ui.selectedTarget.splice(index, 1);
+      } else {
+        ui.selectedTarget.push(item);
+      }
     },
     toggleDialog() {
       if (ui.visible.get()) {
@@ -745,9 +740,20 @@ export const store = {
         navigator.clipboard.writeText(pasteStr);
       },
     },
-    confirmMultiple() {
+    confirmMultiple(oneline = false) {
       const search = query.search.peek();
       store.actions.history.saveSearch(search);
+      // console.log(ui.selectedTarget.get(), '----')
+      const pasteStr = ui.selectedTarget
+        .peek()
+        .map((item) => {
+          if (item.isPage) {
+            return `[[${item.text}]]`;
+          }
+          return `((${item.id}))`;
+        })
+        .join(oneline ? " " : "\n");
+      navigator.clipboard.writeText(pasteStr);
     },
     clearLastEdit() {
       query.modificationDate.set(undefined);
@@ -914,7 +920,7 @@ export const store = {
       },
     },
     selectedCount() {
-      return ui.result.get().filter((o) => o.isSelected).length;
+      return ui.selectedTarget.length;
     },
     sort: {
       selection() {
@@ -1039,10 +1045,11 @@ export const store = {
       },
     },
     isSelectedTarget(item: ResultItem) {
-      // const r =
-      //   ui.selectedTarget.get().findIndex((o) => o.uid === item.peek().uid) >
-      //   -1;
-      return item.isSelected;
+      const r = ui.selectedTarget.get().findIndex((o) => o.id === item.id) > -1;
+      return r;
+    },
+    selectedTarget() {
+      return ui.selectedTarget;
     },
 
     result: {

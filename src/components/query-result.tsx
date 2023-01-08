@@ -171,24 +171,28 @@ const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
   return (
     <Checkbox
       checked={store.ui.isSelectedTarget(props.item)}
-      // onChange={() => store.actions.changeSelectedTarget(props.item)}
+      onChange={() => store.actions.changeSelectedTarget(props.item)}
+      className="flex-row-center check-item"
     >
       <Row {...props} />
     </Checkbox>
   );
 });
 
-const TargetCheckboxAbleRow = observer((props: { item: ResultItem }) => {
-  // console.log(props.item, " = item");
-  return (
-    <Checkbox
-      checked={store.ui.isSelectedTarget(props.item)}
-      onChange={() => store.actions.changeSelectedTarget(props.item)}
-    >
-      <Row item={props.item} />
-    </Checkbox>
-  );
-});
+const TargetCheckboxAbleRow = observer(
+  (props: { item: ObservableObject<ResultItem> }) => {
+    // console.log(props.item, " = item");
+    return (
+      <Checkbox
+        checked={store.ui.isSelectedTarget(props.item.peek())}
+        onChange={() => store.actions.changeSelectedTarget(props.item.peek())}
+        className="flex-row-center check-item"
+      >
+        <Row item={props.item.get()} />
+      </Checkbox>
+    );
+  }
+);
 
 export const QueryResult = observer(() => {
   const isMultipleSelection = store.ui.isMultipleSelection();
@@ -233,7 +237,7 @@ export const QueryResult = observer(() => {
 const SelectedResult = observer(() => {
   return (
     <div className="selected-result">
-      {/* <For each={store.ui.copySelectedTarget()} item={TargetCheckboxAbleRow} /> */}
+      <For each={store.ui.selectedTarget()} item={TargetCheckboxAbleRow} />
     </div>
   );
 });
@@ -243,12 +247,6 @@ export const ListContainer = observer(() => {
     <div className="result-container">
       <div>
         <ButtonGroup className="sub-bg">
-          {/* <Checkbox
-                  checked={store.ui.isMultipleSelection()}
-                  onChange={(e) => store.actions.toggleMultiple()}
-                  label="Multiple Select"
-                ></Checkbox>
-                <Divider /> */}
           <Popover
             position={Position.BOTTOM}
             modifiers={{
@@ -280,10 +278,17 @@ export const ListContainer = observer(() => {
               ></Button>
             </div>
           </Popover>
+          <Divider />
+          <Checkbox
+            checked={store.ui.isMultipleSelection()}
+            onChange={(e) => store.actions.toggleMultiple()}
+            label="Select Mode"
+          ></Checkbox>
+          <UnderMobile>
+            <Divider />
+            <MobileSidebar />
+          </UnderMobile>
         </ButtonGroup>
-        <UnderMobile>
-          <MobileSidebar />
-        </UnderMobile>
       </div>
       <Divider />
       {store.ui.isLoading() && store.ui.result.size() === 0 ? (

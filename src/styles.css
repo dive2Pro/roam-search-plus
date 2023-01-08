@@ -48,6 +48,15 @@
   max-height: 550px;
   overflow: auto;
   padding: 4px 0;
+  z-index: 5;
+}
+
+.infinite-scroll .check-item {
+  align-items: baseline;
+}
+
+.bp3-dark .selected-result{
+  background-color: var(--dark-bg-2);
 }
 
 .flex-row {

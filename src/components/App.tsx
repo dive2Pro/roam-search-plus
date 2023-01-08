@@ -43,6 +43,13 @@ const LoadingGraph: FC = observer((props) => {
   );
 });
 
+const copyToast = () => {
+  Toaster.create().show({
+    intent: "success",
+    icon: "small-tick",
+    message: "References copied",
+  });
+};
 const MainView = observer(() => {
   const ref = useRef<HTMLInputElement>();
   useEffect(() => {
@@ -89,96 +96,98 @@ const MainView = observer(() => {
         />
       </ControlGroup>
       {store.ui.isTyped() ? <ListContainer /> : <QueryHistory />}
-      <div>
-        {store.ui.isMultipleSelection() ? (
-          <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-            {store.ui.isShowSelectedTarget() ? (
-              <Button
-                intent="none"
-                icon="cross"
-                onClick={store.actions.changeShowSelectedTarget}
-              />
-            ) : (
-              <Button
-                intent="success"
-                onClick={store.actions.changeShowSelectedTarget}
-                disabled={store.ui.selectedCount() === 0}
-              >
-                {store.ui.selectedCount()}
-              </Button>
-            )}
-
-            <Popover
-              interactionKind="hover"
-              position="right"
-              autoFocus={false}
-              usePortal={usePortal()}
-              content={
-                <Menu>
-                  <MenuItem icon="duplicate" text="Copy as one line"></MenuItem>
-                  <MenuItem
-                    icon="multi-select"
-                    text="Copy as multiple line"
-                  ></MenuItem>
-                </Menu>
-              }
-            >
-              <Button
-                disabled={store.ui.selectedCount() === 0}
-                intent="primary"
-                onClick={() => {
-                  store.actions.confirmMultiple();
-                }}
-              >
-                Confirm
-              </Button>
-            </Popover>
-          </div>
-        ) : null}
-      </div>
+      <div></div>
 
       <div className={Classes.DIALOG_FOOTER}>
         {store.ui.result.size() > 0 && store.ui.isTyped() ? (
-          <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-            <Popover
-              position="right"
-              interactionKind="hover"
-              usePortal={false}
-              autoFocus={false}
-              content={
-                <Menu>
-                  <MenuItem
-                    text="As one line"
-                    onClick={() => {
-                      store.actions.confirm.copyResult(true);
-                      Toaster.create().show({
-                        intent: "success",
-                        icon: "small-tick",
-                        message: "References copied",
-                      });
-                      store.actions.toggleDialog();
-                    }}
-                  />
-                  <MenuItem
-                    text="As multiple lines"
-                    onClick={() => {
-                      store.actions.confirm.copyResult();
-                      Toaster.create().show({
-                        intent: "success",
-                        icon: "small-tick",
-                        message: "References copied",
-                      });
-                      store.actions.toggleDialog();
-                    }}
-                  />
-                </Menu>
-              }
-            >
-              <Button rightIcon="chevron-right" intent="primary">
-                Copy results
-              </Button>
-            </Popover>
-          </div>
+          store.ui.isMultipleSelection() ? (
+            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+              {store.ui.isShowSelectedTarget() ? (
+                <Button
+                  intent="none"
+                  icon="cross"
+                  onClick={store.actions.changeShowSelectedTarget}
+                />
+              ) : (
+                <Button
+                  intent="success"
+                  onClick={store.actions.changeShowSelectedTarget}
+                  disabled={store.ui.selectedCount() === 0}
+                >
+                  {store.ui.selectedCount()}
+                </Button>
+              )}
+
+              <Popover
+                interactionKind="hover"
+                position="right"
+                autoFocus={false}
+                usePortal={usePortal()}
+                content={
+                  <Menu>
+                    <MenuItem
+                      icon="duplicate"
+                      text="As one line"
+                      onClick={() => {
+                        store.actions.confirmMultiple(true);
+                        copyToast();
+                        store.actions.toggleDialog();
+                      }}
+                    ></MenuItem>
+                    <MenuItem
+                      icon="multi-select"
+                      text="As multiple lines"
+                      onClick={() => {
+                        store.actions.confirmMultiple();
+                        copyToast();
+                        store.actions.toggleDialog();
+                      }}
+                    ></MenuItem>
+                  </Menu>
+                }
+              >
+                <Button
+                  disabled={store.ui.selectedCount() === 0}
+                  intent="primary"
+                >
+                  Confirm
+                </Button>
+              </Popover>
+            </div>
+          ) : (
+            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+              <Popover
+                position="right"
+                interactionKind="hover"
+                usePortal={false}
+                autoFocus={false}
+                content={
+                  <Menu>
+                    <MenuItem
+                      text="As one line"
+                      onClick={() => {
+                        store.actions.confirm.copyResult(true);
+                        copyToast();
+                        store.actions.toggleDialog();
+                      }}
+                    />
+                    <MenuItem
+                      text="As multiple lines"
+                      onClick={() => {
+                        store.actions.confirm.copyResult();
+                        copyToast();
+                        store.actions.toggleDialog();
+                      }}
+                    />
+                  </Menu>
+                }
+              >
+                <Button rightIcon="chevron-right" intent="primary">
+                  Copy results
+                </Button>
+              </Popover>
+            </div>
+          )
         ) : null}
 
         <sub className="hint">
