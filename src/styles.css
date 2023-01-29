@@ -42,12 +42,12 @@
   position: absolute;
   bottom: 0;
   right: 0;
+  padding: 4px 0;
   padding-left: 5px;
   left: 0;
-  background-color: white;
+  background-color: #ebf1f5;
   min-height: 450px;
   overflow: auto;
-  padding: 4px 0;
   z-index: 5;
 }
 .bp3-dark .selected-result {
@@ -98,6 +98,7 @@
   display: inline-flex;
   color: #a7b6c2;
   align-items: flex-start;
+  font-weight: normal;
 }
 
 .result-item-container {
@@ -224,6 +225,7 @@
 .result-item-container .date {
   font-size: 12px;
   color: #999;
+  font-weight: normal;
 }
 
 .result-item-container .date-fromnow {
