@@ -736,6 +736,7 @@ export const store = {
             }
           })
           .join(oneline ? " " : "\n");
+
         navigator.clipboard.writeText(pasteStr);
       },
     },
@@ -752,7 +753,10 @@ export const store = {
           return `((${item.id}))`;
         })
         .join(oneline ? " " : "\n");
+      ui.selectedTarget.set([]);
       navigator.clipboard.writeText(pasteStr);
+      store.actions.toggleDialog();
+      store.actions.toggleMultiple();
     },
     clearLastEdit() {
       query.modificationDate.set(undefined);

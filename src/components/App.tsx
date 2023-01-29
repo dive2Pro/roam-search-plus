@@ -26,6 +26,7 @@ import { CONSTNATS } from "../helper";
 import { BottomPopup } from "./bottom-popup";
 import { usePortal } from "./commons/use-portal";
 import { UnderMobile } from "./commons/under-mobile";
+import { popoverKind } from "./commons/popover-kind";
 enableLegendStateReact();
 
 const LoadingGraph: FC = observer((props) => {
@@ -119,7 +120,7 @@ const MainView = observer(() => {
               )}
 
               <Popover
-                interactionKind="hover"
+                interactionKind={popoverKind()}
                 position="right"
                 autoFocus={false}
                 usePortal={usePortal()}
@@ -131,7 +132,6 @@ const MainView = observer(() => {
                       onClick={() => {
                         store.actions.confirmMultiple(true);
                         copyToast();
-                        store.actions.toggleDialog();
                       }}
                     ></MenuItem>
                     <MenuItem
@@ -140,7 +140,6 @@ const MainView = observer(() => {
                       onClick={() => {
                         store.actions.confirmMultiple();
                         copyToast();
-                        store.actions.toggleDialog();
                       }}
                     ></MenuItem>
                   </Menu>
@@ -158,7 +157,7 @@ const MainView = observer(() => {
             <div className={Classes.DIALOG_FOOTER_ACTIONS}>
               <Popover
                 position="right"
-                interactionKind="hover"
+                interactionKind={popoverKind()}
                 usePortal={false}
                 autoFocus={false}
                 content={

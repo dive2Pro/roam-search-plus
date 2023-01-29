@@ -42,12 +42,16 @@
   position: absolute;
   bottom: 0;
   right: 0;
+  padding-left: 5px;
   left: 0;
-  background-color: #ebf1f5;
+  background-color: white;
   min-height: 450px;
   overflow: auto;
   padding: 4px 0;
   z-index: 5;
+}
+.bp3-dark .selected-result {
+  background-color: var(--dark-bg);
 }
 
 .infinite-scroll .check-item {
@@ -423,6 +427,13 @@
   }
   .bp3-dialog-footer .hint {
     bottom: 10px;
+  }
+  .search-content {
+    height: 100%;
+  }
+  .search-content .main-view {
+    height: 100%;
+    padding: 5px 14px;
   }
 }
 
