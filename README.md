@@ -2,7 +2,7 @@
 
 > Search keywords do not need to be in a block
 
-![image](https://user-images.githubusercontent.com/23192045/210686326-10990705-e9ff-48cf-8bc1-3125082c878f.png)
+![image](https://user-images.githubusercontent.com/23192045/215319479-57fa2c59-7311-461e-9a75-34f9c91a8fb5.png)
 
 <div>
 <img width="300" alt="image" src="https://user-images.githubusercontent.com/23192045/210167099-6b68c752-b305-45d8-b07e-2499febd4108.png">
