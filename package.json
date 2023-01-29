@@ -1,7 +1,7 @@
 {
-  "name": "@dive2pro/roam-advanced-search",
+  "name": "@dive2pro/roam-search-plus",
   "version": "0.0.1",
-  "description": "Advanced search",
+  "description": "Search content across blocks",
   "main": "dist/extension.js",
   "scripts": {
     "build-web": "roamjs-scripts build",
@@ -10,15 +10,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dive2Pro/roam-advanced-search.git"
+    "url": "git+https://github.com/dive2Pro/roam-search-plus.git"
   },
   "keywords": [],
   "author": "hyc",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/dive2Pro/roam-advanced-search/issues"
+    "url": "https://github.com/dive2Pro/roam-search-plus/issues"
   },
-  "homepage": "https://github.com/dive2Pro/roam-advanced-search#readme",
+  "homepage": "https://github.com/dive2Pro/roam-search-plus#readme",
   "dependencies": {
     "@legendapp/state": "^0.21.18",
     "arrive": "^2.4.1",
