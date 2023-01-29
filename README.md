@@ -38,7 +38,7 @@ You can open the search dialog in two ways
 - [X] mobile support
 - [x] performance improvement
 - [x] embed mode
-- [ ] multiple choice
+- [x] multiple choice
 - [ ] tags involve
 - [ ] RegExp search
 - [ ] panel settings
