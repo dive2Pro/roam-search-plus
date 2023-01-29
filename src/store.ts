@@ -62,6 +62,7 @@ export function findLowestParentFromResult(block: ResultItem) {
 
   return block;
 }
+
 export type ResultItem = {
   id: string;
   text: string | ReactNode;
@@ -72,6 +73,10 @@ export type ResultItem = {
   isSelected: boolean;
   children: ResultItem[];
   createUser: string | number;
+};
+
+export type SelectResultItem = ResultItem & {
+  selected: 0 | 1;
 };
 
 const query = observable({
@@ -143,7 +148,7 @@ const ui = observable({
     open: false,
   },
   multiple: false,
-  selectedTarget: [] as ResultItem[],
+  selectedTarget: [] as SelectResultItem[],
   showSelectedTarget: false,
   conditions: clone(defaultConditions),
   copySelectedTarget,
@@ -561,22 +566,10 @@ export const store = {
           observable(ui.result.get().filter((o) => o.isSelected))
         );
       } else {
-        // ui.copySelectedTarget.get().forEach((o) => {
-        //   console.log(
-        //     ui.copySelectedTarget.get(),
-        //     " - get",
-        //     selectedTargetStore.get(o.uid)?.isSelected.get(),
-        //     o.isSelected
-        //   );
-        //   selectedTargetStore.get(o.uid)?.isSelected.set(o.isSelected);
-        // });
-
-        ui.result.forEach((item) => {
-          var a = selectedTargetStore.get(item.peek().id);
-          // console.log(item, " = item");
+        console.log("ahahah");
+        ui.selectedTarget.set((prev) => {
+          return prev.filter((item) => item.selected === 1);
         });
-
-        ui.result.set(ui.result.get());
       }
     },
     changeSelectedTarget(item: ResultItem) {
@@ -584,8 +577,15 @@ export const store = {
       if (index > -1) {
         ui.selectedTarget.splice(index, 1);
       } else {
-        ui.selectedTarget.push(item);
+        ui.selectedTarget.push({ ...item, selected: 1 });
       }
+    },
+    changeSelectedTargetInResult(item: SelectResultItem) {
+      const index = ui.selectedTarget.get().findIndex((o) => o.id === item.id);
+      ui.selectedTarget.splice(index, 1, {
+        ...item,
+        selected: item.selected === 1 ? 0 : 1,
+      });
     },
     toggleDialog() {
       if (ui.visible.get()) {
@@ -676,7 +676,6 @@ export const store = {
     },
     toggleMultiple() {
       ui.multiple.toggle();
-
       ui.showSelectedTarget.set(false);
     },
     changeSort(index: number) {
@@ -1047,6 +1046,9 @@ export const store = {
     isSelectedTarget(item: ResultItem) {
       const r = ui.selectedTarget.get().findIndex((o) => o.id === item.id) > -1;
       return r;
+    },
+    isSelectedTargetInResult(item: SelectResultItem) {
+      return item.selected === 1;
     },
     selectedTarget() {
       return ui.selectedTarget;

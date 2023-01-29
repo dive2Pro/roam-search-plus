@@ -13,7 +13,7 @@ import {
   Toaster,
 } from "@blueprintjs/core";
 import { For, observer } from "@legendapp/state/react";
-import { store, ResultItem, findLowestParentFromResult } from "../store";
+import { store, ResultItem, findLowestParentFromResult, SelectResultItem } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { date, highlightText } from "../helper";
@@ -180,12 +180,12 @@ const CheckboxAbleRow = observer((props: { item: ResultItem }) => {
 });
 
 const TargetCheckboxAbleRow = observer(
-  (props: { item: ObservableObject<ResultItem> }) => {
+  (props: { item: ObservableObject<SelectResultItem> }) => {
     // console.log(props.item, " = item");
     return (
       <Checkbox
-        checked={store.ui.isSelectedTarget(props.item.peek())}
-        onChange={() => store.actions.changeSelectedTarget(props.item.peek())}
+        checked={store.ui.isSelectedTargetInResult(props.item.peek())}
+        onChange={() => store.actions.changeSelectedTargetInResult(props.item.peek())}
         className="flex-row-center check-item"
       >
         <Row item={props.item.get()} />
@@ -270,7 +270,7 @@ export const ListContainer = observer(() => {
             }
           >
             <div>
-              Sort By:{" "}
+              <label>Sort By: </label>
               <Button
                 rightIcon={<Icon icon="chevron-down" size={12} />}
                 minimal

@@ -164,6 +164,7 @@ const MainView = observer(() => {
                 content={
                   <Menu>
                     <MenuItem
+                      icon="duplicate"
                       text="As one line"
                       onClick={() => {
                         store.actions.confirm.copyResult(true);
@@ -172,6 +173,7 @@ const MainView = observer(() => {
                       }}
                     />
                     <MenuItem
+                      icon="multi-select"
                       text="As multiple lines"
                       onClick={() => {
                         store.actions.confirm.copyResult();

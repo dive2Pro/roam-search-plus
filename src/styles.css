@@ -45,7 +45,6 @@
   left: 0;
   background-color: #ebf1f5;
   min-height: 450px;
-  max-height: 550px;
   overflow: auto;
   padding: 4px 0;
   z-index: 5;
@@ -521,4 +520,11 @@
 .graph-loading {
   box-shadow: 0px 6px 20px rgba(25, 25, 26, 0.06),
     0px 2px 12px rgba(25, 25, 26, 0.04);
+}
+
+.advanced-search-el .check-item .result-item-content {
+  font-weight: normal;
+}
+.selected-result .check-item {
+  align-items: baseline;
 }
