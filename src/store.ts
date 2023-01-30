@@ -123,7 +123,9 @@ const defaultConditions = {
   },
 };
 
-const defaultTab = {
+const defaultTab = () => ({
+  title: 'Default',
+  id: window.roamAlphaAPI.util.generateUID(),
   graph: {
     loading: false,
     loaded: false,
@@ -135,8 +137,11 @@ const defaultTab = {
   conditions: clone(defaultConditions),
   loading: false,
   height: MIN,
-}
-let ui = observable(defaultTab);
+});
+
+// TODO(hyc) read from config;
+const Tabs = [defaultTab()];
+
 
 const windowUi = observable({
   open: false,
@@ -152,13 +157,24 @@ const windowUi = observable({
     open: false,
   },
   tab: {
-    tabIndex: 0,
-    tabs: [ui]
+    active: Tabs[0].id,
+    tabs: clone(Tabs)
   }
 });
 
-windowUi.tab.onChange(v => {
-  ui.set(v.tabs[v.tabIndex].get())
+let ui = observable(Tabs.find(tab => tab.id === windowUi.tab.active.get()))
+
+ui.conditions.blockRefToString.onChange(async v => {
+  const search = ui.search.get();
+  store.actions.changeSearch("");
+  await store.actions.loadingGraph();
+  store.actions.changeSearch(search);
+})
+
+windowUi.tab.active.onChange(v => {
+  // ui = (v.tabs.find(tab => {
+  //   return tab.id.get() === v.active
+  // }))
 })
 
 
@@ -788,10 +804,6 @@ export const store = {
     conditions: {
       async toggleBlockRefToString() {
         ui.conditions.blockRefToString.toggle();
-        const search = ui.search.get();
-        store.actions.changeSearch("");
-        await store.actions.loadingGraph();
-        store.actions.changeSearch(search);
       },
       toggleOnlyPage() {
         ui.conditions.onlyPage.toggle();
@@ -861,8 +873,44 @@ export const store = {
         setList(list);
       },
     },
+    tab: {
+      changeName(index: number, str: string) {
+
+      },
+      deleteTab(index: number) {
+        windowUi.tab.tabs.splice(index, 1);
+        store.actions.tab.focus(Tabs[0].id);
+      },
+      addTab(str: string) {
+        const newTab = ({
+          ...defaultTab(),
+          title: str
+        })
+        Tabs.push(newTab);
+        windowUi.tab.tabs.push(newTab);
+        store.actions.tab.focus(newTab.id);
+        // console.log(windowUi.tab.tabs.get().map(tab => tab.get()), defaultTab())
+      },
+      focus(v: string) {
+        // windowUi.tab.active.delete();
+        const prevFocus = windowUi.tab.active.get();
+        let index = Tabs.findIndex(tab => tab.id === prevFocus);
+        Tabs[index] = ui.get();
+        windowUi.tab.active.set(v);
+        index = Tabs.findIndex(tab => tab.id === v);
+        ui.set(Tabs[index]);
+      }
+    }
   },
   ui: {
+    tab: {
+      getTabs() {
+        return windowUi.tab.tabs.get();
+      },
+      isActive(v: string) {
+        return v === windowUi.tab.active.get();
+      },
+    },
     mode: {
       isMaximize() {
         return windowUi.mode.max.get();

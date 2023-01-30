@@ -247,11 +247,88 @@ const RoamMainView: FC = (props) => {
   }, []);
   return null;
 };
+
+const useConfirmInputProps = (onSuccess: (title: string) => void) => {
+  const [state, setState] = useState({
+    open: false,
+    title: '',
+  })
+  const close = () => {
+    setState(prev => ({ ...prev, open: false, title: '' }))
+  }
+  return {
+    state, setState, close,
+    onConfirm() {
+      if (state.title) {
+        onSuccess(state.title);
+        close()
+      }
+
+    },
+    open() {
+      setState(prev => ({ ...prev, open: true }))
+    }
+  }
+}
+
+const ConfirmInputDialog = (props: ReturnType<typeof useConfirmInputProps>) => {
+
+  return <Dialog isOpen={props.state.open} onClose={() => props.close()}>
+    <div className={Classes.DIALOG_BODY}>
+      <InputGroup
+        value={props.state.title}
+        onChange={e => props.setState(prev => ({ ...prev, title: e.target.value }))}
+        onKeyPress={(e) => {
+          if (e.key === "Enter") {
+            props.onConfirm()
+          }
+        }}
+      />
+    </div>
+    <div className={Classes.DIALOG_FOOTER}>
+      <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+        <Button text="Confirm"
+          intent="primary"
+          onClick={() => {
+            props.onConfirm()
+          }}
+        />
+      </div>
+
+    </div>
+  </Dialog>
+}
 const App = observer(() => {
+  const confirmInputProps = useConfirmInputProps((title) => {
+    store.actions.tab.addTab(title);
+  })
   const content = (
     <LoadingGraph>
       <div className="titlebar-container bp3-dialog-header">
-        <div className="bp3-heading"></div>
+        <div className="bp3-heading">
+          <ButtonGroup minimal>
+            {
+              store.ui.tab.getTabs().map(tab => {
+                const v = tab;
+                return <Button
+                  key={v.id}
+                  intent={store.ui.tab.isActive(v.id) ? 'primary' : 'none'}
+                  onClick={() => {
+                  store.actions.tab.focus(tab.id);
+                }}>
+                  {v.title}
+                </Button>
+              })
+            }
+            <Button
+              icon={"plus"}
+              onClick={() => {
+                confirmInputProps.open()
+              }}
+            />
+          </ButtonGroup>
+          <ConfirmInputDialog  {...confirmInputProps} />
+        </div>
         <div className="window-controls-container">
           <ButtonGroup minimal>
             <Button
@@ -270,6 +347,7 @@ const App = observer(() => {
               }}
             />
           </ButtonGroup>
+
           {/* <span
             className="window-control"
             onClick={() => {
@@ -309,9 +387,8 @@ const App = observer(() => {
   }
   return (
     <div
-      className={`${CONSTNATS.el} ${
-        store.ui.isOpen() ? "visible" : "invisible"
-      }`}
+      className={`${CONSTNATS.el} ${store.ui.isOpen() ? "visible" : "invisible"
+        }`}
     >
       <div
         onClickCapture={store.actions.toggleDialog}
