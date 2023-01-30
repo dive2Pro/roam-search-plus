@@ -3,6 +3,8 @@
 > Search keywords do not need to be in a block
 
 ![image](https://user-images.githubusercontent.com/23192045/215319479-57fa2c59-7311-461e-9a75-34f9c91a8fb5.png)
+![image](https://user-images.githubusercontent.com/23192045/215515000-64b38d73-3f7b-4dd3-8a49-ed6c652a4922.png)
+
 
 <div>
 <img width="300" alt="image" src="https://user-images.githubusercontent.com/23192045/210167099-6b68c752-b305-45d8-b07e-2499febd4108.png">
@@ -42,7 +44,7 @@ You can open the search dialog in two ways
 - [ ] tags involve
 - [ ] RegExp search
 - [ ] panel settings
-- [ ] save inputs as config like tab
+- [x] save inputs as config like tab
 - [ ] arrow key to select
 - [ ] resistance to typos
 - [ ] toggle Exactly
