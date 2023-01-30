@@ -96,10 +96,10 @@ const initSidebarIcon = () => {
 
 export default {
   onload: ({ extensionAPI }: { extensionAPI: RoamExtensionAPI }) => {
+    initSettings(extensionAPI);
     initListener();
     initExtention(extensionAPI);
     initStore(extensionAPI);
-    initSettings(extensionAPI);
     window.roamAlphaAPI.platform.isMobile
       ? initToolbarIcon()
       : initSidebarIcon();

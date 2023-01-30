@@ -306,18 +306,30 @@ const App = observer(() => {
     <LoadingGraph>
       <div className="titlebar-container bp3-dialog-header">
         <div className="bp3-heading">
-          <ButtonGroup minimal>
+          <ButtonGroup minimal className="tabs-container">
             {
-              store.ui.tab.getTabs().map(tab => {
+              store.ui.tab.getTabs().map((tab, index) => {
                 const v = tab;
-                return <Button
-                  key={v.id}
-                  intent={store.ui.tab.isActive(v.id) ? 'primary' : 'none'}
-                  onClick={() => {
-                  store.actions.tab.focus(tab.id);
-                }}>
-                  {v.title}
-                </Button>
+                return <>
+                  {index > 0 ? <Divider /> : null}
+                  <div className="s-tab flex-row-center">
+                    <Button
+                      key={v.id}
+                      intent={store.ui.tab.isActive(v.id) ? 'primary' : 'none'}
+                      onClick={() => {
+                        store.actions.tab.focus(tab.id);
+                      }}>
+                      {v.title}
+                    </Button>
+                    {
+                      store.ui.tab.canDel(tab.id) ?
+                        <Button minimal small className="flex-align-start del" onClick={() => store.actions.tab.deleteTab(tab.id)}>
+                          <Icon icon="small-cross" size={12} />
+                        </Button> : null
+                    }
+
+                  </div>
+                </>
               })
             }
             <Button

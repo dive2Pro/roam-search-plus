@@ -10,7 +10,7 @@ import {
 import dayjs, { Dayjs } from "dayjs";
 import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
-import { recentlyViewed, searchHistory } from "./extentionApi";
+import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
 import {
   clone,
   CONSTNATS,
@@ -139,8 +139,39 @@ const defaultTab = () => ({
   height: MIN,
 });
 
-// TODO(hyc) read from config;
-const Tabs = [defaultTab()];
+type ITab = ReturnType<typeof defaultTab>
+// 为什么要有 Tabs 和 windowUi.tab.tabs
+// ui 是读取 Tabs[activeIndex] 的值, 如果直接调用 ui.set(Tabs[activeIndex]) 会覆盖掉 windowUi.tab.tabs 中的值
+// 所以需要 Tabs 作为原始值, 来保存修改后的数据
+
+let Tabs = ([defaultTab()]) as ITab[];
+
+const addToTabs = (newTab: ITab) => {
+  console.log(Tabs.length, windowUi.tab.tabs.length)
+  Tabs.push(newTab);
+  windowUi.tab.tabs.push(newTab);
+  console.log(Tabs.length, windowUi.tab.tabs.length)
+  Tab.save(Tabs);
+  focusInTabs(newTab.id);
+}
+
+const deleteFromTabs = (id: string) => {
+  const index = Tabs.findIndex(tab => tab.id === id);
+  Tabs.splice(index, 1);
+  windowUi.tab.tabs.splice(index, 1);
+  focusInTabs(Tabs[0].id);
+  Tab.save(Tabs);
+};
+
+const focusInTabs = (v: string) => {
+  const prevFocus = windowUi.tab.active.get();
+  let index = Tabs.findIndex(tab => tab.id === prevFocus);
+  if (index > -1)
+    Tabs[index] = ui.get();
+  windowUi.tab.active.set(v);
+  index = Tabs.findIndex(tab => tab.id === v);
+  ui.set(Tabs[index]);
+}
 
 
 const windowUi = observable({
@@ -163,20 +194,17 @@ const windowUi = observable({
 });
 
 let ui = observable(Tabs.find(tab => tab.id === windowUi.tab.active.get()))
-
+ui.onChange(v => {
+  const index = Tabs.findIndex(tab => tab.id === v.id)
+  Tabs[index] = v;
+  Tab.save(Tabs);
+})
 ui.conditions.blockRefToString.onChange(async v => {
   const search = ui.search.get();
   store.actions.changeSearch("");
   await store.actions.loadingGraph();
   store.actions.changeSearch(search);
 })
-
-windowUi.tab.active.onChange(v => {
-  // ui = (v.tabs.find(tab => {
-  //   return tab.id.get() === v.active
-  // }))
-})
-
 
 extension_helper.on_uninstall(
   windowUi.history.viewed.onChange((items) => {
@@ -877,33 +905,26 @@ export const store = {
       changeName(index: number, str: string) {
 
       },
-      deleteTab(index: number) {
-        windowUi.tab.tabs.splice(index, 1);
-        store.actions.tab.focus(Tabs[0].id);
+      deleteTab(id: string) {
+        deleteFromTabs(id);
       },
       addTab(str: string) {
         const newTab = ({
           ...defaultTab(),
           title: str
         })
-        Tabs.push(newTab);
-        windowUi.tab.tabs.push(newTab);
-        store.actions.tab.focus(newTab.id);
-        // console.log(windowUi.tab.tabs.get().map(tab => tab.get()), defaultTab())
+        addToTabs(newTab)
       },
       focus(v: string) {
-        // windowUi.tab.active.delete();
-        const prevFocus = windowUi.tab.active.get();
-        let index = Tabs.findIndex(tab => tab.id === prevFocus);
-        Tabs[index] = ui.get();
-        windowUi.tab.active.set(v);
-        index = Tabs.findIndex(tab => tab.id === v);
-        ui.set(Tabs[index]);
+        focusInTabs(v);
       }
     }
   },
   ui: {
     tab: {
+      canDel(id: string) {
+        return Tabs[0].id !== id;
+      },
       getTabs() {
         return windowUi.tab.tabs.get();
       },
@@ -1152,6 +1173,12 @@ windowUi.open.onChange((next) => {
 });
 
 export const initStore = (extensionAPI: RoamExtensionAPI) => {
+  const tabConfig = Tab.read()
+  if (tabConfig) {
+    Tabs = tabConfig;
+    windowUi.tab.tabs.set(clone(tabConfig));
+    focusInTabs(Tabs[0].id);
+  }
   windowUi.history.viewed.set(recentlyViewed.getAll());
   windowUi.history.search.set(searchHistory.getAll());
 };
