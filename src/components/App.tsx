@@ -255,6 +255,7 @@ const useConfirmInputProps = (onSuccess: (title: string) => void) => {
   })
   const close = () => {
     setState(prev => ({ ...prev, open: false, title: '' }))
+    store.actions.tab.toggleTabNameDialog()
   }
   return {
     state, setState, close,
@@ -267,13 +268,14 @@ const useConfirmInputProps = (onSuccess: (title: string) => void) => {
     },
     open() {
       setState(prev => ({ ...prev, open: true }))
+      store.actions.tab.toggleTabNameDialog()
     }
   }
 }
 
 const ConfirmInputDialog = (props: ReturnType<typeof useConfirmInputProps>) => {
-
-  return <Dialog isOpen={props.state.open} onClose={() => props.close()}>
+  return <Dialog title="Tab Name"
+    isOpen={props.state.open} onClose={() => props.close()}>
     <div className={Classes.DIALOG_BODY}>
       <InputGroup
         value={props.state.title}
@@ -435,7 +437,7 @@ const MobileApp = observer(() => {
       isOpen={store.ui.isOpen()}
       onClose={() => store.actions.toggleDialog()}
       canOutsideClickClose={!store.ui.isFilterOpen()}
-      canEscapeKeyClose={!store.ui.isFilterOpen()}
+      canEscapeKeyClose={!store.ui.isFilterOpen() && !store.ui.tab.isTabNameInputing()}
     >
       <div className={Classes.DRAWER_BODY}>
         <LoadingGraph>

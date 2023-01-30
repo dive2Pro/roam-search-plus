@@ -189,7 +189,8 @@ const windowUi = observable({
   },
   tab: {
     active: Tabs[0].id,
-    tabs: clone(Tabs)
+    tabs: clone(Tabs),
+    nameInputing: false,
   }
 });
 
@@ -902,6 +903,14 @@ export const store = {
       },
     },
     tab: {
+      toggleTabNameDialog() {
+        /**
+         *  延迟是因为, 按 Escape 键时会优先将 nameInput 置为 false, 从而导致在 @see {index.tsx|initListener} 中的判断条件错误
+         *  */
+        setTimeout(() => {
+          windowUi.tab.nameInputing.toggle();
+        }, 100)
+      },
       changeName(index: number, str: string) {
 
       },
@@ -930,6 +939,9 @@ export const store = {
       },
       isActive(v: string) {
         return v === windowUi.tab.active.get();
+      },
+      isTabNameInputing() {
+        return windowUi.tab.nameInputing.get()
       },
     },
     mode: {

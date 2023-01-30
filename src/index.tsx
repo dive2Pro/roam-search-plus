@@ -12,7 +12,7 @@ const initListener = () => {
     if (e.shiftKey && e.ctrlKey && e.code === "KeyP") {
       store.actions.toggleDialog();
     } else if (e.code === "Escape") {
-      if (store.ui.isOpen() && !window.roamAlphaAPI.platform.isMobile) {
+      if (store.ui.isOpen() && !window.roamAlphaAPI.platform.isMobile && !store.ui.tab.isTabNameInputing()) {
         store.actions.toggleDialog();
       }
     }
