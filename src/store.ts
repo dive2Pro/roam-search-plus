@@ -16,8 +16,6 @@ import {
   CONSTNATS,
   debounce,
   extension_helper,
-  getDiff,
-  pull_many,
 } from "./helper";
 import { Query } from "./query";
 import {
@@ -80,28 +78,16 @@ export type SelectResultItem = ResultItem & {
 };
 
 const query = observable({
-  creationDate: undefined as SelectDate,
-  modificationDate: undefined as SelectDate,
-  search: "",
-  people: [],
-  inPages: [],
-  result: {
-    pages: [] as CacheBlockType[],
-    topBlocks: [] as (CacheBlockType & { parents?: CacheBlockType[] })[],
-    lowBlocks: [] as
-      | {
-          page: CacheBlockType;
-          children: CacheBlockType[];
-        }[]
-      | undefined,
-  },
+  result: [] as ResultItem[],
+  list: [] as ResultItem[],
 });
 
-const copySelectedTarget = observable([] as ResultItem[]);
 
 const MIN = 450;
 
 const defaultConditions = {
+  creationDate: undefined as SelectDate,
+  modificationDate: undefined as SelectDate,
   onlyPage: false,
   includePage: true,
   includeBlock: true,
@@ -137,50 +123,56 @@ const defaultConditions = {
   },
 };
 
-const ui = observable({
+const defaultTab = {
   graph: {
     loading: false,
     loaded: false,
   },
-  open: false,
-  visible: false,
-  filter: {
-    open: false,
-  },
+  search: "",
   multiple: false,
   selectedTarget: [] as SelectResultItem[],
   showSelectedTarget: false,
   conditions: clone(defaultConditions),
-  copySelectedTarget,
-  previewSelected: false,
+  loading: false,
+  height: MIN,
+}
+let ui = observable(defaultTab);
+
+const windowUi = observable({
+  open: false,
+  visible: false,
+  mode: {
+    max: false,
+  },
   history: {
     search: [] as BaseUiItem[],
     viewed: [] as RecentlyViewedItem[],
   },
-
-  tags: [] as string[],
-  result: [] as ResultItem[],
-  loading: false,
-  list: [] as ResultItem[],
-  height: MIN,
-  mode: {
-    max: false,
+  filter: {
+    open: false,
   },
+  tab: {
+    tabIndex: 0,
+    tabs: [ui]
+  }
 });
 
+windowUi.tab.onChange(v => {
+  ui.set(v.tabs[v.tabIndex].get())
+})
+
+
 extension_helper.on_uninstall(
-  ui.history.viewed.onChange((items) => {
+  windowUi.history.viewed.onChange((items) => {
     recentlyViewed.save(items);
   })
 );
 
 extension_helper.on_uninstall(
-  ui.history.search.onChange((items) => {
+  windowUi.history.search.onChange((items) => {
     searchHistory.save(items);
   })
 );
-
-const selectedTargetStore = new Map<string, ObservableObject<ResultItem>>();
 
 const keywordsBuildFrom = (search: string) => {
   let keywords = [];
@@ -199,24 +191,25 @@ const keywordsBuildFrom = (search: string) => {
 let _result: ResultItem[] = [];
 const setResult = (result: ResultItem[]) => {
   _result = result;
-  ui.result.set([]);
+  query.result.set([]);
 };
 const getResult = () => {
-  ui.result.get();
+  query.result.get();
   return _result;
 };
 
 let _list: ResultItem[] = [];
 const setList = (result: ResultItem[]) => {
   _list = result;
-  ui.list.set([]);
+  query.list.set([]);
 };
+
 const getList = () => {
-  ui.list.get();
+  query.list.get();
   return _list;
 };
 
-let cancelPre = () => {};
+let cancelPre = () => { };
 const trigger = debounce(
   async (search: string, caseIntensive: boolean, uids?: string[]) => {
     cancelPre();
@@ -347,12 +340,12 @@ const triggerWhenSearchChange = async (next: string) => {
   }
 };
 
-const disposeSearch = query.search.onChange(async (next) => {
+const disposeSearch = ui.search.onChange(async (next) => {
   triggerWhenSearchChange(next);
 });
 
 const dispose = observe(async () => {
-  const search = query.search.peek().trim();
+  const search = ui.search.peek().trim();
   const selectedPagesUids = ui.conditions.pages.selected.get();
   const caseIntensive = ui.conditions.caseIntensive.get();
 
@@ -426,8 +419,8 @@ const disposeUiResult = observe(async () => {
   // uiResult = uiResult.filter((item) => {
   //   return selectedPagesUids.some((id) => id === item.id);
   // });
-  const modificationDate = query.modificationDate.get();
-  const creationDate = query.creationDate.get();
+  const modificationDate = ui.conditions.modificationDate.get();
+  const creationDate = ui.conditions.creationDate.get();
 
   if (modificationDate) {
     uiResult = uiResult.filter((item) => {
@@ -536,8 +529,8 @@ extension_helper.on_uninstall(() => {
 });
 
 const saveToSearchViewed = (items: ResultItem[]) => {
-  const viewed = ui.history.viewed.peek();
-  ui.history.viewed.push(
+  const viewed = windowUi.history.viewed.peek();
+  windowUi.history.viewed.push(
     ...items
       .filter(
         (item) => viewed.findIndex((vItem) => item.id === vItem.id) === -1
@@ -553,18 +546,14 @@ const saveToSearchViewed = (items: ResultItem[]) => {
 export const store = {
   db: observable({
     ui,
-    query,
   }),
   actions: {
     toggleMaximize() {
-      ui.mode.max.set((prev) => !prev);
+      windowUi.mode.max.set((prev) => !prev);
     },
     changeShowSelectedTarget() {
       ui.showSelectedTarget.toggle();
       if (ui.showSelectedTarget.peek()) {
-        ui.copySelectedTarget.set(
-          observable(ui.result.get().filter((o) => o.isSelected))
-        );
       } else {
         console.log("ahahah");
         ui.selectedTarget.set((prev) => {
@@ -588,8 +577,8 @@ export const store = {
       });
     },
     toggleDialog() {
-      if (ui.visible.get()) {
-        if (ui.filter.open.get()) {
+      if (windowUi.visible.get()) {
+        if (windowUi.filter.open.get()) {
           store.actions.toggleFilter();
         } else {
           store.actions.closeDialog();
@@ -604,16 +593,16 @@ export const store = {
       }
     },
     toggleFilter() {
-      ui.filter.open.set((prev) => !prev);
+      windowUi.filter.open.set((prev) => !prev);
     },
     openDialog() {
-      ui.open.set(true);
-      ui.visible.set(true);
+      windowUi.open.set(true);
+      windowUi.visible.set(true);
     },
     closeDialog() {
       // ui.open.set(false);
       // console.log("close!!!");
-      ui.visible.set(false);
+      windowUi.visible.set(false);
     },
     changeCreateRange(range: DateRange) {
       if (!range[0] || !range[1]) {
@@ -625,17 +614,17 @@ export const store = {
         return;
       }
 
-      query.modificationDate.set({
+      ui.conditions.modificationDate.set({
         start: dayjs(range[0]).startOf("day"),
         end: dayjs(range[1]).startOf("day").add(1, "day").subtract(1, "second"),
       });
     },
     changeSearch(s: string) {
       // console.log(s, " ---s");
-      query.search.set(s);
+      ui.search.set(s);
     },
     searchAgain() {
-      triggerWhenSearchChange(query.search.peek());
+      triggerWhenSearchChange(ui.search.peek());
     },
     clearSearch() {
       store.actions.changeSearch("");
@@ -646,8 +635,8 @@ export const store = {
 
     history: {
       saveSearch(str: string) {
-        ui.history.search.set([
-          ...ui.history.search.peek().filter((item) => item.text !== str),
+        windowUi.history.search.set([
+          ...windowUi.history.search.peek().filter((item) => item.text !== str),
           {
             id: Date.now() + "",
             text: str,
@@ -655,23 +644,23 @@ export const store = {
         ]);
       },
       deleteSearch(id: string) {
-        const i = ui.history.search.findIndex((item) => item.id === id);
+        const i = windowUi.history.search.findIndex((item) => item.id === id);
         // console.log("delete:", i, id);
         if (i > -1) {
-          ui.history.search.splice(i, 1);
+          windowUi.history.search.splice(i, 1);
         }
       },
       deleteViewedItem(id: string) {
-        const index = ui.history.viewed
+        const index = windowUi.history.viewed
           .peek()
           .findIndex((item) => item.id === id);
-        if (index > -1) ui.history.viewed.splice(index, 1);
+        if (index > -1) windowUi.history.viewed.splice(index, 1);
       },
       clearViewed() {
-        ui.history.viewed.set([]);
+        windowUi.history.viewed.set([]);
       },
       clearSearch() {
-        ui.history.search.set([]);
+        windowUi.history.search.set([]);
       },
     },
     toggleMultiple() {
@@ -741,7 +730,7 @@ export const store = {
       },
     },
     confirmMultiple(oneline = false) {
-      const search = query.search.peek();
+      const search = ui.search.peek();
       store.actions.history.saveSearch(search);
       // console.log(ui.selectedTarget.get(), '----')
       const pasteStr = ui.selectedTarget
@@ -759,7 +748,7 @@ export const store = {
       store.actions.toggleMultiple();
     },
     clearLastEdit() {
-      query.modificationDate.set(undefined);
+      ui.conditions.modificationDate.set(undefined);
     },
     quick: {
       lastWeek() {
@@ -799,7 +788,7 @@ export const store = {
     conditions: {
       async toggleBlockRefToString() {
         ui.conditions.blockRefToString.toggle();
-        const search = query.search.get();
+        const search = ui.search.get();
         store.actions.changeSearch("");
         await store.actions.loadingGraph();
         store.actions.changeSearch(search);
@@ -839,14 +828,10 @@ export const store = {
       },
       reset() {
         ui.conditions.set(clone(defaultConditions));
-        query.modificationDate.set(undefined);
-        query.creationDate.set(undefined);
+        ui.conditions.modificationDate.set(undefined);
+        ui.conditions.creationDate.set(undefined);
       },
     },
-    changeTags(tags: string[]) {
-      ui.tags.set(tags);
-    },
-
     setHeight(vHeight: number) {
       const windowHeight = document.body.getBoundingClientRect().height;
       const MAX = windowHeight - 250;
@@ -854,7 +839,7 @@ export const store = {
       ui.height.set(height);
     },
     onVisibleChange(cb: (b: boolean) => void) {
-      return ui.visible.onChange(cb);
+      return windowUi.visible.onChange(cb);
     },
     async loadingGraph() {
       ui.graph.loading.set(true);
@@ -880,30 +865,30 @@ export const store = {
   ui: {
     mode: {
       isMaximize() {
-        return ui.mode.max.get();
+        return windowUi.mode.max.get();
       },
     },
     isLoadingGraph() {
       return ui.graph.loading.get();
     },
     isFilterOpen() {
-      return ui.filter.open.get();
+      return windowUi.filter.open.get();
     },
     isOpen() {
-      const visible = ui.visible.get();
+      const visible = windowUi.visible.get();
       return visible;
     },
     getSearch() {
-      return query.search.get();
+      return ui.search.get();
     },
     getDateRange() {
       return [] as string[];
     },
     isTyped() {
-      return query.search.get()?.length;
+      return ui.search.get()?.length;
     },
     hasValidSearch() {
-      return query.search.get()?.trim()?.length;
+      return ui.search.get()?.trim()?.length;
     },
     isMultipleSelection() {
       return ui.multiple.get();
@@ -912,14 +897,14 @@ export const store = {
       return ui.showSelectedTarget.get();
     },
     getHistory() {
-      return ui.history;
+      return windowUi.history;
     },
     history: {
       getViewed() {
-        return ui.history.viewed;
+        return windowUi.history.viewed;
       },
       getSearch() {
-        return ui.history.search;
+        return windowUi.history.search;
       },
     },
     selectedCount() {
@@ -939,7 +924,7 @@ export const store = {
     },
     date: {
       lastEditRange() {
-        const date = query.modificationDate.get();
+        const date = ui.conditions.modificationDate.get();
         if (!date) {
           return undefined;
         }
@@ -949,7 +934,7 @@ export const store = {
         ] as DateRange;
       },
       lastEdit() {
-        const date = query.modificationDate.get();
+        const date = ui.conditions.modificationDate.get();
         if (!date) {
           return "";
         }
@@ -1029,22 +1014,17 @@ export const store = {
         const nowConditions = ui.conditions.get();
         // console.log(nowConditions, " --- ", defaultConditions, query.people.get());
         return [
-          query.modificationDate.get() !== undefined,
-          query.creationDate.get() !== undefined,
+          nowConditions.modificationDate !== undefined,
+          nowConditions.creationDate !== undefined,
           nowConditions.users.selected.length !== 0,
           nowConditions.caseIntensive !== defaultConditions.caseIntensive,
           nowConditions.includeBlock !== defaultConditions.includeBlock,
           nowConditions.includePage !== defaultConditions.includePage,
           nowConditions.includeCode !== defaultConditions.includeCode,
           nowConditions.pages.selected.length !==
-            defaultConditions.pages.selected.length,
+          defaultConditions.pages.selected.length,
           nowConditions.sort.selected !== defaultConditions.sort.selected,
         ].some((v) => v);
-      },
-    },
-    tags: {
-      getTags() {
-        return ui.tags.get();
       },
     },
     isSelectedTarget(item: ResultItem) {
@@ -1076,9 +1056,7 @@ export const store = {
         };
       },
     },
-    copySelectedTarget() {
-      return ui.copySelectedTarget;
-    },
+
     isLoading() {
       return ui.loading.get();
       // return true;
@@ -1087,7 +1065,7 @@ export const store = {
       return getParentsStrFromBlockUid(uid);
     },
     size: {
-      resultList() {},
+      resultList() { },
     },
     hasResult() {
       return store.ui.getSearch().length > 0 && getResult().length > 0;
@@ -1095,7 +1073,7 @@ export const store = {
   },
 };
 
-ui.visible.onChange(async (next) => {
+windowUi.visible.onChange(async (next) => {
   const el = document.querySelector("." + CONSTNATS.el);
   if (el) {
     if (!next) {
@@ -1107,7 +1085,7 @@ ui.visible.onChange(async (next) => {
   if (!next) {
   } else {
     setTimeout(() => {
-      triggerWhenSearchChange(query.search.peek());
+      triggerWhenSearchChange(ui.search.peek());
     }, 10);
     const page = await getCurrentPage();
     if (page) {
@@ -1118,16 +1096,16 @@ ui.visible.onChange(async (next) => {
     }
   }
 });
-ui.open.onChange((next) => {
+windowUi.open.onChange((next) => {
   if (next !== true) {
-    // query.search.set("");
+    // ui.search.set("");
   } else {
   }
 });
 
 export const initStore = (extensionAPI: RoamExtensionAPI) => {
-  ui.history.viewed.set(recentlyViewed.getAll());
-  ui.history.search.set(searchHistory.getAll());
+  windowUi.history.viewed.set(recentlyViewed.getAll());
+  windowUi.history.search.set(searchHistory.getAll());
 };
 
 // @ts-ignore
