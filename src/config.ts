@@ -1,5 +1,6 @@
 const constants = {
   "auto-close-shift-click": "auto-close-shift-click",
+  tab: 'tab'
 };
 let API: RoamExtensionAPI;
 export const initSettings = (extensionAPI: RoamExtensionAPI) => {
@@ -25,5 +26,5 @@ export const initSettings = (extensionAPI: RoamExtensionAPI) => {
 };
 
 export const isAutoCloseWhenShiftClick = () => {
-    return API.settings.get(constants["auto-close-shift-click"])
+  return API.settings.get(constants["auto-close-shift-click"])
 };

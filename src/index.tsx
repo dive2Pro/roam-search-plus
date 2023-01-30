@@ -12,7 +12,7 @@ const initListener = () => {
     if (e.shiftKey && e.ctrlKey && e.code === "KeyP") {
       store.actions.toggleDialog();
     } else if (e.code === "Escape") {
-      if (store.ui.isOpen() && !window.roamAlphaAPI.platform.isMobile) {
+      if (store.ui.isOpen() && !window.roamAlphaAPI.platform.isMobile && !store.ui.tab.isTabNameInputing()) {
         store.actions.toggleDialog();
       }
     }
@@ -96,10 +96,10 @@ const initSidebarIcon = () => {
 
 export default {
   onload: ({ extensionAPI }: { extensionAPI: RoamExtensionAPI }) => {
+    initSettings(extensionAPI);
     initListener();
     initExtention(extensionAPI);
     initStore(extensionAPI);
-    initSettings(extensionAPI);
     window.roamAlphaAPI.platform.isMobile
       ? initToolbarIcon()
       : initSidebarIcon();

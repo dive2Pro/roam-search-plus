@@ -464,7 +464,7 @@ export function isPageByUid(uid: string) {
 }
 
 export function replaceBlockReference(source: string) {
-  const refReg = /(\(\((.{9})\)\))/gi;
+  const refReg = /(\(\((.{9,})\)\))/gi;
   let lastIndex = 0;
   let result = "";
   while (true) {

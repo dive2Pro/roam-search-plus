@@ -7,6 +7,7 @@ export const initExtention = (api: RoamExtensionAPI) => {
 const KEYS = {
   recentlyViewed: "recently-viewed",
   searchHistory: "search-history",
+  tab: 'tab'
 };
 
 export const recentlyViewed = {
@@ -54,3 +55,25 @@ export const searchHistory = {
     }
   },
 };
+
+export const Tab = {
+  save: (config: any[]) => {
+    extentionAPI.settings.set(KEYS.tab, JSON.stringify(config.map(tab => {
+      return {
+        ...tab,
+        graph: {
+          loading: false,
+          loaded: false,
+        }
+      }
+    })))
+  },
+  read: () => {
+    try {
+      const json = extentionAPI.settings.get(KEYS["tab"]) as string;
+      return JSON.parse(json) as any;
+    } catch (e) {
+      console.log(e, ' = error')
+    }
+  }
+}

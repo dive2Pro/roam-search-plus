@@ -541,3 +541,30 @@
 .selected-result .check-item {
   align-items: baseline;
 }
+
+.advanced-search-el .s-tab .del {
+  opacity: 0;
+}
+
+.advanced-search-el .s-tab:hover .del {
+  opacity: 1;
+}
+
+.titlebar-container {
+  max-width: 820px;
+}
+.titlebar-container .bp3-heading {
+  overflow: scroll;
+  text-overflow: unset;
+}
+
+.titlebar-container *::-webkit-scrollbar-thumb {
+  opacity: 0;
+}
+.titlebar-container *::-webkit-scrollbar {
+  width: 10px;
+  background-color: transparent;
+}
+.titlebar-container:hover *::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
