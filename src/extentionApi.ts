@@ -57,8 +57,16 @@ export const searchHistory = {
 };
 
 export const Tab = {
-  save: (config: {}[]) => {
-    extentionAPI.settings.set(KEYS.tab, JSON.stringify(config))
+  save: (config: any[]) => {
+    extentionAPI.settings.set(KEYS.tab, JSON.stringify(config.map(tab => {
+      return {
+        ...tab,
+        graph: {
+          loading: false,
+          loaded: false,
+        }
+      }
+    })))
   },
   read: () => {
     try {
