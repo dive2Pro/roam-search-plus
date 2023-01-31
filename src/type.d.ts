@@ -12,15 +12,15 @@ type RoamExtensionAPI = {
 
 type SelectDate =
   | {
-      // 这样定义, 可以在不同的属性中复制
-      start: Dayjs;
-      end: Dayjs;
-    }
+    // 这样定义, 可以在不同的属性中复制
+    start: Dayjs;
+    end: Dayjs;
+  }
   | undefined;
 
 
-type BaseUiItem = { id: string; text: string };
-  
+type BaseUiItem = { id: string; text: string; dbId?: string };
+
 type RecentlyViewedItem = BaseUiItem & { isPage: boolean }
 
 
@@ -28,3 +28,16 @@ type User = {
   ":user/display-name": string;
   ":db/id": string;
 };
+
+type QueryConfig = {
+  search: string[];
+  modificationDate?: SelectDate;
+  creationDate?: SelectDate;
+  uids?: string[]; // 选中的页面
+  caseIntensive: boolean;
+  exclude?: {
+    pageUids?: string[], // 目标页面
+    blockUids?: string[], // 引用该 block
+    tagsUids?: string[] // 引用该 tag
+  }
+}

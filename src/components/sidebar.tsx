@@ -100,7 +100,7 @@ export const Sidebar = observer(() => {
           checked={store.ui.conditions.isIncludeBlock()}
           alignIndicator="right"
         />
-       
+
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
         <Switch label="Have Twitter" alignIndicator="left" />
@@ -176,92 +176,100 @@ export const Sidebar = observer(() => {
           </SelectPages>
         </div>
         <div className="sidebar-title bp3-button-text">Exclude</div>
-        <SelectPages
-          items={store.ui.conditions.pages.get()}
-          onItemSelect={(item) => {
-            store.actions.conditions.changeSelectedPages(item);
-          }}
-          selectedItems={store.ui.conditions.pages.getSelected()}
-          tagInputProps={{
-            onRemove(value, index) {
-              store.actions.conditions.changeSelectedPages(store.ui.conditions.pages.getSelected()[index]);
-            }
-          }}
-
-          itemRenderer={(item, itemProps) => {
-            return (
-              <SelectMenuItem
-                selected={store.ui.conditions.pages.isSelected(item.id)}
-                {...itemProps}
-                onClick={itemProps.handleClick}
-                shouldDismissPopover={false}
-                text={item.text} />
-            );
-          }}
-        >
-          <Button
-            icon="document"
-            alignText="left"
-            minimal
-            outlined={!!store.ui.conditions.pages.getSelected().length}
-            intent={store.ui.conditions.pages.getSelected().length ? "primary" : 'none'}
-            text={
-              <span className={"ellipsis-to-left block " +
-                (store.ui.conditions.pages.getSelected().length ? 'primary' : '')
+        {(() => {
+          const selectedItems = store.ui.conditions.exclude.page.getSelected()
+          return <SelectPages
+            items={store.ui.conditions.pages.get()}
+            onItemSelect={(item) => {
+              store.actions.conditions.exclude.page.changeSelected(item);
+            }}
+            selectedItems={selectedItems}
+            tagInputProps={{
+              onRemove(value, index) {
+                store.actions.conditions.exclude.page.changeSelected(selectedItems[index]);
               }
-                style={{
-                  direction: 'unset',
-                  display: 'block',
-                  width: 140
-                }}
-              >
-                Page: {store.ui.conditions.pages.getSelected().map(item => item.text).join(",")}
-              </span>
-            } />
-        </SelectPages>
-        <SelectPages
-          items={store.ui.conditions.pages.get()}
-          onItemSelect={(item) => {
-            store.actions.conditions.changeSelectedPages(item);
-          }}
-          selectedItems={store.ui.conditions.pages.getSelected()}
-          tagInputProps={{
-            onRemove(value, index) {
-              store.actions.conditions.changeSelectedPages(store.ui.conditions.pages.getSelected()[index]);
-            }
-          }}
+            }}
 
-          itemRenderer={(item, itemProps) => {
-            return (
-              <SelectMenuItem
-                selected={store.ui.conditions.pages.isSelected(item.id)}
-                {...itemProps}
-                onClick={itemProps.handleClick}
-                shouldDismissPopover={false}
-                text={item.text} />
-            );
-          }}
-        >
-          <Button
-            icon="tag"
-            alignText="left"
-            minimal
-            outlined={!!store.ui.conditions.pages.getSelected().length}
-            intent={store.ui.conditions.pages.getSelected().length ? "primary" : 'none'}
-            text={
-              <span className={"ellipsis-to-left block " +
-                (store.ui.conditions.pages.getSelected().length ? 'primary' : '')
+            itemRenderer={(item, itemProps) => {
+              return (
+                <SelectMenuItem
+                  selected={store.ui.conditions.exclude.page.isSelected(item.id)}
+                  {...itemProps}
+                  onClick={itemProps.handleClick}
+                  shouldDismissPopover={false}
+                  text={item.text} />
+              );
+            }}
+          >
+            <Button
+              icon="document"
+              alignText="left"
+              minimal
+              outlined={!!selectedItems.length}
+              intent={selectedItems.length ? "danger" : 'none'}
+              text={
+                <span className={"ellipsis-to-left block " +
+                  (selectedItems.length ? 'danger' : '')
+                }
+                  style={{
+                    direction: 'unset',
+                    display: 'block',
+                    width: 140
+                  }}
+                >
+                  Page: {selectedItems.map(item => item.text).join(",")}
+                </span>
+              } />
+          </SelectPages>
+        })()}
+        <div className="h-1" />
+        {(() => {
+          const selectedItems = store.ui.conditions.exclude.tag.getSelected();
+          return <SelectPages
+            items={store.ui.conditions.pages.get()}
+            onItemSelect={(item) => {
+              store.actions.conditions.exclude.tag.changeSelected(item);
+            }}
+            selectedItems={selectedItems}
+            tagInputProps={{
+              onRemove(value, index) {
+                store.actions.conditions.exclude.tag.changeSelected(selectedItems[index]);
               }
-                style={{
-                  direction: 'unset',
-                  display: 'block',
-                  width: 140
-                }}
-              >
-                Tag: {store.ui.conditions.pages.getSelected().map(item => item.text).join(",")}
-              </span>
-            } />
-        </SelectPages>
+            }}
+
+            itemRenderer={(item, itemProps) => {
+              return (
+                <SelectMenuItem
+                  selected={store.ui.conditions.exclude.tag.isSelected(item.id)}
+                  {...itemProps}
+                  onClick={itemProps.handleClick}
+                  shouldDismissPopover={false}
+                  text={item.text} />
+              );
+            }}
+          >
+            <Button
+              icon="tag"
+              alignText="left"
+              minimal
+              outlined={!!selectedItems.length}
+              intent={selectedItems.length ? "danger" : 'none'}
+              text={
+                <span className={"ellipsis-to-left block " +
+                  (selectedItems.length ? 'danger' : '')
+                }
+                  style={{
+                    direction: 'unset',
+                    display: 'block',
+                    width: 140
+                  }}
+                >
+                  Tag: {selectedItems.map(item => item.text).join(",")}
+                </span>
+              } />
+          </SelectPages>
+        })()}
+
         {store.ui.conditions.users.getSelected().length === 0 ? null : (
           <div>
             <div className="sidebar-title bp3-button-text">
@@ -432,6 +440,12 @@ export const Sidebar = observer(() => {
 const SelectPages = observer(({ children, ...rest }: { children: ReactNode } & Omit<MultiSelectProps<{ id: string, text: string }>, 'tagRenderer'>) => {
   return (
     <Popover
+      onOpened={() => {
+        store.actions.conditions.toggleSelect()
+      }}
+      onClose={() => { 
+        store.actions.conditions.toggleSelect()
+      }}
       content={
         <MultiSelect
           className="w-100p page-select"

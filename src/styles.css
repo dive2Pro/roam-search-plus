@@ -575,7 +575,9 @@
 .advanced-search-el .primary {
   color: var(--primary-color);
 }
-
+.advanced-search-el .danger {
+  color: var(--danger-color, #c23030);
+}
 .page-select {
   max-width: 180px;
 }

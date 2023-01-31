@@ -97,6 +97,7 @@ function blockEnhance(
   };
   CACHE_BLOCKS.set(b.block[":block/uid"], b);
 }
+
 export const initCache = (config: { blockRefToString: boolean }) => {
   CACHE_BLOCKS.clear();
   CACHE_PAGES.clear();

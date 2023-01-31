@@ -4,41 +4,33 @@ import { CacheBlockType, getAllBlocks, getAllPages } from "./roam";
 
 let conditionRule = "";
 
-export const Query = (config: {
-  search: string[];
-  modificationDate?: SelectDate;
-  creationDate?: SelectDate;
-  uids?: string[];
-  caseIntensive: boolean;
-}) => {
+export const Query = (config: QueryConfig) => {
   console.time("SSSS");
   const filterStringByKeywordsIntensive = (
     blocks: PullBlock[],
     keyword: string,
     intensive = true
-  ) => {};
+  ) => { };
   conditionRule = `
       [
         [
           (condition ?block)
-            ${
-              config.modificationDate
-                ? `
+            ${config.modificationDate
+      ? `
                 [?block :edit/time ?etime]
                 [(>= ?etime ${config.modificationDate.start.valueOf()})]
                 [(<= ?etime ${config.modificationDate.end.valueOf()})]
             `
-                : ""
-            }
-            ${
-              config.creationDate
-                ? `
+      : ""
+    }
+            ${config.creationDate
+      ? `
                 [?block :create/time ?ctime]
                 [(>= ?ctime ${config.creationDate.start.unix()})]
                 [(<= ?ctime ${config.creationDate.end.unix()})]
             `
-                : ""
-            }
+      : ""
+    }
             [?block]
           ]
       ]
@@ -76,6 +68,17 @@ export const Query = (config: {
           return false;
         }
       }
+      if (config.exclude.pageUids.length) {
+        if (config.exclude.pageUids.some(pageUid => pageUid === item.page)) {
+          return false;
+        }
+      }
+      if (config.exclude.tagsUids.length && item.block[":block/refs"]?.length) {
+        console.log(config.exclude.tagsUids, item.block[":block/refs"]?.map(item =>item[":db/id"]))
+        if (config.exclude.tagsUids.some(tagId => item.block[":block/refs"].map(ref => String(ref[":db/id"]) === String(tagId)))) {
+          return false
+        }
+      }
       const r = keywords.every((keyword) => {
         return (
           item.block[":block/string"] &&
@@ -109,7 +112,9 @@ export const Query = (config: {
       //     (tb) => tb.block[":block/uid"] === b.block[":block/uid"]
       //   );
       // });
-
+      if (config.exclude.pageUids) {
+        lowBlocks = lowBlocks
+      }
       if (config.uids?.length) {
         lowBlocks = lowBlocks.filter((block) => {
           return config.uids.some((uid) => uid === block.page);
@@ -195,6 +200,14 @@ export const Query = (config: {
 
   function findAllRelatedPageUids(keywords: string[]) {
     return getAllPages().filter((page) => {
+      // 过滤掉非选中页面
+      if (config.exclude) {
+        if (config.exclude.pageUids.length) {
+          if (config.exclude.pageUids.some(uid => page.block[":block/uid"] === uid)) {
+            return false
+          }
+        }
+      }
       if (config.uids?.length) {
         if (!config.uids.some((uid) => page.block[":block/uid"] === uid)) {
           return false;

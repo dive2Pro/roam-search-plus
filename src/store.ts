@@ -121,6 +121,11 @@ const defaultConditions = {
     items: [] as User[],
     selected: [] as { id: string; text: string }[],
   },
+  exclude: {
+    pages: [] as BaseUiItem[],
+    tags: [] as (BaseUiItem)[],
+    blocks: [] as BaseUiItem[]
+  }
 };
 
 const defaultTab = () => ({
@@ -191,6 +196,9 @@ const windowUi = observable({
     active: Tabs[0].id,
     tabs: clone(Tabs),
     nameInputing: false,
+  },
+  select: {
+    open: false
   }
 });
 
@@ -256,16 +264,15 @@ const getList = () => {
 
 let cancelPre = () => { };
 const trigger = debounce(
-  async (search: string, caseIntensive: boolean, uids?: string[]) => {
+  async (config: Omit<QueryConfig, 'search'> & { search: string }) => {
     cancelPre();
-    if (!search) {
+    if (!config.search) {
       return;
     }
     // console.log(search, " start search");
     const queryAPi = Query({
-      search: keywordsBuildFrom(search),
-      uids,
-      caseIntensive,
+      ...config,
+      search: keywordsBuildFrom(config.search),
     });
     cancelPre = queryAPi.cancel;
     await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
@@ -368,16 +375,21 @@ const triggerWhenSearchChange = async (next: string) => {
     return;
   }
   const nextStr = next.trim();
-  const selectedPagesUids = ui.conditions.pages.selected.peek();
-  const caseIntensive = ui.conditions.caseIntensive.peek();
   if (nextStr !== prevSearch) {
     ui.loading.set(!!nextStr);
     try {
-      await trigger(
-        nextStr,
+      const selectedPagesUids = ui.conditions.pages.selected.peek();
+      const caseIntensive = ui.conditions.caseIntensive.peek();
+      const exclude = ui.conditions.exclude.peek();
+      await trigger({
+        search: nextStr,
         caseIntensive,
-        selectedPagesUids.map((item) => item.id)
-      );
+        uids: selectedPagesUids.map((item) => item.id),
+        exclude: {
+          pageUids: exclude.pages.map(item => item.id),
+          tagsUids: exclude.tags.map(item => item.dbId!)
+        }
+      });
     } catch (e) {
       console.error(e);
       ui.loading.set(false);
@@ -393,14 +405,19 @@ const dispose = observe(async () => {
   const search = ui.search.peek().trim();
   const selectedPagesUids = ui.conditions.pages.selected.get();
   const caseIntensive = ui.conditions.caseIntensive.get();
-
+  const exclude = ui.conditions.exclude.get()
   ui.loading.set(!!search);
-
   try {
     await trigger(
-      search,
-      caseIntensive,
-      selectedPagesUids.map((item) => item.id)
+      {
+        search,
+        caseIntensive,
+        uids: selectedPagesUids.map((item) => item.id),
+        exclude: {
+          pageUids: exclude.pages.map(item => item.id),
+          tagsUids: exclude.tags.map(item => item.dbId!)
+        }
+      }
     );
   } catch (e) {
     console.error(e, " ---");
@@ -622,6 +639,9 @@ export const store = {
       });
     },
     toggleDialog() {
+      if (store.ui.conditions.isPageSelecting()) {
+        return
+      }
       if (windowUi.visible.get()) {
         if (windowUi.filter.open.get()) {
           store.actions.toggleFilter();
@@ -845,6 +865,11 @@ export const store = {
       },
     },
     conditions: {
+      toggleSelect() {
+        setTimeout(() => {
+          windowUi.select.open.toggle();
+        }, 100)
+      },
       async toggleBlockRefToString() {
         ui.conditions.blockRefToString.toggle();
       },
@@ -862,6 +887,9 @@ export const store = {
       },
       toggleCaseIntensive() {
         ui.conditions.caseIntensive.toggle();
+      },
+      clearSelectedPages() {
+        ui.conditions.pages.selected.set([])
       },
       changeSelectedPages(obj: { id: string; text: string }) {
         const selected = ui.conditions.pages.selected.peek();
@@ -886,6 +914,30 @@ export const store = {
         ui.conditions.modificationDate.set(undefined);
         ui.conditions.creationDate.set(undefined);
       },
+      exclude: {
+        page: {
+          changeSelected(obj: BaseUiItem) {
+            const selected = ui.conditions.exclude.pages.peek();
+            const index = selected.findIndex((item) => item.id === obj.id);
+            if (index > -1) {
+              ui.conditions.exclude.pages.splice(index, 1);
+            } else {
+              ui.conditions.exclude.pages.push(obj);
+            }
+          }
+        },
+        tag: {
+          changeSelected(obj: BaseUiItem) {
+            const selected = ui.conditions.exclude.tags.peek();
+            const index = selected.findIndex((item) => item.id === obj.id);
+            if (index > -1) {
+              ui.conditions.exclude.tags.splice(index, 1);
+            } else {
+              ui.conditions.exclude.tags.push(obj);
+            }
+          }
+        }
+      }
     },
     setHeight(vHeight: number) {
       const windowHeight = document.body.getBoundingClientRect().height;
@@ -1043,6 +1095,9 @@ export const store = {
       },
     },
     conditions: {
+      isPageSelecting() {
+        return windowUi.select.open.get()
+      },
       isBlockRefToString() {
         return ui.conditions.blockRefToString.get();
       },
@@ -1067,6 +1122,7 @@ export const store = {
             .map((item) => ({
               id: item.block[":block/uid"],
               text: item.block[":node/title"],
+              dbId: item.block[":db/id"]
             }))
             .filter((item) => item.text);
         },
@@ -1104,6 +1160,24 @@ export const store = {
         getSelected() {
           return ui.conditions.users.selected.get();
         },
+      },
+      exclude: {
+        page: {
+          getSelected() {
+            return ui.conditions.exclude.pages.get()
+          },
+          isSelected(id: string) {
+            return ui.conditions.exclude.pages.get().findIndex(item => item.id === id) > -1
+          }
+        },
+        tag: {
+          getSelected() {
+            return ui.conditions.exclude.tags.get()
+          },
+          isSelected(id: string) {
+            return ui.conditions.exclude.tags.get().findIndex(item => item.id === id) > -1
+          }
+        }
       },
       hasChanged() {
         const nowConditions = ui.conditions.get();
