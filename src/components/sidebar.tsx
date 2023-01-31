@@ -8,14 +8,9 @@ import {
   Intent,
   MenuItem,
   MenuItemProps,
-  Radio,
-  RadioGroup,
-  Menu,
-  Divider,
-  DrawerSize,
 } from "@blueprintjs/core";
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
-import { Select } from "@blueprintjs/select";
+import { Select, MultiSelect, MultiSelectProps } from "@blueprintjs/select";
 import { observable } from "@legendapp/state";
 import { observer } from "@legendapp/state/react";
 import { ReactNode, useState } from "react";
@@ -31,8 +26,8 @@ function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
       {...props}
       {...(props.selected
         ? {
-            icon: "small-tick",
-          }
+          icon: "small-tick",
+        }
         : {})}
     />
   );
@@ -69,24 +64,6 @@ export const Sidebar = observer(() => {
           checked={store.ui.conditions.isCaseIntensive()}
           alignIndicator="right"
         />
-        <div className="sidebar-title bp3-button-text">Includes</div>
-        <Switch
-          label="Include page"
-          onChange={(e) => {
-            store.actions.conditions.toggleIncludePage();
-          }}
-          checked={store.ui.conditions.isIncludePage()}
-          alignIndicator="right"
-        />
-
-        <Switch
-          label="Include blocks"
-          onChange={(e) => {
-            store.actions.conditions.toggleIncludeBlock();
-          }}
-          checked={store.ui.conditions.isIncludeBlock()}
-          alignIndicator="right"
-        />
         <div className="sidebar-title bp3-button-text">Contents</div>
         <Switch
           label="Block reference to string"
@@ -105,6 +82,25 @@ export const Sidebar = observer(() => {
           alignIndicator="right"
         />
 
+        <div className="sidebar-title bp3-button-text">Includes</div>
+        <Switch
+          label="Include page"
+          onChange={(e) => {
+            store.actions.conditions.toggleIncludePage();
+          }}
+          checked={store.ui.conditions.isIncludePage()}
+          alignIndicator="right"
+        />
+
+        <Switch
+          label="Include blocks"
+          onChange={(e) => {
+            store.actions.conditions.toggleIncludeBlock();
+          }}
+          checked={store.ui.conditions.isIncludeBlock()}
+          alignIndicator="right"
+        />
+       
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
         <Switch label="Have Twitter" alignIndicator="left" />
@@ -134,42 +130,138 @@ export const Sidebar = observer(() => {
             }
           />
         </div> */}
-        {store.ui.conditions.pages.getSelected().length === 0 ? null : (
-          <div>
-            <div className="sidebar-title bp3-button-text">Search in pages</div>
-            {store.ui.conditions.pages.getSelected().map((item) => {
-              return (
-                <Button
-                  key={item.id}
-                  minimal
-                  icon="application"
-                  fill
-                  alignText="left"
-                  rightIcon={
-                    <Icon
-                      onClick={() => {
-                        store.actions.conditions.changeSelectedPages(item);
-                      }}
-                      icon="small-cross"
-                    />
-                  }
-                >
-                  {item.text}
-                </Button>
-              );
-            })}
+        <div>
+          <SelectPages
+            items={store.ui.conditions.pages.get()}
+            onItemSelect={(item) => {
+              store.actions.conditions.changeSelectedPages(item);
+            }}
+            selectedItems={store.ui.conditions.pages.getSelected()}
+            tagInputProps={{
+              onRemove(value, index) {
+                store.actions.conditions.changeSelectedPages(store.ui.conditions.pages.getSelected()[index]);
+              }
+            }}
 
-            <SelectPages>
-              <Button
-                icon="add"
-                alignText="left"
-                fill
-                minimal
-                text="add page"
-              />
-            </SelectPages>
-          </div>
-        )}
+            itemRenderer={(item, itemProps) => {
+              return (
+                <SelectMenuItem
+                  selected={store.ui.conditions.pages.isSelected(item.id)}
+                  {...itemProps}
+                  onClick={itemProps.handleClick}
+                  shouldDismissPopover={false}
+                  text={item.text} />
+              );
+            }}
+          >
+            <Button
+              icon="document"
+              alignText="left"
+              minimal
+              outlined={!!store.ui.conditions.pages.getSelected().length}
+              intent={store.ui.conditions.pages.getSelected().length ? "primary" : 'none'}
+              text={
+                <span className={"ellipsis-to-left block " +
+                  (store.ui.conditions.pages.getSelected().length ? 'primary' : '')
+                }
+                  style={{
+                    direction: 'unset',
+                    display: 'block',
+                    width: 140
+                  }}
+                >
+                  Page: {store.ui.conditions.pages.getSelected().map(item => item.text).join(",")}
+                </span>
+              } />
+          </SelectPages>
+        </div>
+        <div className="sidebar-title bp3-button-text">Exclude</div>
+        <SelectPages
+          items={store.ui.conditions.pages.get()}
+          onItemSelect={(item) => {
+            store.actions.conditions.changeSelectedPages(item);
+          }}
+          selectedItems={store.ui.conditions.pages.getSelected()}
+          tagInputProps={{
+            onRemove(value, index) {
+              store.actions.conditions.changeSelectedPages(store.ui.conditions.pages.getSelected()[index]);
+            }
+          }}
+
+          itemRenderer={(item, itemProps) => {
+            return (
+              <SelectMenuItem
+                selected={store.ui.conditions.pages.isSelected(item.id)}
+                {...itemProps}
+                onClick={itemProps.handleClick}
+                shouldDismissPopover={false}
+                text={item.text} />
+            );
+          }}
+        >
+          <Button
+            icon="document"
+            alignText="left"
+            minimal
+            outlined={!!store.ui.conditions.pages.getSelected().length}
+            intent={store.ui.conditions.pages.getSelected().length ? "primary" : 'none'}
+            text={
+              <span className={"ellipsis-to-left block " +
+                (store.ui.conditions.pages.getSelected().length ? 'primary' : '')
+              }
+                style={{
+                  direction: 'unset',
+                  display: 'block',
+                  width: 140
+                }}
+              >
+                Page: {store.ui.conditions.pages.getSelected().map(item => item.text).join(",")}
+              </span>
+            } />
+        </SelectPages>
+        <SelectPages
+          items={store.ui.conditions.pages.get()}
+          onItemSelect={(item) => {
+            store.actions.conditions.changeSelectedPages(item);
+          }}
+          selectedItems={store.ui.conditions.pages.getSelected()}
+          tagInputProps={{
+            onRemove(value, index) {
+              store.actions.conditions.changeSelectedPages(store.ui.conditions.pages.getSelected()[index]);
+            }
+          }}
+
+          itemRenderer={(item, itemProps) => {
+            return (
+              <SelectMenuItem
+                selected={store.ui.conditions.pages.isSelected(item.id)}
+                {...itemProps}
+                onClick={itemProps.handleClick}
+                shouldDismissPopover={false}
+                text={item.text} />
+            );
+          }}
+        >
+          <Button
+            icon="tag"
+            alignText="left"
+            minimal
+            outlined={!!store.ui.conditions.pages.getSelected().length}
+            intent={store.ui.conditions.pages.getSelected().length ? "primary" : 'none'}
+            text={
+              <span className={"ellipsis-to-left block " +
+                (store.ui.conditions.pages.getSelected().length ? 'primary' : '')
+              }
+                style={{
+                  direction: 'unset',
+                  display: 'block',
+                  width: 140
+                }}
+              >
+                Tag: {store.ui.conditions.pages.getSelected().map(item => item.text).join(",")}
+              </span>
+            } />
+        </SelectPages>
         {store.ui.conditions.users.getSelected().length === 0 ? null : (
           <div>
             <div className="sidebar-title bp3-button-text">
@@ -314,17 +406,6 @@ export const Sidebar = observer(() => {
             </Button>
           </Popover>
         )}
-        {store.ui.conditions.pages.getSelected().length > 0 ? null : (
-          <SelectPages>
-            <Button
-              icon="search-template"
-              alignText="left"
-              fill
-              minimal
-              text="Search in page"
-            />
-          </SelectPages>
-        )}
         {store.ui.conditions.users.getSelected().length > 0 ? null : (
           <SelectCreateUsers>
             <Button minimal icon="person" fill alignText="left">
@@ -348,38 +429,32 @@ export const Sidebar = observer(() => {
   );
 });
 
-const SelectPages = observer((props: { children: ReactNode }) => {
+const SelectPages = observer(({ children, ...rest }: { children: ReactNode } & Omit<MultiSelectProps<{ id: string, text: string }>, 'tagRenderer'>) => {
   return (
-    <Select
-      items={store.ui.conditions.pages.get()}
-      itemPredicate={(query, item, index) => {
-        return item.text.indexOf(query) > -1;
-      }}
-      popoverProps={{
-        // portalClassName: `${CONSTNATS.el}-portal`,
-        // className: `${CONSTNATS.el}-portal`,
-        usePortal: usePortal(),
-      }}
-      onItemSelect={(item) => {
-        store.actions.conditions.changeSelectedPages(item);
-      }}
-      className="w-100p"
-      itemRenderer={(item, itemProps) => {
-        return (
-          <SelectMenuItem
-            selected={store.ui.conditions.pages.isSelected(item.id)}
-            {...itemProps}
-            onClick={itemProps.handleClick}
-            shouldDismissPopover={false}
-            text={item.text}
-          />
-        );
-      }}
+    <Popover
+      content={
+        <MultiSelect
+          className="w-100p page-select"
+          {...rest}
+          popoverProps={{
+            usePortal: usePortal(),
+          }}
+          itemPredicate={(query, item, index) => {
+            return item.text.toLowerCase().indexOf(query.toLowerCase()) > -1;
+          }}
+          tagRenderer={function (item: { id: string; text: string; }): ReactNode {
+            return item.text
+          }}
+        >
+        </MultiSelect>}
     >
-      {props.children}
-    </Select>
+      {children}
+    </Popover>
+
   );
 });
+
+
 
 const SelectCreateUsers = observer((props: { children: ReactNode }) => {
   return (

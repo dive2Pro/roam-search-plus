@@ -571,3 +571,11 @@
 .titlebar-container:hover *::-webkit-scrollbar-thumb {
   opacity: 1;
 }
+
+.advanced-search-el .primary {
+  color: var(--primary-color);
+}
+
+.page-select {
+  max-width: 180px;
+}
