@@ -32,7 +32,7 @@ const appendToToolbar = (name: string) => {
   if (!checkForButton) {
     checkForButton = document.createElement("span");
     checkForButton.id = nameToUse + "-button";
-  
+
     var roamTopbar = document.getElementsByClassName("rm-topbar");
     var nextIconButton = roamTopbar[0].lastElementChild;
     var flexDiv = document.createElement("div");
@@ -94,8 +94,38 @@ const initSidebarIcon = () => {
   });
 };
 
+function compatialOffline(extensionAPI: RoamExtensionAPI): RoamExtensionAPI {
+  if (window.roamAlphaAPI.graph.type === 'offline') {
+    const PREFIX = "@ROAM-search+" + window.roamAlphaAPI.graph.name + '-'
+    return {
+      settings: {
+        async set(k, v: string) {
+          localStorage.setItem(`${PREFIX}${k}`, v);
+        },
+        get(k: string) {
+          return localStorage.getItem(`${PREFIX}${k}`)
+        },
+        getAll() {
+          let result: Record<string, string> = {};
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith(PREFIX)) {
+              result[key.substring(PREFIX.length)] = localStorage.getItem(key);
+            }
+          }
+          return result;
+        },
+        panel: extensionAPI.settings.panel
+      }
+    }
+  }
+
+  return extensionAPI;
+}
+
 export default {
   onload: ({ extensionAPI }: { extensionAPI: RoamExtensionAPI }) => {
+    extensionAPI = compatialOffline(extensionAPI);
     initSettings(extensionAPI);
     initListener();
     initExtention(extensionAPI);

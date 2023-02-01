@@ -124,7 +124,7 @@ const defaultConditions = {
 };
 
 const defaultTab = () => ({
-  title: 'Default',
+  title: 'Search+',
   id: window.roamAlphaAPI.util.generateUID(),
   graph: {
     loading: false,
