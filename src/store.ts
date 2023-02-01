@@ -774,6 +774,19 @@ export const store = {
         navigator.clipboard.writeText(pasteStr);
       },
     },
+    openInsidebarInMultiple() { 
+      const search = ui.search.peek();
+      store.actions.history.saveSearch(search);
+      ui.selectedTarget
+        .peek()
+        .filter(item => item.selected === 1)
+        .forEach((item) => {
+          opens.sidebar(item.id)
+        })
+      ui.selectedTarget.set([]);
+      store.actions.toggleDialog();
+      ui.showSelectedTarget.set(false);  
+    },
     confirmMultiple(oneline = false) {
       const search = ui.search.peek();
       store.actions.history.saveSearch(search);

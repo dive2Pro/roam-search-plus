@@ -142,6 +142,13 @@ const MainView = observer(() => {
                         copyToast();
                       }}
                     ></MenuItem>
+                    <MenuItem
+                      icon="add-to-artifact"
+                      text="Open in sidebar"
+                      onClick={() => {
+                        store.actions.openInsidebarInMultiple();
+                      }}
+                    ></MenuItem>
                   </Menu>
                 }
               >
