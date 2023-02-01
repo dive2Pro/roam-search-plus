@@ -780,6 +780,7 @@ export const store = {
       // console.log(ui.selectedTarget.get(), '----')
       const pasteStr = ui.selectedTarget
         .peek()
+        .filter(item => item.selected === 1)
         .map((item) => {
           if (item.isPage) {
             return `[[${item.text}]]`;
@@ -790,7 +791,7 @@ export const store = {
       ui.selectedTarget.set([]);
       navigator.clipboard.writeText(pasteStr);
       store.actions.toggleDialog();
-      store.actions.toggleMultiple();
+      ui.showSelectedTarget.set(false);
     },
     clearLastEdit() {
       ui.conditions.modificationDate.set(undefined);
