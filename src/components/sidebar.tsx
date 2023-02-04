@@ -10,6 +10,7 @@ import {
   MenuItemProps,
   Menu,
   InputGroup,
+  Divider,
 } from "@blueprintjs/core";
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select, MultiSelect, MultiSelectProps } from "@blueprintjs/select";
@@ -67,24 +68,6 @@ export const Sidebar = observer(() => {
           checked={store.ui.conditions.isCaseIntensive()}
           alignIndicator="right"
         />
-        <div className="sidebar-title bp3-button-text">Contents</div>
-        <Switch
-          label="Block reference to string"
-          onChange={(e) => {
-            store.actions.conditions.toggleBlockRefToString();
-          }}
-          checked={store.ui.conditions.isBlockRefToString()}
-          alignIndicator="right"
-        />
-        <Switch
-          label="Show code blocks"
-          onChange={(e) => {
-            store.actions.conditions.toggleIncludeCodeblock();
-          }}
-          checked={store.ui.conditions.isIncludeCodeblock()}
-          alignIndicator="right"
-        />
-
         <div className="sidebar-title bp3-button-text">Includes</div>
         <Switch
           label="Include page"
@@ -103,6 +86,27 @@ export const Sidebar = observer(() => {
           checked={store.ui.conditions.isIncludeBlock()}
           alignIndicator="right"
         />
+
+        <div className="sidebar-title bp3-button-text">Contents</div>
+        <Switch
+          label="Block reference to string"
+          onChange={(e) => {
+            store.actions.conditions.toggleBlockRefToString();
+          }}
+          checked={store.ui.conditions.isBlockRefToString()}
+          alignIndicator="right"
+        />
+        <Switch
+          label="Show code blocks"
+          onChange={(e) => {
+            store.actions.conditions.toggleIncludeCodeblock();
+          }}
+          checked={store.ui.conditions.isIncludeCodeblock()}
+          alignIndicator="right"
+        />
+
+        <div className="sidebar-title bp3-button-text">References</div>
+        <div className="sidebar-title bp3-button-text">Includes</div>
 
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
@@ -185,7 +189,8 @@ export const Sidebar = observer(() => {
             content={
               <RoamPageFilter
                 header={
-                  <RoamTagFilterHeader selectedItems={selectedItems}
+                  <RoamTagFilterHeader
+                    selectedItems={selectedItems}
                     onItemBtnClick={(item) => {
                       store.actions.conditions.exclude.page.changeSelected(item);
                     }}
@@ -246,31 +251,39 @@ export const Sidebar = observer(() => {
         })()}
         <div className="h-1" />
         {(() => {
-          const selectedItems = store.ui.conditions.exclude.tag.getSelected();
+          const tagExclude = store.ui.conditions.filter.tag.exclude();
+          const tagInclude = store.ui.conditions.filter.tag.include();
+          const selectedItems = tagExclude.concat(tagInclude);
+          const pages = store.ui.conditions.pages.get();
+          const items = pages.filter(page => {
+            return !tagExclude.some(sItem => sItem.id === page.id) && !tagInclude.some(sItem => sItem.id === page.id)
+          });
           return <SelectPages2
             content={
               <RoamPageFilter
                 header={
-                  <RoamTagFilterHeader selectedItems={selectedItems}
-                    onItemBtnClick={(item) => {
-                      store.actions.conditions.exclude.tag.changeSelected(item);
-
+                  <RoamTagFilterHeader
+                    includes={tagInclude}
+                    excludes={tagExclude}
+                    onItemAddClick={(item) => {
+                      store.actions.conditions.filter.tag.include.changeSelected(item);
                     }}
-                    onClear={() => {
-                      store.actions.conditions.exclude.tag.clearSelected();
+                    onItemRemoveClick={(item => {
+                      store.actions.conditions.filter.tag.exclude.changeSelected(item);
+                    })}
+                    onClearAdded={() => {
+                      store.actions.conditions.filter.tag.include.clearSelected();
+                    }}
+                    onClearRemoves={() => {
+                      store.actions.conditions.filter.tag.exclude.clearSelected();
                     }}
                   />
                 }
-                items={store.ui.conditions.pages.get()}
+                items={items}
                 onItemSelect={(item) => {
                   store.actions.conditions.exclude.tag.changeSelected(item);
                 }}
-                selectedItems={selectedItems}
-                tagInputProps={{
-                  onRemove(value, index) {
-                    store.actions.conditions.exclude.tag.changeSelected(selectedItems[index]);
-                  }
-                }}
+
                 itemRenderer={(item, itemProps) => {
                   const selected = store.ui.conditions.exclude.tag.isSelected(item.id)
                   return (
@@ -280,7 +293,12 @@ export const Sidebar = observer(() => {
                       minimal small fill alignText="left" text={item.text} onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();
-                        store.actions.conditions.exclude.tag.changeSelected(item);
+                        if (e.shiftKey) {
+                          store.actions.conditions.filter.tag.exclude.changeSelected(item);
+
+                          return
+                        }
+                        store.actions.conditions.filter.tag.include.changeSelected(item);
 
                       }}>
                     </Button>
@@ -295,7 +313,7 @@ export const Sidebar = observer(() => {
               alignText="left"
               minimal
               outlined={!!selectedItems.length}
-              intent={selectedItems.length ? "danger" : 'none'}
+              intent={selectedItems.length ? "primary" : 'none'}
               text={
                 <span className={"ellipsis-to-left block " +
                   (selectedItems.length ? 'danger' : '')
@@ -480,29 +498,54 @@ export const Sidebar = observer(() => {
 });
 
 function RoamTagFilterHeader<T extends { text: string }>(props: {
-  onItemBtnClick?: (item: T) => void,
-  onClear?: () => void,
-  selectedItems: T[]
+  onItemAddClick?: (item: T) => void,
+  onItemRemoveClick?: (item: T) => void,
+  onClearAdded?: () => void,
+  onClearRemoves?: () => void,
+  includes: T[],
+  excludes: T[]
 }) {
-  const selected = props.selectedItems;
 
-  return selected.length ?
-    <>
-      <div className="flex-row flex-align-start">
-
-        <div className="flex-row flex-wrap flex-1">
-          {selected.map(item => {
-            return <Button small text={item.text} style={{ margin: 4 }}
-              onClick={() => props.onItemBtnClick(item)}
-            />
-          })}
-        </div>
+  return <div className="flex-row">
+    <div className="flex-1">
+      <div className="flex-row p-1.5">
+        <strong style={{ marginRight: 8 }}>Includes{` `}</strong> Click to Add
+        <div className="flex-1" />
         <Button minimal small icon="delete" onClick={() => {
-          props.onClear();
+          props.onClearAdded();
         }} />
       </div>
-      <div className="rm-line"></div>
-    </> : null
+      {props.includes.length ?
+        <div className="flex-row flex-wrap flex-1">
+          {props.includes.map(item => {
+            return <Button small text={item.text} style={{ margin: 4 }}
+              onClick={() => props.onItemAddClick(item)}
+            />
+          })}
+        </div> : null
+
+      }
+
+    </div>
+    <Divider />
+    <div className="flex-1">
+      <div className="flex-row p-1.5">
+        <strong style={{ marginRight: 8 }}>Removes</strong> Shift+Click to Add
+        <div className="flex-1" />
+        <Button minimal small icon="delete" onClick={() => {
+          props.onClearRemoves();
+        }} />
+      </div>
+      <div className="flex-row flex-wrap flex-1">
+        {props.excludes.map(item => {
+          return <Button small text={item.text} style={{ margin: 4 }}
+            onClick={() => props.onItemRemoveClick(item)}
+          />
+        })}
+      </div>
+    </div>
+    <div className="rm-line"></div>
+  </div>
 
 }
 

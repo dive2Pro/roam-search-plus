@@ -125,6 +125,12 @@ const defaultConditions = {
     pages: [] as BaseUiItem[],
     tags: [] as (BaseUiItem)[],
     blocks: [] as BaseUiItem[]
+  },
+  filter: {
+    tags: {
+      include: [] as BaseUiItem[],
+      exclude: [] as BaseUiItem[]
+    }
   }
 };
 
@@ -794,7 +800,7 @@ export const store = {
         navigator.clipboard.writeText(pasteStr);
       },
     },
-    openInsidebarInMultiple() { 
+    openInsidebarInMultiple() {
       const search = ui.search.peek();
       store.actions.history.saveSearch(search);
       ui.selectedTarget
@@ -805,7 +811,7 @@ export const store = {
         })
       ui.selectedTarget.set([]);
       store.actions.toggleDialog();
-      ui.showSelectedTarget.set(false);  
+      ui.showSelectedTarget.set(false);
     },
     confirmMultiple(oneline = false) {
       const search = ui.search.peek();
@@ -865,6 +871,39 @@ export const store = {
       },
     },
     conditions: {
+      filter: {
+        tag: {
+          include: {
+            clearSelected() {
+              ui.conditions.filter.tags.include.set([]);
+            },
+            changeSelected(obj: BaseUiItem) {
+              const selected = ui.conditions.filter.tags.include.peek();
+              const index = selected.findIndex((item) => item.id === obj.id);
+              if (index > -1) {
+                ui.conditions.filter.tags.include.splice(index, 1);
+              } else {
+                ui.conditions.filter.tags.include.push(obj);
+              }
+            }
+          },
+          exclude: {
+            clearSelected() {
+              ui.conditions.filter.tags.exclude.set([]);
+            },
+            changeSelected(obj: BaseUiItem) {
+              const selected = ui.conditions.filter.tags.exclude.peek();
+              const index = selected.findIndex((item) => item.id === obj.id);
+              if (index > -1) {
+                ui.conditions.filter.tags.exclude.splice(index, 1);
+              } else {
+                ui.conditions.filter.tags.exclude.push(obj);
+              }
+            },
+
+          }
+        }
+      },
       toggleSelect() {
         setTimeout(() => {
           windowUi.select.open.toggle();
@@ -916,7 +955,7 @@ export const store = {
       },
       exclude: {
         page: {
-          clearSelected() { 
+          clearSelected() {
             ui.conditions.exclude.pages.set([]);
           },
           changeSelected(obj: BaseUiItem) {
@@ -932,7 +971,7 @@ export const store = {
         tag: {
           clearSelected() {
             ui.conditions.exclude.tags.set([]);
-           },
+          },
           changeSelected(obj: BaseUiItem) {
             const selected = ui.conditions.exclude.tags.peek();
             const index = selected.findIndex((item) => item.id === obj.id);
@@ -1185,6 +1224,17 @@ export const store = {
           }
         }
       },
+      filter: {
+        tag: {
+          include() {
+            return ui.conditions.filter.tags.include.get();
+          },
+          exclude() {
+            return ui.conditions.filter.tags.exclude.get();
+          }
+        }
+      },
+
       hasChanged() {
         const nowConditions = ui.conditions.get();
         // console.log(nowConditions, " --- ", defaultConditions, query.people.get());

@@ -580,8 +580,10 @@
 }
 
 .page-select {
-  min-width: 250px;
-  max-width: 350px;
+  min-width: 500px;
+  max-width: 500px;
+  max-height: 450px;
+  overflow: scroll;
   background-color: white;
 }
 
