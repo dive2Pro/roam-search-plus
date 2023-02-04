@@ -207,6 +207,12 @@ export const Query = (config: QueryConfig) => {
             return false
           }
         }
+        if (config.exclude.tagsUids.length && page.block[":block/refs"]?.length) {
+          console.log(config.exclude.tagsUids, page.block[":block/refs"]?.map(item => item[":db/id"]))
+          if (config.exclude.tagsUids.some(tagId => page.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+            return false
+          }
+        }
       }
       if (config.uids?.length) {
         if (!config.uids.some((uid) => page.block[":block/uid"] === uid)) {
