@@ -75,7 +75,7 @@ export const Query = (config: QueryConfig) => {
       }
       if (config.exclude.tagsUids.length && item.block[":block/refs"]?.length) {
         console.log(config.exclude.tagsUids, item.block[":block/refs"]?.map(item =>item[":db/id"]))
-        if (config.exclude.tagsUids.some(tagId => item.block[":block/refs"].map(ref => String(ref[":db/id"]) === String(tagId)))) {
+        if (config.exclude.tagsUids.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
           return false
         }
       }

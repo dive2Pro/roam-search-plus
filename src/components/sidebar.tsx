@@ -8,6 +8,8 @@ import {
   Intent,
   MenuItem,
   MenuItemProps,
+  Menu,
+  InputGroup,
 } from "@blueprintjs/core";
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select, MultiSelect, MultiSelectProps } from "@blueprintjs/select";
@@ -19,6 +21,7 @@ import { MOMENT_FORMATS } from "../moment";
 import { store } from "../store";
 import { BottomPopup } from "./bottom-popup";
 import { usePortal } from "./commons/use-portal";
+import { Virtuoso } from "react-virtuoso";
 
 function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
   return (
@@ -178,28 +181,47 @@ export const Sidebar = observer(() => {
         <div className="sidebar-title bp3-button-text">Exclude</div>
         {(() => {
           const selectedItems = store.ui.conditions.exclude.page.getSelected()
-          return <SelectPages
-            items={store.ui.conditions.pages.get()}
-            onItemSelect={(item) => {
-              store.actions.conditions.exclude.page.changeSelected(item);
-            }}
-            selectedItems={selectedItems}
-            tagInputProps={{
-              onRemove(value, index) {
-                store.actions.conditions.exclude.page.changeSelected(selectedItems[index]);
-              }
-            }}
+          return <SelectPages2
+            content={
+              <RoamPageFilter
+                header={
+                  <RoamTagFilterHeader selectedItems={selectedItems}
+                    onItemBtnClick={(item) => {
+                      store.actions.conditions.exclude.page.changeSelected(item);
+                    }}
+                    onClear={() => {
+                      store.actions.conditions.exclude.page.clearSelected();
+                    }}
+                  />
+                }
+                items={store.ui.conditions.pages.get()}
+                onItemSelect={(item) => {
+                  store.actions.conditions.exclude.page.changeSelected(item);
+                }}
+                selectedItems={selectedItems}
+                tagInputProps={{
+                  onRemove(value, index) {
+                    store.actions.conditions.exclude.page.changeSelected(selectedItems[index]);
+                  }
+                }}
+                itemRenderer={(item, itemProps) => {
+                  const selected = store.ui.conditions.exclude.page.isSelected(item.id)
+                  return (
+                    <Button
+                      {...selected ? { active: true, intent: 'primary' } : {}}
+                      minimal small fill alignText="left" text={item.text} onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        store.actions.conditions.exclude.page.changeSelected(item);
 
-            itemRenderer={(item, itemProps) => {
-              return (
-                <SelectMenuItem
-                  selected={store.ui.conditions.exclude.page.isSelected(item.id)}
-                  {...itemProps}
-                  onClick={itemProps.handleClick}
-                  shouldDismissPopover={false}
-                  text={item.text} />
-              );
-            }}
+                      }}>
+                    </Button>
+                  );
+                }}
+              />
+
+            }
+
           >
             <Button
               icon="document"
@@ -220,33 +242,53 @@ export const Sidebar = observer(() => {
                   Page: {selectedItems.map(item => item.text).join(",")}
                 </span>
               } />
-          </SelectPages>
+          </SelectPages2>
         })()}
         <div className="h-1" />
         {(() => {
           const selectedItems = store.ui.conditions.exclude.tag.getSelected();
-          return <SelectPages
-            items={store.ui.conditions.pages.get()}
-            onItemSelect={(item) => {
-              store.actions.conditions.exclude.tag.changeSelected(item);
-            }}
-            selectedItems={selectedItems}
-            tagInputProps={{
-              onRemove(value, index) {
-                store.actions.conditions.exclude.tag.changeSelected(selectedItems[index]);
-              }
-            }}
+          return <SelectPages2
+            content={
+              <RoamPageFilter
+                header={
+                  <RoamTagFilterHeader selectedItems={selectedItems}
+                    onItemBtnClick={(item) => {
+                      store.actions.conditions.exclude.tag.changeSelected(item);
 
-            itemRenderer={(item, itemProps) => {
-              return (
-                <SelectMenuItem
-                  selected={store.ui.conditions.exclude.tag.isSelected(item.id)}
-                  {...itemProps}
-                  onClick={itemProps.handleClick}
-                  shouldDismissPopover={false}
-                  text={item.text} />
-              );
-            }}
+                    }}
+                    onClear={() => {
+                      store.actions.conditions.exclude.tag.clearSelected();
+                    }}
+                  />
+                }
+                items={store.ui.conditions.pages.get()}
+                onItemSelect={(item) => {
+                  store.actions.conditions.exclude.tag.changeSelected(item);
+                }}
+                selectedItems={selectedItems}
+                tagInputProps={{
+                  onRemove(value, index) {
+                    store.actions.conditions.exclude.tag.changeSelected(selectedItems[index]);
+                  }
+                }}
+                itemRenderer={(item, itemProps) => {
+                  const selected = store.ui.conditions.exclude.tag.isSelected(item.id)
+                  return (
+                    <Button
+                      {...selected ? { active: true, intent: 'primary' } : {}}
+
+                      minimal small fill alignText="left" text={item.text} onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        store.actions.conditions.exclude.tag.changeSelected(item);
+
+                      }}>
+                    </Button>
+                  );
+                }}
+              />
+            }
+
           >
             <Button
               icon="tag"
@@ -267,7 +309,7 @@ export const Sidebar = observer(() => {
                   Tag: {selectedItems.map(item => item.text).join(",")}
                 </span>
               } />
-          </SelectPages>
+          </SelectPages2>
         })()}
 
         {store.ui.conditions.users.getSelected().length === 0 ? null : (
@@ -437,13 +479,83 @@ export const Sidebar = observer(() => {
   );
 });
 
+function RoamTagFilterHeader<T extends { text: string }>(props: {
+  onItemBtnClick?: (item: T) => void,
+  onClear?: () => void,
+  selectedItems: T[]
+}) {
+  const selected = props.selectedItems;
+
+  return selected.length ?
+    <>
+      <div className="flex-row flex-align-start">
+
+        <div className="flex-row flex-wrap flex-1">
+          {selected.map(item => {
+            return <Button small text={item.text} style={{ margin: 4 }}
+              onClick={() => props.onItemBtnClick(item)}
+            />
+          })}
+        </div>
+        <Button minimal small icon="delete" onClick={() => {
+          props.onClear();
+        }} />
+      </div>
+      <div className="rm-line"></div>
+    </> : null
+
+}
+
+function RoamPageFilter(props: Omit<MultiSelectProps<{ id: string, text: string }>, 'tagRenderer'> & {
+  header?: JSX.Element
+}) {
+  const [search, setSearch] = useState("");
+  const pages = props.items.filter(item => {
+    return item.text.toLowerCase().includes(search.toLowerCase());
+  });
+
+  return <div className="page-select">
+    {props.header}
+    <InputGroup
+      value={search}
+      placeholder="search..."
+      onChange={e => setSearch(e.target.value)}
+    />
+    <Virtuoso
+      style={{
+        height: 300,
+      }}
+      totalCount={pages.length}
+      data={pages}
+      itemContent={(index, data) => {
+        return props.itemRenderer(data, {} as any);
+      }}
+    />
+  </div>
+}
+
+const SelectPages2 = observer(({ children, content, ...rest }: { children: ReactNode, content: JSX.Element }) => {
+  return (
+    <Popover
+      onOpened={() => {
+        store.actions.conditions.toggleSelect()
+      }}
+      onClose={() => {
+        store.actions.conditions.toggleSelect()
+      }}
+      content={content}>
+      {children}
+    </Popover >
+  );
+});
+
 const SelectPages = observer(({ children, ...rest }: { children: ReactNode } & Omit<MultiSelectProps<{ id: string, text: string }>, 'tagRenderer'>) => {
   return (
     <Popover
       onOpened={() => {
         store.actions.conditions.toggleSelect()
       }}
-      onClose={() => { 
+      onClose={() => {
         store.actions.conditions.toggleSelect()
       }}
       content={

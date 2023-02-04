@@ -405,7 +405,7 @@ const dispose = observe(async () => {
   const search = ui.search.peek().trim();
   const selectedPagesUids = ui.conditions.pages.selected.get();
   const caseIntensive = ui.conditions.caseIntensive.get();
-  const exclude = ui.conditions.exclude.get()
+  const exclude = ui.conditions.exclude.get();
   ui.loading.set(!!search);
   try {
     await trigger(
@@ -916,6 +916,9 @@ export const store = {
       },
       exclude: {
         page: {
+          clearSelected() { 
+            ui.conditions.exclude.pages.set([]);
+          },
           changeSelected(obj: BaseUiItem) {
             const selected = ui.conditions.exclude.pages.peek();
             const index = selected.findIndex((item) => item.id === obj.id);
@@ -927,6 +930,9 @@ export const store = {
           }
         },
         tag: {
+          clearSelected() {
+            ui.conditions.exclude.tags.set([]);
+           },
           changeSelected(obj: BaseUiItem) {
             const selected = ui.conditions.exclude.tags.peek();
             const index = selected.findIndex((item) => item.id === obj.id);
