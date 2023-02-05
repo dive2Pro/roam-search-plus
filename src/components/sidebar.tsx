@@ -106,7 +106,6 @@ export const Sidebar = observer(() => {
         />
 
         <div className="sidebar-title bp3-button-text">References</div>
-        <div className="sidebar-title bp3-button-text">Includes</div>
 
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
@@ -137,94 +136,55 @@ export const Sidebar = observer(() => {
             }
           />
         </div> */}
-        <div>
-          <SelectPages
-            items={store.ui.conditions.pages.get()}
-            onItemSelect={(item) => {
-              store.actions.conditions.changeSelectedPages(item);
-            }}
-            selectedItems={store.ui.conditions.pages.getSelected()}
-            tagInputProps={{
-              onRemove(value, index) {
-                store.actions.conditions.changeSelectedPages(store.ui.conditions.pages.getSelected()[index]);
-              }
-            }}
-
-            itemRenderer={(item, itemProps) => {
-              return (
-                <SelectMenuItem
-                  selected={store.ui.conditions.pages.isSelected(item.id)}
-                  {...itemProps}
-                  onClick={itemProps.handleClick}
-                  shouldDismissPopover={false}
-                  text={item.text} />
-              );
-            }}
-          >
-            <Button
-              icon="document"
-              alignText="left"
-              minimal
-              outlined={!!store.ui.conditions.pages.getSelected().length}
-              intent={store.ui.conditions.pages.getSelected().length ? "primary" : 'none'}
-              text={
-                <span className={"ellipsis-to-left block " +
-                  (store.ui.conditions.pages.getSelected().length ? 'primary' : '')
-                }
-                  style={{
-                    direction: 'unset',
-                    display: 'block',
-                    width: 140
-                  }}
-                >
-                  Page: {store.ui.conditions.pages.getSelected().map(item => item.text).join(",")}
-                </span>
-              } />
-          </SelectPages>
-        </div>
-        <div className="sidebar-title bp3-button-text">Exclude</div>
         {(() => {
-          const selectedItems = store.ui.conditions.exclude.page.getSelected()
+          const tagExclude = store.ui.conditions.filter.page.exclude();
+          const tagInclude = store.ui.conditions.filter.page.include();
+          const selectedItems = tagExclude.concat(tagInclude);
+          const pages = store.ui.conditions.pages.get();
+          const items = pages.filter(page => {
+            return !tagExclude.some(sItem => sItem.id === page.id) && !tagInclude.some(sItem => sItem.id === page.id)
+          });
           return <SelectPages2
             content={
               <RoamPageFilter
                 header={
                   <RoamTagFilterHeader
-                    selectedItems={selectedItems}
-                    onItemBtnClick={(item) => {
-                      store.actions.conditions.exclude.page.changeSelected(item);
+                    includes={tagInclude}
+                    excludes={tagExclude}
+                    onItemAddClick={(item) => {
+                      store.actions.conditions.filter.page.include.changeSelected(item);
                     }}
-                    onClear={() => {
-                      store.actions.conditions.exclude.page.clearSelected();
+                    onItemRemoveClick={(item => {
+                      store.actions.conditions.filter.page.exclude.changeSelected(item);
+                    })}
+                    onClearAdded={() => {
+                      store.actions.conditions.filter.page.include.clearSelected();
+                    }}
+                    onClearexcludes={() => {
+                      store.actions.conditions.filter.page.exclude.clearSelected();
                     }}
                   />
                 }
-                items={store.ui.conditions.pages.get()}
-                onItemSelect={(item) => {
-                  store.actions.conditions.exclude.page.changeSelected(item);
-                }}
-                selectedItems={selectedItems}
-                tagInputProps={{
-                  onRemove(value, index) {
-                    store.actions.conditions.exclude.page.changeSelected(selectedItems[index]);
-                  }
-                }}
+                items={items}
+
                 itemRenderer={(item, itemProps) => {
-                  const selected = store.ui.conditions.exclude.page.isSelected(item.id)
                   return (
                     <Button
-                      {...selected ? { active: true, intent: 'primary' } : {}}
                       minimal small fill alignText="left" text={item.text} onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();
-                        store.actions.conditions.exclude.page.changeSelected(item);
+                        if (e.shiftKey) {
+                          store.actions.conditions.filter.page.exclude.changeSelected(item);
+
+                          return
+                        }
+                        store.actions.conditions.filter.page.include.changeSelected(item);
 
                       }}>
                     </Button>
                   );
                 }}
               />
-
             }
 
           >
@@ -233,10 +193,10 @@ export const Sidebar = observer(() => {
               alignText="left"
               minimal
               outlined={!!selectedItems.length}
-              intent={selectedItems.length ? "danger" : 'none'}
+              intent={selectedItems.length ? "primary" : 'none'}
               text={
                 <span className={"ellipsis-to-left block " +
-                  (selectedItems.length ? 'danger' : '')
+                  (selectedItems.length ? 'primary' : '')
                 }
                   style={{
                     direction: 'unset',
@@ -274,21 +234,15 @@ export const Sidebar = observer(() => {
                     onClearAdded={() => {
                       store.actions.conditions.filter.tag.include.clearSelected();
                     }}
-                    onClearRemoves={() => {
+                    onClearexcludes={() => {
                       store.actions.conditions.filter.tag.exclude.clearSelected();
                     }}
                   />
                 }
                 items={items}
-                onItemSelect={(item) => {
-                  store.actions.conditions.exclude.tag.changeSelected(item);
-                }}
-
                 itemRenderer={(item, itemProps) => {
-                  const selected = store.ui.conditions.exclude.tag.isSelected(item.id)
                   return (
                     <Button
-                      {...selected ? { active: true, intent: 'primary' } : {}}
 
                       minimal small fill alignText="left" text={item.text} onClick={e => {
                         e.preventDefault();
@@ -306,7 +260,6 @@ export const Sidebar = observer(() => {
                 }}
               />
             }
-
           >
             <Button
               icon="tag"
@@ -316,7 +269,7 @@ export const Sidebar = observer(() => {
               intent={selectedItems.length ? "primary" : 'none'}
               text={
                 <span className={"ellipsis-to-left block " +
-                  (selectedItems.length ? 'danger' : '')
+                  (selectedItems.length ? 'primary' : '')
                 }
                   style={{
                     direction: 'unset',
@@ -501,7 +454,7 @@ function RoamTagFilterHeader<T extends { text: string }>(props: {
   onItemAddClick?: (item: T) => void,
   onItemRemoveClick?: (item: T) => void,
   onClearAdded?: () => void,
-  onClearRemoves?: () => void,
+  onClearexcludes?: () => void,
   includes: T[],
   excludes: T[]
 }) {
@@ -530,10 +483,10 @@ function RoamTagFilterHeader<T extends { text: string }>(props: {
     <Divider />
     <div className="flex-1">
       <div className="flex-row p-1.5">
-        <strong style={{ marginRight: 8 }}>Removes</strong> Shift+Click to Add
+        <strong style={{ marginRight: 8 }}>Excludes</strong> Shift+Click to Add
         <div className="flex-1" />
         <Button minimal small icon="delete" onClick={() => {
-          props.onClearRemoves();
+          props.onClearexcludes();
         }} />
       </div>
       <div className="flex-row flex-wrap flex-1">
@@ -549,7 +502,7 @@ function RoamTagFilterHeader<T extends { text: string }>(props: {
 
 }
 
-function RoamPageFilter(props: Omit<MultiSelectProps<{ id: string, text: string }>, 'tagRenderer'> & {
+function RoamPageFilter(props: Omit<MultiSelectProps<{ id: string, text: string }>, 'tagRenderer' | 'onItemSelect'> & {
   header?: JSX.Element
 }) {
   const [search, setSearch] = useState("");

@@ -130,6 +130,10 @@ const defaultConditions = {
     tags: {
       include: [] as BaseUiItem[],
       exclude: [] as BaseUiItem[]
+    },
+    page: {
+      include: [] as BaseUiItem[],
+      exclude: [] as BaseUiItem[]
     }
   }
 };
@@ -384,16 +388,21 @@ const triggerWhenSearchChange = async (next: string) => {
   if (nextStr !== prevSearch) {
     ui.loading.set(!!nextStr);
     try {
-      const selectedPagesUids = ui.conditions.pages.selected.peek();
+      // const selectedPagesUids = ui.conditions.pages.selected.peek();
       const caseIntensive = ui.conditions.caseIntensive.peek();
-      const exclude = ui.conditions.exclude.peek();
+      const pageFilter = ui.conditions.filter.page.peek();
+      const tagFilter = ui.conditions.filter.tags.peek();
       await trigger({
         search: nextStr,
         caseIntensive,
-        uids: selectedPagesUids.map((item) => item.id),
+        // uids: selectedPagesUids.map((item) => item.id),
         exclude: {
-          pageUids: exclude.pages.map(item => item.id),
-          tagsUids: exclude.tags.map(item => item.dbId!)
+          pages: pageFilter.exclude.map(item => item.id),
+          tags: tagFilter.exclude.map(item => item.dbId!),
+        },
+        include: {
+          pages: pageFilter.include.map(item => item.id),
+          tags: tagFilter.include.map(item => item.dbId!),
         }
       });
     } catch (e) {
@@ -409,20 +418,29 @@ const disposeSearch = ui.search.onChange(async (next) => {
 
 const dispose = observe(async () => {
   const search = ui.search.peek().trim();
-  const selectedPagesUids = ui.conditions.pages.selected.get();
   const caseIntensive = ui.conditions.caseIntensive.get();
-  const exclude = ui.conditions.exclude.get();
+  // const exclude = ui.conditions.exclude.get();
+  const pageFilter = ui.conditions.filter.page.get();
+  const tagFilter = ui.conditions.filter.tags.get();
   ui.loading.set(!!search);
   try {
     await trigger(
       {
         search,
         caseIntensive,
-        uids: selectedPagesUids.map((item) => item.id),
+        // uids: selectedPagesUids.map((item) => item.id),
         exclude: {
-          pageUids: exclude.pages.map(item => item.id),
-          tagsUids: exclude.tags.map(item => item.dbId!)
+          pages: pageFilter.exclude.map(item => item.id),
+          tags: tagFilter.exclude.map(item => item.dbId!),
+        },
+        include: {
+          pages: pageFilter.include.map(item => item.id),
+          tags: tagFilter.include.map(item => item.dbId!),
         }
+        // exclude: {
+        //   pageUids: exclude.pages.map(item => item.id),
+        //   tagsUids: exclude.tags.map(item => item.dbId!)
+        // }
       }
     );
   } catch (e) {
@@ -857,7 +875,7 @@ export const store = {
       },
       async currentPage() {
         const page = await getCurrentPage();
-        store.actions.conditions.changeSelectedPages({
+        store.actions.conditions.filter.page.include.changeSelected({
           id: page[":block/uid"],
           text: page[":node/title"],
         });
@@ -898,6 +916,37 @@ export const store = {
                 ui.conditions.filter.tags.exclude.splice(index, 1);
               } else {
                 ui.conditions.filter.tags.exclude.push(obj);
+              }
+            },
+          },
+          
+        },
+        page: {
+          include: {
+            clearSelected() {
+              ui.conditions.filter.page.include.set([]);
+            },
+            changeSelected(obj: BaseUiItem) {
+              const selected = ui.conditions.filter.page.include.peek();
+              const index = selected.findIndex((item) => item.id === obj.id);
+              if (index > -1) {
+                ui.conditions.filter.page.include.splice(index, 1);
+              } else {
+                ui.conditions.filter.page.include.push(obj);
+              }
+            }
+          },
+          exclude: {
+            clearSelected() {
+              ui.conditions.filter.page.exclude.set([]);
+            },
+            changeSelected(obj: BaseUiItem) {
+              const selected = ui.conditions.filter.page.exclude.peek();
+              const index = selected.findIndex((item) => item.id === obj.id);
+              if (index > -1) {
+                ui.conditions.filter.page.exclude.splice(index, 1);
+              } else {
+                ui.conditions.filter.page.exclude.push(obj);
               }
             },
 
@@ -1231,6 +1280,14 @@ export const store = {
           },
           exclude() {
             return ui.conditions.filter.tags.exclude.get();
+          }
+        },
+        page: {
+          include() {
+            return ui.conditions.filter.page.include.get();
+          },
+          exclude() {
+            return ui.conditions.filter.page.exclude.get();
           }
         }
       },

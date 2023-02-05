@@ -59,23 +59,23 @@ export const Query = (config: QueryConfig) => {
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
     const lowBlocks: CacheBlockType[] = [];
     const result = getAllBlocks().filter((item) => {
-      if (config.uids?.length) {
+      if (config.include.pages?.length) {
         if (
-          !config.uids.some((pageUid) => {
+          !config.include.pages.some((pageUid) => {
             return pageUid === item.page;
           })
         ) {
           return false;
         }
       }
-      if (config.exclude.pageUids.length) {
-        if (config.exclude.pageUids.some(pageUid => pageUid === item.page)) {
+      if (config.exclude.pages.length) {
+        if (config.exclude.pages.some(pageUid => pageUid === item.page)) {
           return false;
         }
       }
-      if (config.exclude.tagsUids.length && item.block[":block/refs"]?.length) {
-        console.log(config.exclude.tagsUids, item.block[":block/refs"]?.map(item =>item[":db/id"]))
-        if (config.exclude.tagsUids.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+      if (config.exclude.tags.length && item.block[":block/refs"]?.length) {
+        console.log(config.exclude.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]))
+        if (config.exclude.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
           return false
         }
       }
@@ -112,12 +112,12 @@ export const Query = (config: QueryConfig) => {
       //     (tb) => tb.block[":block/uid"] === b.block[":block/uid"]
       //   );
       // });
-      if (config.exclude.pageUids) {
+      if (config.exclude.pages) {
         lowBlocks = lowBlocks
       }
-      if (config.uids?.length) {
+      if (config.include.pages?.length) {
         lowBlocks = lowBlocks.filter((block) => {
-          return config.uids.some((uid) => uid === block.page);
+          return config.include.pages.some((uid) => uid === block.page);
         });
       }
     });
@@ -202,20 +202,20 @@ export const Query = (config: QueryConfig) => {
     return getAllPages().filter((page) => {
       // 过滤掉非选中页面
       if (config.exclude) {
-        if (config.exclude.pageUids.length) {
-          if (config.exclude.pageUids.some(uid => page.block[":block/uid"] === uid)) {
+        if (config.exclude.pages.length) {
+          if (config.exclude.pages.some(uid => page.block[":block/uid"] === uid)) {
             return false
           }
         }
-        if (config.exclude.tagsUids.length && page.block[":block/refs"]?.length) {
-          console.log(config.exclude.tagsUids, page.block[":block/refs"]?.map(item => item[":db/id"]))
-          if (config.exclude.tagsUids.some(tagId => page.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+        if (config.exclude.tags.length && page.block[":block/refs"]?.length) {
+          console.log(config.exclude.tags, page.block[":block/refs"]?.map(item => item[":db/id"]))
+          if (config.exclude.tags.some(tagId => page.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
             return false
           }
         }
       }
-      if (config.uids?.length) {
-        if (!config.uids.some((uid) => page.block[":block/uid"] === uid)) {
+      if (config.include.pages?.length) {
+        if (!config.include.pages.some((uid) => page.block[":block/uid"] === uid)) {
           return false;
         }
       }
@@ -226,7 +226,7 @@ export const Query = (config: QueryConfig) => {
     });
   }
   const { search } = config;
-  // console.log(config, " ---- config");
+  console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const ary = search;
   // console.log(search.length, config, "rule =", conditionRule, " startting ");
@@ -260,7 +260,7 @@ export const Query = (config: QueryConfig) => {
 
           // lowLevelBlocks,
         ] as const;
-        // console.log("end!!!!!!", result);
+        console.log("end!!!!!!", result);
         console.timeEnd("SSSS");
 
         return result;

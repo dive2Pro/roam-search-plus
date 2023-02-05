@@ -33,11 +33,15 @@ type QueryConfig = {
   search: string[];
   modificationDate?: SelectDate;
   creationDate?: SelectDate;
-  uids?: string[]; // 选中的页面
   caseIntensive: boolean;
   exclude?: {
-    pageUids?: string[], // 目标页面
-    blockUids?: string[], // 引用该 block
-    tagsUids?: string[] // 引用该 tag
+    pages?: string[], // 目标页面
+    blocks?: string[], // 引用该 block
+    tags?: string[] // 引用该 tag
+  },
+  include?: {
+    pages?: string[], // 目标页面
+    blocks?: string[], // 引用该 block
+    tags?: string[] // 引用该 tag
   }
 }
