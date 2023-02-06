@@ -75,7 +75,7 @@ export const Query = (config: QueryConfig) => {
         }
       }
       if (config.exclude.tags.length && item.block[":block/refs"]?.length) {
-        console.log(config.exclude.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]))
+        // console.log(config.exclude.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]))
         if (config.exclude.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
           return false
         }
@@ -219,7 +219,7 @@ export const Query = (config: QueryConfig) => {
           }
         }
         if (config.exclude.tags.length && page.block[":block/refs"]?.length) {
-          console.log(config.exclude.tags, page.block[":block/refs"]?.map(item => item[":db/id"]))
+          // console.log(config.exclude.tags, page.block[":block/refs"]?.map(item => item[":db/id"]))
           if (config.exclude.tags.some(tagId => page.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
             return false
           }
@@ -248,7 +248,7 @@ export const Query = (config: QueryConfig) => {
     });
   }
   const { search } = config;
-  console.log(config, " ---- config");
+  // console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const ary = search;
   // console.log(search.length, config, "rule =", conditionRule, " startting ");
