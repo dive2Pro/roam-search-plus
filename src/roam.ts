@@ -1,7 +1,9 @@
 import { PullBlock } from "roamjs-components/types";
 
 type RefsPullBlock = PullBlock & {
-  ":block/_refs": {id: number}[]
+  ":block/_refs": { id: number }[];
+  ":block/_children": RefsPullBlock[];
+  relatedRefs: number[];
 }
 
 type ReversePullBlock = {
@@ -57,6 +59,7 @@ export type CacheBlockType = {
 
 let CACHE_PAGES: Map<string, CacheBlockType> = new Map();
 let CACHE_BLOCKS: Map<string, CacheBlockType> = new Map();
+let CACHE_BLOCKS_BY_ID: Map<number, RefsPullBlock> = new Map();
 let CACHE_USERS: Map<string, User> = new Map();
 let CACHE_BLOCK_REFERENCES: Map<string, string> = new Map();
 
@@ -67,12 +70,15 @@ export const getAllUsers = () => {
 
 export const getAllPages = () => {
   // return PAGES;
+  
   return [...CACHE_PAGES.values()];
 };
 export const getAllBlocks = () => {
   // return BLOCKS;
   return [...CACHE_BLOCKS.values()];
 };
+
+
 
 function blockEnhance(
   block: RefsPullBlock,
@@ -82,6 +88,17 @@ function blockEnhance(
   if (!block[":block/string"]) {
     return;
   }
+
+  CACHE_BLOCKS_BY_ID.set(block[":db/id"], block);
+  // block.relatedRefs = block[":block/refs"]?.map(item => item[":db/id"]) || [];
+
+  // let parent = block[":block/_children"]?.[0]
+
+  // while (parent) {
+  //   block.relatedRefs.push(...parent[":block/refs"]?.map(item => item[":db/id"]) || [])
+  //   parent = parent[":block/_children"]?.[0]
+  //   console.log(parent, ' ---')
+  // }
 
   if (config.blockRefToString) {
     const replacedString = replaceBlockReference(block[":block/string"]);
@@ -114,12 +131,29 @@ const PullStr = `:block/string
       :block/props
       :block/parents
       :block/_refs
-`
+      :block/refs
+      :db/id
+`;
+
+export const isUnderTag = (tags: number[], item: RefsPullBlock) => {
+  if (!item.relatedRefs?.length) {
+
+  }
+  const relatedRefs = item[":block/refs"]?.map(item => item[":db/id"]) || [];
+
+  item[":block/parents"]?.map((p) => {
+    relatedRefs.push(...CACHE_BLOCKS_BY_ID.get(p[":db/id"])?.[":block/refs"]?.map(ref => ref[":db/id"]) || [])
+  })
+
+  return tags.some(tag => relatedRefs.some(ref => +ref === +tag))
+
+}
 
 export const initCache = (config: { blockRefToString: boolean }) => {
   CACHE_BLOCKS.clear();
   CACHE_PAGES.clear();
   CACHE_USERS.clear();
+  CACHE_BLOCKS_BY_ID.clear();
   CACHE_BLOCK_REFERENCES.clear();
   //
 
@@ -154,6 +188,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
       page: item[":node/title"],
       isBlock: false,
     };
+    CACHE_BLOCKS_BY_ID.set(item[":db/id"], item);
     CACHE_PAGES.set(b.block[":block/uid"], b);
   });
   const userIds = window.roamAlphaAPI.data.fast.q(
@@ -214,6 +249,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     ) as unknown as RefsPullBlock[]
   )
     .map((item) => {
+      CACHE_BLOCKS_BY_ID.set(item[":db/id"], item);
       return {
         block: item,
         page: item[":node/title"],

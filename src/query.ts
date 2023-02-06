@@ -1,6 +1,6 @@
 import { PullBlock } from "roamjs-components/types";
 import { pull } from "./helper";
-import { CacheBlockType, getAllBlocks, getAllPages } from "./roam";
+import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 
 let conditionRule = "";
 
@@ -74,17 +74,17 @@ export const Query = (config: QueryConfig) => {
           return false;
         }
       }
-      if (config.exclude.tags.length && item.block[":block/refs"]?.length) {
+      if (config.exclude.tags.length) {
         // console.log(config.exclude.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]))
-        if (config.exclude.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
-          return false
+        // if (config.exclude.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+        // return false
+        // }
+        if (isUnderTag(config.exclude.tags, item.block)) {
+          return false;
         }
       }
       if (config.include.tags.length) {
-        if (!item.block[":block/refs"]?.length) {
-          return false;
-        }
-        if (!config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+        if (!isUnderTag(config.include.tags, item.block)) {
           return false
         }
       }
@@ -230,7 +230,7 @@ export const Query = (config: QueryConfig) => {
           return false;
         }
       }
-      
+
       if (config.include.tags.length) {
         if (!page.block[":block/refs"]?.length) {
           return false;
@@ -248,7 +248,7 @@ export const Query = (config: QueryConfig) => {
     });
   }
   const { search } = config;
-  // console.log(config, " ---- config");
+  console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const ary = search;
   // console.log(search.length, config, "rule =", conditionRule, " startting ");

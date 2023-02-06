@@ -1049,6 +1049,7 @@ export const store = {
       renewCache2(ui.conditions.get());
     },
     result: {
+      // 用于重新打开时触发更新
       setList(list: ResultItem[]) {
         setList(list);
       },
@@ -1207,7 +1208,7 @@ export const store = {
             .map((item) => ({
               id: item.block[":block/uid"],
               text: item.block[":node/title"],
-              dbId: "" + item.block[":db/id"],
+              dbId: item.block[":db/id"],
               backlinkCount: item.block[":block/_refs"]?.length || 0
             }))
             .filter((item) => item.text);
