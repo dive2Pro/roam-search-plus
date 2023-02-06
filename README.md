@@ -41,7 +41,7 @@ You can open the search dialog in two ways
 - [x] performance improvement
 - [x] embed mode
 - [x] multiple choice
-- [ ] tags involve
+- [x] tags involve
 - [ ] RegExp search
 - [ ] panel settings
 - [x] save inputs as config like tab
