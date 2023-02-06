@@ -68,6 +68,7 @@ export const Query = (config: QueryConfig) => {
           return false;
         }
       }
+
       if (config.exclude.pages.length) {
         if (config.exclude.pages.some(pageUid => pageUid === item.page)) {
           return false;
@@ -79,6 +80,15 @@ export const Query = (config: QueryConfig) => {
           return false
         }
       }
+      if (config.include.tags.length) {
+        if (!item.block[":block/refs"]?.length) {
+          return false;
+        }
+        if (!config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+          return false
+        }
+      }
+
       const r = keywords.every((keyword) => {
         return (
           item.block[":block/string"] &&
@@ -200,6 +210,7 @@ export const Query = (config: QueryConfig) => {
 
   function findAllRelatedPageUids(keywords: string[]) {
     return getAllPages().filter((page) => {
+
       // 过滤掉非选中页面
       if (config.exclude) {
         if (config.exclude.pages.length) {
@@ -217,6 +228,17 @@ export const Query = (config: QueryConfig) => {
       if (config.include.pages?.length) {
         if (!config.include.pages.some((uid) => page.block[":block/uid"] === uid)) {
           return false;
+        }
+      }
+      
+      if (config.include.tags.length) {
+        if (!page.block[":block/refs"]?.length) {
+          return false;
+        }
+        if (config.include.tags.length && page.block[":block/refs"]?.length) {
+          if (!config.include.tags.some(tagId => page.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+            return false
+          }
         }
       }
       const r = keywords.every((keyword) => {

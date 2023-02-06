@@ -329,15 +329,6 @@ const trigger = debounce(
           };
         }),
         ...(lowBlocks || []).map((item) => {
-          // 找到这些 children 层级最低的共同 parent block
-
-          if (item.children.length > 1) {
-            // const lowestParent = findLowestParentFromBlocks(
-            //   item.children.map((item) => ({ uid: item.block[":block/uid"] }))
-            // );
-            // if (lowestParent) {
-            // }
-          }
           return {
             id: item.page.block[":block/uid"],
             text: item.page.block[":node/title"],
@@ -919,7 +910,7 @@ export const store = {
               }
             },
           },
-          
+
         },
         page: {
           include: {
@@ -1216,7 +1207,8 @@ export const store = {
             .map((item) => ({
               id: item.block[":block/uid"],
               text: item.block[":node/title"],
-              dbId: item.block[":db/id"]
+              dbId: "" + item.block[":db/id"],
+              backlinkCount: item.block[":block/_refs"]?.length || 0
             }))
             .filter((item) => item.text);
         },
@@ -1296,6 +1288,10 @@ export const store = {
         const nowConditions = ui.conditions.get();
         // console.log(nowConditions, " --- ", defaultConditions, query.people.get());
         return [
+          nowConditions.filter.page.exclude.length,
+          nowConditions.filter.page.include.length,
+          nowConditions.filter.tags.include.length,
+          nowConditions.filter.tags.include.length,
           nowConditions.modificationDate !== undefined,
           nowConditions.creationDate !== undefined,
           nowConditions.users.selected.length !== 0,

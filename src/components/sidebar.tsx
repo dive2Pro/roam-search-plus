@@ -105,7 +105,7 @@ export const Sidebar = observer(() => {
           alignIndicator="right"
         />
 
-        <div className="sidebar-title bp3-button-text">References</div>
+        <div className="sidebar-title bp3-button-text">Scopes</div>
 
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
@@ -167,10 +167,11 @@ export const Sidebar = observer(() => {
                 }
                 items={items}
 
-                itemRenderer={(item, itemProps) => {
+                itemRenderer={(index, item) => {
                   return (
                     <Button
-                      minimal small fill alignText="left" text={item.text} onClick={e => {
+                    
+                      minimal  fill alignText="left" text={item.text} onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.shiftKey) {
@@ -240,11 +241,13 @@ export const Sidebar = observer(() => {
                   />
                 }
                 items={items}
-                itemRenderer={(item, itemProps) => {
+                itemRenderer={(index, item) => {
                   return (
                     <Button
-
-                      minimal small fill alignText="left" text={item.text} onClick={e => {
+                      // rightIcon={
+                      //   <span>{item.backlinkCount}</span>
+                      // }
+                      minimal  fill alignText="left" text={item.text} onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.shiftKey) {
@@ -471,7 +474,7 @@ function RoamTagFilterHeader<T extends { text: string }>(props: {
       {props.includes.length ?
         <div className="flex-row flex-wrap flex-1">
           {props.includes.map(item => {
-            return <Button small text={item.text} style={{ margin: 4 }}
+            return <Button  text={item.text} style={{ margin: 4 }}
               onClick={() => props.onItemAddClick(item)}
             />
           })}
@@ -502,8 +505,10 @@ function RoamTagFilterHeader<T extends { text: string }>(props: {
 
 }
 
-function RoamPageFilter(props: Omit<MultiSelectProps<{ id: string, text: string }>, 'tagRenderer' | 'onItemSelect'> & {
-  header?: JSX.Element
+function RoamPageFilter<T extends { text: string }>(props: {
+  items: T[],
+  header?: JSX.Element,
+  itemRenderer: (index: number, d: T) => JSX.Element
 }) {
   const [search, setSearch] = useState("");
   const pages = props.items.filter(item => {
@@ -524,7 +529,7 @@ function RoamPageFilter(props: Omit<MultiSelectProps<{ id: string, text: string 
       totalCount={pages.length}
       data={pages}
       itemContent={(index, data) => {
-        return props.itemRenderer(data, {} as any);
+        return props.itemRenderer(index, data);
       }}
     />
   </div>

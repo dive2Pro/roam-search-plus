@@ -1,5 +1,9 @@
 import { PullBlock } from "roamjs-components/types";
 
+type RefsPullBlock = PullBlock & {
+  ":block/_refs": {id: number}[]
+}
+
 type ReversePullBlock = {
   ":block/uid": string;
   ":block/string": string;
@@ -46,7 +50,7 @@ let BLOCKS: BlockWithPage[] = [];
 let USERS: User[] = [];
 
 export type CacheBlockType = {
-  block: PullBlock;
+  block: RefsPullBlock;
   page: string;
   isBlock: boolean;
 };
@@ -71,7 +75,7 @@ export const getAllBlocks = () => {
 };
 
 function blockEnhance(
-  block: PullBlock,
+  block: RefsPullBlock,
   page: string,
   config: { blockRefToString: boolean }
 ) {
@@ -98,6 +102,20 @@ function blockEnhance(
   CACHE_BLOCKS.set(b.block[":block/uid"], b);
 }
 
+const PullStr = `:block/string 
+      :node/title 
+      :block/uid 
+      :block/order 
+      :block/heading 
+      :block/open 
+      :children/view-type
+      :block/text-align
+      :edit/time 
+      :block/props
+      :block/parents
+      :block/_refs
+`
+
 export const initCache = (config: { blockRefToString: boolean }) => {
   CACHE_BLOCKS.clear();
   CACHE_PAGES.clear();
@@ -109,7 +127,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     window.roamAlphaAPI.data.fast.q(
       `
     [
-            :find (pull ?e [*]) ?e2
+            :find (pull ?e [${PullStr}]) ?e2
             :where                
                 [?e :block/page ?p]
                 [?p :block/uid ?e2]
@@ -124,12 +142,12 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     window.roamAlphaAPI.data.fast.q(
       `
     [
-            :find [(pull ?e [*]) ...]
+            :find [(pull ?e [${PullStr}]) ...]
             :where                
                 [?e :node/title]
         ]
     `
-    ) as unknown as PullBlock[]
+    ) as unknown as RefsPullBlock[]
   ).map((item) => {
     const b = {
       block: item,
@@ -193,7 +211,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
         ]
     `,
       new Date().setHours(0, 0, 0, 0)
-    ) as unknown as PullBlock[]
+    ) as unknown as RefsPullBlock[]
   )
     .map((item) => {
       return {
