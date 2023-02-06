@@ -121,6 +121,21 @@ const defaultConditions = {
     items: [] as User[],
     selected: [] as { id: string; text: string }[],
   },
+  exclude: {
+    pages: [] as BaseUiItem[],
+    tags: [] as (BaseUiItem)[],
+    blocks: [] as BaseUiItem[]
+  },
+  filter: {
+    tags: {
+      include: [] as BaseUiItem[],
+      exclude: [] as BaseUiItem[]
+    },
+    page: {
+      include: [] as BaseUiItem[],
+      exclude: [] as BaseUiItem[]
+    }
+  }
 };
 
 const defaultTab = () => ({
@@ -191,6 +206,9 @@ const windowUi = observable({
     active: Tabs[0].id,
     tabs: clone(Tabs),
     nameInputing: false,
+  },
+  select: {
+    open: false
   }
 });
 
@@ -256,16 +274,15 @@ const getList = () => {
 
 let cancelPre = () => { };
 const trigger = debounce(
-  async (search: string, caseIntensive: boolean, uids?: string[]) => {
+  async (config: Omit<QueryConfig, 'search'> & { search: string }) => {
     cancelPre();
-    if (!search) {
+    if (!config.search) {
       return;
     }
     // console.log(search, " start search");
     const queryAPi = Query({
-      search: keywordsBuildFrom(search),
-      uids,
-      caseIntensive,
+      ...config,
+      search: keywordsBuildFrom(config.search),
     });
     cancelPre = queryAPi.cancel;
     await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
@@ -312,15 +329,6 @@ const trigger = debounce(
           };
         }),
         ...(lowBlocks || []).map((item) => {
-          // 找到这些 children 层级最低的共同 parent block
-
-          if (item.children.length > 1) {
-            // const lowestParent = findLowestParentFromBlocks(
-            //   item.children.map((item) => ({ uid: item.block[":block/uid"] }))
-            // );
-            // if (lowestParent) {
-            // }
-          }
           return {
             id: item.page.block[":block/uid"],
             text: item.page.block[":node/title"],
@@ -368,16 +376,26 @@ const triggerWhenSearchChange = async (next: string) => {
     return;
   }
   const nextStr = next.trim();
-  const selectedPagesUids = ui.conditions.pages.selected.peek();
-  const caseIntensive = ui.conditions.caseIntensive.peek();
   if (nextStr !== prevSearch) {
     ui.loading.set(!!nextStr);
     try {
-      await trigger(
-        nextStr,
+      // const selectedPagesUids = ui.conditions.pages.selected.peek();
+      const caseIntensive = ui.conditions.caseIntensive.peek();
+      const pageFilter = ui.conditions.filter.page.peek();
+      const tagFilter = ui.conditions.filter.tags.peek();
+      await trigger({
+        search: nextStr,
         caseIntensive,
-        selectedPagesUids.map((item) => item.id)
-      );
+        // uids: selectedPagesUids.map((item) => item.id),
+        exclude: {
+          pages: pageFilter.exclude.map(item => item.id),
+          tags: tagFilter.exclude.map(item => item.dbId!),
+        },
+        include: {
+          pages: pageFilter.include.map(item => item.id),
+          tags: tagFilter.include.map(item => item.dbId!),
+        }
+      });
     } catch (e) {
       console.error(e);
       ui.loading.set(false);
@@ -391,16 +409,30 @@ const disposeSearch = ui.search.onChange(async (next) => {
 
 const dispose = observe(async () => {
   const search = ui.search.peek().trim();
-  const selectedPagesUids = ui.conditions.pages.selected.get();
   const caseIntensive = ui.conditions.caseIntensive.get();
-
+  // const exclude = ui.conditions.exclude.get();
+  const pageFilter = ui.conditions.filter.page.get();
+  const tagFilter = ui.conditions.filter.tags.get();
   ui.loading.set(!!search);
-
   try {
     await trigger(
-      search,
-      caseIntensive,
-      selectedPagesUids.map((item) => item.id)
+      {
+        search,
+        caseIntensive,
+        // uids: selectedPagesUids.map((item) => item.id),
+        exclude: {
+          pages: pageFilter.exclude.map(item => item.id),
+          tags: tagFilter.exclude.map(item => item.dbId!),
+        },
+        include: {
+          pages: pageFilter.include.map(item => item.id),
+          tags: tagFilter.include.map(item => item.dbId!),
+        }
+        // exclude: {
+        //   pageUids: exclude.pages.map(item => item.id),
+        //   tagsUids: exclude.tags.map(item => item.dbId!)
+        // }
+      }
     );
   } catch (e) {
     console.error(e, " ---");
@@ -622,6 +654,9 @@ export const store = {
       });
     },
     toggleDialog() {
+      if (store.ui.conditions.isPageSelecting()) {
+        return
+      }
       if (windowUi.visible.get()) {
         if (windowUi.filter.open.get()) {
           store.actions.toggleFilter();
@@ -774,7 +809,7 @@ export const store = {
         navigator.clipboard.writeText(pasteStr);
       },
     },
-    openInsidebarInMultiple() { 
+    openInsidebarInMultiple() {
       const search = ui.search.peek();
       store.actions.history.saveSearch(search);
       ui.selectedTarget
@@ -785,7 +820,7 @@ export const store = {
         })
       ui.selectedTarget.set([]);
       store.actions.toggleDialog();
-      ui.showSelectedTarget.set(false);  
+      ui.showSelectedTarget.set(false);
     },
     confirmMultiple(oneline = false) {
       const search = ui.search.peek();
@@ -831,7 +866,7 @@ export const store = {
       },
       async currentPage() {
         const page = await getCurrentPage();
-        store.actions.conditions.changeSelectedPages({
+        store.actions.conditions.filter.page.include.changeSelected({
           id: page[":block/uid"],
           text: page[":node/title"],
         });
@@ -845,6 +880,75 @@ export const store = {
       },
     },
     conditions: {
+      filter: {
+        tag: {
+          include: {
+            clearSelected() {
+              ui.conditions.filter.tags.include.set([]);
+            },
+            changeSelected(obj: BaseUiItem) {
+              const selected = ui.conditions.filter.tags.include.peek();
+              const index = selected.findIndex((item) => item.id === obj.id);
+              if (index > -1) {
+                ui.conditions.filter.tags.include.splice(index, 1);
+              } else {
+                ui.conditions.filter.tags.include.push(obj);
+              }
+            }
+          },
+          exclude: {
+            clearSelected() {
+              ui.conditions.filter.tags.exclude.set([]);
+            },
+            changeSelected(obj: BaseUiItem) {
+              const selected = ui.conditions.filter.tags.exclude.peek();
+              const index = selected.findIndex((item) => item.id === obj.id);
+              if (index > -1) {
+                ui.conditions.filter.tags.exclude.splice(index, 1);
+              } else {
+                ui.conditions.filter.tags.exclude.push(obj);
+              }
+            },
+          },
+
+        },
+        page: {
+          include: {
+            clearSelected() {
+              ui.conditions.filter.page.include.set([]);
+            },
+            changeSelected(obj: BaseUiItem) {
+              const selected = ui.conditions.filter.page.include.peek();
+              const index = selected.findIndex((item) => item.id === obj.id);
+              if (index > -1) {
+                ui.conditions.filter.page.include.splice(index, 1);
+              } else {
+                ui.conditions.filter.page.include.push(obj);
+              }
+            }
+          },
+          exclude: {
+            clearSelected() {
+              ui.conditions.filter.page.exclude.set([]);
+            },
+            changeSelected(obj: BaseUiItem) {
+              const selected = ui.conditions.filter.page.exclude.peek();
+              const index = selected.findIndex((item) => item.id === obj.id);
+              if (index > -1) {
+                ui.conditions.filter.page.exclude.splice(index, 1);
+              } else {
+                ui.conditions.filter.page.exclude.push(obj);
+              }
+            },
+
+          }
+        }
+      },
+      toggleSelect() {
+        setTimeout(() => {
+          windowUi.select.open.toggle();
+        }, 100)
+      },
       async toggleBlockRefToString() {
         ui.conditions.blockRefToString.toggle();
       },
@@ -862,6 +966,9 @@ export const store = {
       },
       toggleCaseIntensive() {
         ui.conditions.caseIntensive.toggle();
+      },
+      clearSelectedPages() {
+        ui.conditions.pages.selected.set([])
       },
       changeSelectedPages(obj: { id: string; text: string }) {
         const selected = ui.conditions.pages.selected.peek();
@@ -886,6 +993,36 @@ export const store = {
         ui.conditions.modificationDate.set(undefined);
         ui.conditions.creationDate.set(undefined);
       },
+      exclude: {
+        page: {
+          clearSelected() {
+            ui.conditions.exclude.pages.set([]);
+          },
+          changeSelected(obj: BaseUiItem) {
+            const selected = ui.conditions.exclude.pages.peek();
+            const index = selected.findIndex((item) => item.id === obj.id);
+            if (index > -1) {
+              ui.conditions.exclude.pages.splice(index, 1);
+            } else {
+              ui.conditions.exclude.pages.push(obj);
+            }
+          }
+        },
+        tag: {
+          clearSelected() {
+            ui.conditions.exclude.tags.set([]);
+          },
+          changeSelected(obj: BaseUiItem) {
+            const selected = ui.conditions.exclude.tags.peek();
+            const index = selected.findIndex((item) => item.id === obj.id);
+            if (index > -1) {
+              ui.conditions.exclude.tags.splice(index, 1);
+            } else {
+              ui.conditions.exclude.tags.push(obj);
+            }
+          }
+        }
+      }
     },
     setHeight(vHeight: number) {
       const windowHeight = document.body.getBoundingClientRect().height;
@@ -1043,6 +1180,9 @@ export const store = {
       },
     },
     conditions: {
+      isPageSelecting() {
+        return windowUi.select.open.get()
+      },
       isBlockRefToString() {
         return ui.conditions.blockRefToString.get();
       },
@@ -1067,6 +1207,8 @@ export const store = {
             .map((item) => ({
               id: item.block[":block/uid"],
               text: item.block[":node/title"],
+              dbId: "" + item.block[":db/id"],
+              backlinkCount: item.block[":block/_refs"]?.length || 0
             }))
             .filter((item) => item.text);
         },
@@ -1105,10 +1247,51 @@ export const store = {
           return ui.conditions.users.selected.get();
         },
       },
+      exclude: {
+        page: {
+          getSelected() {
+            return ui.conditions.exclude.pages.get()
+          },
+          isSelected(id: string) {
+            return ui.conditions.exclude.pages.get().findIndex(item => item.id === id) > -1
+          }
+        },
+        tag: {
+          getSelected() {
+            return ui.conditions.exclude.tags.get()
+          },
+          isSelected(id: string) {
+            return ui.conditions.exclude.tags.get().findIndex(item => item.id === id) > -1
+          }
+        }
+      },
+      filter: {
+        tag: {
+          include() {
+            return ui.conditions.filter.tags.include.get();
+          },
+          exclude() {
+            return ui.conditions.filter.tags.exclude.get();
+          }
+        },
+        page: {
+          include() {
+            return ui.conditions.filter.page.include.get();
+          },
+          exclude() {
+            return ui.conditions.filter.page.exclude.get();
+          }
+        }
+      },
+
       hasChanged() {
         const nowConditions = ui.conditions.get();
         // console.log(nowConditions, " --- ", defaultConditions, query.people.get());
         return [
+          nowConditions.filter.page.exclude.length,
+          nowConditions.filter.page.include.length,
+          nowConditions.filter.tags.include.length,
+          nowConditions.filter.tags.include.length,
           nowConditions.modificationDate !== undefined,
           nowConditions.creationDate !== undefined,
           nowConditions.users.selected.length !== 0,

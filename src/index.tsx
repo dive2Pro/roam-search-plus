@@ -93,13 +93,13 @@ const initSidebarIcon = () => {
     menu.removeChild(el);
   });
 };
+const PREFIX = "@ROAM-search+" + window.roamAlphaAPI.graph.name + '-'
 
 function compatialOffline(extensionAPI: RoamExtensionAPI): RoamExtensionAPI {
   if (window.roamAlphaAPI.graph.type === 'offline') {
-    const PREFIX = "@ROAM-search+" + window.roamAlphaAPI.graph.name + '-'
-    return {
+    const r =  {
       settings: {
-        async set(k, v: string) {
+        async set(k: string, v: string) {
           localStorage.setItem(`${PREFIX}${k}`, v);
         },
         get(k: string) {
@@ -118,6 +118,13 @@ function compatialOffline(extensionAPI: RoamExtensionAPI): RoamExtensionAPI {
         panel: extensionAPI.settings.panel
       }
     }
+    extension_helper.on_uninstall(() => {
+      Object.keys(r.settings.getAll()).forEach(key => {
+        localStorage.removeItem(`${PREFIX}${key}`)
+      })
+    })
+
+    return r;
   }
 
   return extensionAPI;

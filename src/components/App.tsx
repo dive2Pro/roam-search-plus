@@ -143,7 +143,7 @@ const MainView = observer(() => {
                       }}
                     ></MenuItem>
                     <MenuItem
-                      icon="add-to-artifact"
+                      icon="arrow-right"
                       text="Open in sidebar"
                       onClick={() => {
                         store.actions.openInsidebarInMultiple();

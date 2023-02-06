@@ -571,3 +571,27 @@
 .titlebar-container:hover *::-webkit-scrollbar-thumb {
   opacity: 1;
 }
+
+.advanced-search-el .primary {
+  color: var(--primary-color);
+}
+.advanced-search-el .danger {
+  color: var(--danger-color, #c23030);
+}
+
+.page-select {
+  min-width: 500px;
+  max-width: 500px;
+  max-height: 450px;
+  overflow: scroll;
+  background-color: white;
+}
+
+
+.bp3-dark .page-select{
+  background-color: var(--dark-bg);
+}
+
+.page-select .bp3-input-group {
+  padding: 8px;
+}
