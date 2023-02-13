@@ -2,8 +2,10 @@
 
 > Search keywords do not need to be in a block
 
-![image](https://user-images.githubusercontent.com/23192045/215319479-57fa2c59-7311-461e-9a75-34f9c91a8fb5.png)
-![image](https://user-images.githubusercontent.com/23192045/215515000-64b38d73-3f7b-4dd3-8a49-ed6c652a4922.png)
+<img width="1095" alt="image" src="https://user-images.githubusercontent.com/23192045/218399890-bc7699fe-207e-417b-a46d-7c0ef0fdfbe8.png">
+
+<img width="983" alt="image" src="https://user-images.githubusercontent.com/23192045/218399872-1e4a8f78-1122-41fa-a87f-27981b3b151c.png">
+
 
 
 <div>
