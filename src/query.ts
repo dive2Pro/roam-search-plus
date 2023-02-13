@@ -2,7 +2,6 @@ import { PullBlock } from "roamjs-components/types";
 import { pull } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 
-let conditionRule = "";
 
 export const Query = (config: QueryConfig) => {
   console.time("SSSS");
@@ -11,31 +10,6 @@ export const Query = (config: QueryConfig) => {
     keyword: string,
     intensive = true
   ) => { };
-  conditionRule = `
-      [
-        [
-          (condition ?block)
-            ${config.modificationDate
-      ? `
-                [?block :edit/time ?etime]
-                [(>= ?etime ${config.modificationDate.start.valueOf()})]
-                [(<= ?etime ${config.modificationDate.end.valueOf()})]
-            `
-      : ""
-    }
-            ${config.creationDate
-      ? `
-                [?block :create/time ?ctime]
-                [(>= ?ctime ${config.creationDate.start.unix()})]
-                [(<= ?ctime ${config.creationDate.end.unix()})]
-            `
-      : ""
-    }
-            [?block]
-          ]
-      ]
-    
-    `;
   const cancelRef = {
     current: false,
   };
@@ -243,7 +217,6 @@ export const Query = (config: QueryConfig) => {
   console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const ary = search;
-  // console.log(search.length, config, "rule =", conditionRule, " startting ");
   const promise = Promise.all([
     findAllRelatedPageUids(ary),
     findAllRelatedBlocks(ary),
