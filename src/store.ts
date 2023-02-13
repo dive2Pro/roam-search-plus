@@ -511,12 +511,16 @@ const disposeUiResult = observe(async () => {
   const creationDate = ui.conditions.creationDate.get();
 
   if (modificationDate) {
+    const start = dayjs(modificationDate.start);
+    const end = dayjs(modificationDate.end);
     uiResult = uiResult.filter((item) => {
+      // console.log(item.editTime, +start, + end)
       return (
-        item.editTime >= modificationDate.start.valueOf() &&
-        item.editTime <= modificationDate.end.valueOf()
+        item.editTime >= +start &&
+        item.editTime <= +end
       );
     });
+
   }
   if (creationDate) {
     uiResult = uiResult.filter((item) => {
@@ -1366,7 +1370,7 @@ export const store = {
       resultList() { },
     },
     hasResult() {
-      return getResult().length > 0;
+      return getList().length > 0;
     },
   },
 };

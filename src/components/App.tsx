@@ -199,7 +199,7 @@ const MainView = observer(() => {
         ) : null}
 
         <sub className="hint">
-          {store.ui.result.listSize() > 0 && store.ui.hasValidSearch() ? (
+          {store.ui.result.listSize() > 0  ? (
             <span>
               <strong>+{store.ui.result.listSize()}</strong> results
             </span>
@@ -368,33 +368,6 @@ const App = observer(() => {
               }}
             />
           </ButtonGroup>
-
-          {/* <span
-            className="window-control"
-            onClick={() => {
-              store.actions.toggleDialog();
-            }}
-            style={{
-              // background: "#FFBD44",
-            }}
-          >
-            <Icon icon="minus" intent="warning" size={12} />
-          </span>
-          <span
-            className="window-control"
-            onClick={() => {
-              store.actions.toggleMaximize();
-            }}
-            style={{
-              background: "#00CA4E",
-            }}
-          >
-            <Icon
-              color="black"
-              icon={store.ui.mode.isMaximize() ? "minimize" : "maximize"}
-              size={6}
-            />
-          </span> */}
         </div>
       </div>
       <div style={{ display: "flex" }} className="search-content">
