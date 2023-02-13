@@ -467,7 +467,7 @@ function RoamTagFilterHeader<T extends { text: string }>(props: {
       <div className="flex-row p-1.5">
         <strong style={{ marginRight: 8 }}>Includes{` `}</strong> Click to Add
         <div className="flex-1" />
-        <Button minimal small icon="delete" onClick={() => {
+        <Button minimal autoFocus={false} small icon="delete" onClick={() => {
           props.onClearAdded();
         }} />
       </div>
@@ -544,6 +544,7 @@ const SelectPages2 = observer(({ children, content, ...rest }: { children: React
       onClose={() => {
         store.actions.conditions.toggleSelect()
       }}
+      autoFocus={false}
       content={content}>
       {children}
     </Popover >

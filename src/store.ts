@@ -277,7 +277,22 @@ const trigger = debounce(
   async (config: Omit<QueryConfig, 'search'> & { search: string }) => {
     cancelPre();
     if (!config.search) {
-      return;
+      let filterCount = 0;
+      if (config.exclude) {
+        Object.keys(config.exclude).forEach(key => {
+          filterCount += (config.exclude as any)[key].length
+        })
+      }
+      if (config.include) {
+        Object.keys(config.include).forEach(key => {
+          filterCount += (config.include as any)[key].length
+        })
+
+      }
+
+      if (filterCount === 0) {
+        return;
+      }
     }
     // console.log(search, " start search");
     const queryAPi = Query({
@@ -360,7 +375,7 @@ const trigger = debounce(
         }),
       ];
       // _result = result;
-      // console.log(" ui result = ", result);
+      console.log(" ui result = ", result);
       // ui.result.set([]);
       console.timeEnd("2222");
       setResult(result);
@@ -372,34 +387,29 @@ const trigger = debounce(
 let prevSearch = "";
 
 const triggerWhenSearchChange = async (next: string) => {
-  if (!next) {
-    return;
-  }
   const nextStr = next.trim();
-  if (nextStr !== prevSearch) {
-    ui.loading.set(!!nextStr);
-    try {
-      // const selectedPagesUids = ui.conditions.pages.selected.peek();
-      const caseIntensive = ui.conditions.caseIntensive.peek();
-      const pageFilter = ui.conditions.filter.page.peek();
-      const tagFilter = ui.conditions.filter.tags.peek();
-      await trigger({
-        search: nextStr,
-        caseIntensive,
-        // uids: selectedPagesUids.map((item) => item.id),
-        exclude: {
-          pages: pageFilter.exclude.map(item => item.id),
-          tags: tagFilter.exclude.map(item => item.dbId!),
-        },
-        include: {
-          pages: pageFilter.include.map(item => item.id),
-          tags: tagFilter.include.map(item => item.dbId!),
-        }
-      });
-    } catch (e) {
-      console.error(e);
-      ui.loading.set(false);
-    }
+  ui.loading.set(true);
+  try {
+    // const selectedPagesUids = ui.conditions.pages.selected.peek();
+    const caseIntensive = ui.conditions.caseIntensive.peek();
+    const pageFilter = ui.conditions.filter.page.peek();
+    const tagFilter = ui.conditions.filter.tags.peek();
+    await trigger({
+      search: nextStr,
+      caseIntensive,
+      // uids: selectedPagesUids.map((item) => item.id),
+      exclude: {
+        pages: pageFilter.exclude.map(item => item.id),
+        tags: tagFilter.exclude.map(item => item.dbId!),
+      },
+      include: {
+        pages: pageFilter.include.map(item => item.id),
+        tags: tagFilter.include.map(item => item.dbId!),
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    ui.loading.set(false);
   }
 };
 
@@ -1118,7 +1128,16 @@ export const store = {
       return [] as string[];
     },
     isTyped() {
-      return ui.search.get()?.length;
+      // 
+      
+      const filter = ui.conditions.filter.get();
+      const filterCount = filter.page.exclude.length + filter.page.include.length +
+        filter.tags.exclude.length + filter.tags.include.length
+      
+      if (store.ui.conditions.isPageSelecting()) {
+        return true
+      }
+      return ui.search.get()?.length || filterCount > 0;
     },
     hasValidSearch() {
       return ui.search.get()?.trim()?.length;
@@ -1347,7 +1366,7 @@ export const store = {
       resultList() { },
     },
     hasResult() {
-      return store.ui.getSearch().length > 0 && getResult().length > 0;
+      return getResult().length > 0;
     },
   },
 };
