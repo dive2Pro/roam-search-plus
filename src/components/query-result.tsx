@@ -57,9 +57,8 @@ const Row = observer((props: { item: ResultItem }) => {
     });
 
     const pathDispose = observe(() => {
-      const search = store.ui.getSearch();
       const isLoading = store.ui.isLoading();
-      if (isLoading || !search) {
+      if (isLoading) {
         return;
       }
 

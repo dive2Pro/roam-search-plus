@@ -31,8 +31,6 @@ type User = {
 
 type QueryConfig = {
   search: string[];
-  modificationDate?: SelectDate;
-  creationDate?: SelectDate;
   caseIntensive: boolean;
   exclude?: {
     pages?: string[], // 目标页面

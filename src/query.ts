@@ -116,21 +116,13 @@ export const Query = (config: QueryConfig) => {
     // console.log("find low");
 
     // let lowBlocks: CacheBlockType[] = [];
-    timemeasure("0", () => {
-      // lowBlocks = getAllBlocks().filter((b) => {
-      //   return !topLevelBlocks.find(
-      //     (tb) => tb.block[":block/uid"] === b.block[":block/uid"]
-      //   );
-      // });
-      if (config.exclude.pages) {
-        lowBlocks = lowBlocks
-      }
-      if (config.include.pages?.length) {
-        lowBlocks = lowBlocks.filter((block) => {
-          return config.include.pages.some((uid) => uid === block.page);
-        });
-      }
-    });
+    // timemeasure("0", () => {
+    //   if (config.include.pages?.length) {
+    //     lowBlocks = lowBlocks.filter((block) => {
+    //       return config.include.pages.some((uid) => uid === block.page);
+    //     });
+    //   }
+    // });
 
     // keywords.forEach((keyword) => {
     //   lowBlocks.filter((item) => {

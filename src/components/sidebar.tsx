@@ -112,30 +112,6 @@ export const Sidebar = observer(() => {
         <Switch label="Have Twitter" alignIndicator="left" />
               <Switch label="Have PDF" alignIndicator="left" />
               <Switch label="Have Media" alignIndicator="left" /> */}
-        {/* <div>
-          <div className="bp3-heading">Tags</div>
-          <TagInput
-            fill
-            leftIcon="tag"
-            values={store.ui.tags.getTags()}
-            onChange={(e) => {
-              store.actions.changeTags(e as string[]);
-            }}
-            rightElement={
-              store.ui.tags.getTags().length ? (
-                <Button
-                  icon="small-cross"
-                  minimal
-                  small
-                  onClick={(e) => {
-                    e.preventDefault();
-                    store.actions.changeTags([]);
-                  }}
-                />
-              ) : undefined
-            }
-          />
-        </div> */}
         {(() => {
           const tagExclude = store.ui.conditions.filter.page.exclude();
           const tagInclude = store.ui.conditions.filter.page.include();
@@ -170,8 +146,8 @@ export const Sidebar = observer(() => {
                 itemRenderer={(index, item) => {
                   return (
                     <Button
-                    
-                      minimal  fill alignText="left" text={item.text} onClick={e => {
+
+                      minimal fill alignText="left" text={item.text} onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.shiftKey) {
@@ -193,6 +169,9 @@ export const Sidebar = observer(() => {
               icon="document"
               alignText="left"
               minimal
+              style={{
+                maxWidth: '100%'
+              }}
               outlined={!!selectedItems.length}
               intent={selectedItems.length ? "primary" : 'none'}
               text={
@@ -202,7 +181,6 @@ export const Sidebar = observer(() => {
                   style={{
                     direction: 'unset',
                     display: 'block',
-                    width: 140
                   }}
                 >
                   Page: {selectedItems.map(item => item.text).join(",")}
@@ -247,7 +225,7 @@ export const Sidebar = observer(() => {
                       // rightIcon={
                       //   <span>{item.backlinkCount}</span>
                       // }
-                      minimal  fill alignText="left" text={item.text} onClick={e => {
+                      minimal fill alignText="left" text={item.text} onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.shiftKey) {
@@ -268,6 +246,9 @@ export const Sidebar = observer(() => {
               icon="tag"
               alignText="left"
               minimal
+              style={{
+                maxWidth: '100%'
+              }}
               outlined={!!selectedItems.length}
               intent={selectedItems.length ? "primary" : 'none'}
               text={
@@ -277,7 +258,6 @@ export const Sidebar = observer(() => {
                   style={{
                     direction: 'unset',
                     display: 'block',
-                    width: 140
                   }}
                 >
                   Tag: {selectedItems.map(item => item.text).join(",")}
@@ -467,14 +447,19 @@ function RoamTagFilterHeader<T extends { text: string }>(props: {
       <div className="flex-row p-1.5">
         <strong style={{ marginRight: 8 }}>Includes{` `}</strong> Click to Add
         <div className="flex-1" />
-        <Button minimal autoFocus={false} small icon="delete" onClick={() => {
-          props.onClearAdded();
-        }} />
+        {
+          props.includes.length ?
+            <Button minimal autoFocus={false} small icon="delete" onClick={() => {
+              props.onClearAdded();
+            }} />
+            : null
+        }
+
       </div>
       {props.includes.length ?
         <div className="flex-row flex-wrap flex-1">
           {props.includes.map(item => {
-            return <Button  text={item.text} style={{ margin: 4 }}
+            return <Button text={item.text} style={{ margin: 4 }}
               onClick={() => props.onItemAddClick(item)}
             />
           })}
@@ -488,9 +473,13 @@ function RoamTagFilterHeader<T extends { text: string }>(props: {
       <div className="flex-row p-1.5">
         <strong style={{ marginRight: 8 }}>Excludes</strong> Shift+Click to Add
         <div className="flex-1" />
-        <Button minimal small icon="delete" onClick={() => {
-          props.onClearexcludes();
-        }} />
+        {
+          props.excludes.length ?
+            <Button minimal small icon="delete" onClick={() => {
+              props.onClearexcludes();
+            }} />
+            : null
+        }
       </div>
       <div className="flex-row flex-wrap flex-1">
         {props.excludes.map(item => {

@@ -557,7 +557,7 @@
   max-width: 820px;
 }
 .titlebar-container .bp3-heading {
-  overflow: scroll;
+  overflow: auto;
   text-overflow: unset;
 }
 

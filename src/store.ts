@@ -287,12 +287,12 @@ const trigger = debounce(
         Object.keys(config.include).forEach(key => {
           filterCount += (config.include as any)[key].length
         })
-
       }
-
-      if (filterCount === 0) {
+      if (filterCount === 0 && !ui.conditions.modificationDate.peek()) {
+        console.log('return search', config)
         return;
       }
+
     }
     // console.log(search, " start search");
     const queryAPi = Query({
@@ -409,6 +409,7 @@ const triggerWhenSearchChange = async (next: string) => {
     });
   } catch (e) {
     console.error(e);
+  } finally {
     ui.loading.set(false);
   }
 };
@@ -620,7 +621,7 @@ const saveToSearchViewed = (items: ResultItem[]) => {
   windowUi.history.viewed.push(
     ...items
       .filter(
-        (item) => viewed.findIndex((vItem) => item.id === vItem.id) === -1
+        (item) => viewed.findIndex((vItem) => item.id === vItem.id) === -1 || !!item.text
       )
       .map((item) => ({
         id: item.id,
@@ -710,7 +711,7 @@ export const store = {
       });
     },
     changeSearch(s: string) {
-      // console.log(s, " ---s");
+      console.log(s, " ---s");
       ui.search.set(s);
     },
     searchAgain() {
@@ -1128,16 +1129,15 @@ export const store = {
       return [] as string[];
     },
     isTyped() {
-      // 
-      
       const filter = ui.conditions.filter.get();
       const filterCount = filter.page.exclude.length + filter.page.include.length +
         filter.tags.exclude.length + filter.tags.include.length
-      
+      const modificationDate = ui.conditions.modificationDate.get();
       if (store.ui.conditions.isPageSelecting()) {
         return true
       }
-      return ui.search.get()?.length || filterCount > 0;
+      
+      return ui.search.get()?.length || filterCount > 0 || modificationDate?.start || modificationDate?.end
     },
     hasValidSearch() {
       return ui.search.get()?.trim()?.length;

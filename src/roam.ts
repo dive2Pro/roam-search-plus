@@ -25,7 +25,7 @@ export const getParentsStrFromBlockUid = (uid: string) => {
     `,
     [":block/uid", `${uid}`]
   ) as unknown as ReversePullBlock;
-
+//  console.log(uid, result, ' paths ')
   if (result) {
     let strs: string[] = [];
     let ary = result[":block/_children"];
@@ -136,9 +136,6 @@ const PullStr = `:block/string
 `;
 
 export const isUnderTag = (tags: number[], item: RefsPullBlock) => {
-  if (!item.relatedRefs?.length) {
-
-  }
   const relatedRefs = item[":block/refs"]?.map(item => item[":db/id"]) || [];
 
   item[":block/parents"]?.map((p) => {
