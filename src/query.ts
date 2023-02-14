@@ -57,18 +57,26 @@ export const Query = (config: QueryConfig) => {
           return false;
         }
       }
-      if (config.include.tags.length) {
-        if (!isUnderTag(config.include.tags, item.block)) {
-          return false
-        }
-      }
-
       const r = keywords.every((keyword) => {
         return (
           item.block[":block/string"] &&
           includes(item.block[":block/string"], keyword)
         );
       });
+
+      if (config.include.tags.length) {
+        if (item.block[":block/refs"] && config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+          if (r) {
+            return true
+          }
+        }
+        if (isUnderTag(config.include.tags, item.block)) {
+          lowBlocks.push(item);
+        }
+        return false;
+      }
+
+
       if (!r) {
         lowBlocks.push(item);
       }
@@ -84,19 +92,34 @@ export const Query = (config: QueryConfig) => {
   async function findAllRelatedBlocks(keywords: string[]) {
     let [topLevelBlocks, lowBlocks] = findBlocksContainsAllKeywords(keywords);
     if (keywords.length <= 1) {
-      return [topLevelBlocks, undefined] as const;
+      return [topLevelBlocks, lowBlocks?.map(block => {
+        return {
+          page: block.page,
+          children: [block]
+        }
+      })] as const;
     }
     // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
     // console.log("find low");
 
     // let lowBlocks: CacheBlockType[] = [];
-    // timemeasure("0", () => {
-    //   if (config.include.pages?.length) {
-    //     lowBlocks = lowBlocks.filter((block) => {
-    //       return config.include.pages.some((uid) => uid === block.page);
-    //     });
-    //   }
-    // });
+    timemeasure("0", () => {
+      if (config.include.pages?.length) {
+        lowBlocks = lowBlocks.filter((block) => {
+          return config.include.pages.some((uid) => uid === block.page);
+        });
+      }
+
+      if (config.include.tags.length) {
+        // console.log(config.exclude.tags, item.block[":block/refs"]?.map(item => item[":db/id"]))
+        // if (!config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
+        //   return false
+        // }
+        lowBlocks = lowBlocks.filter(item => {
+          return isUnderTag(config.include.tags, item.block)
+        })
+      }
+    });
 
     // keywords.forEach((keyword) => {
     //   lowBlocks.filter((item) => {
@@ -240,7 +263,7 @@ export const Query = (config: QueryConfig) => {
             .map((item) => {
               return {
                 page: pull(item.page),
-                children: item.children,
+                children: item.children || [item],
               };
             })
             .filter((item) => item.page),

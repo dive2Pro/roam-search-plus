@@ -715,7 +715,6 @@ export const store = {
       });
     },
     changeSearch(s: string) {
-      console.log(s, " ---s");
       ui.search.set(s);
     },
     searchAgain() {
