@@ -263,7 +263,7 @@ export const Query = (config: QueryConfig) => {
             .map((item) => {
               return {
                 page: pull(item.page),
-                children: item.children || [item],
+                children: item.children,
               };
             })
             .filter((item) => item.page),
