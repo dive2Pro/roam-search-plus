@@ -25,7 +25,7 @@ export const getParentsStrFromBlockUid = (uid: string) => {
     `,
     [":block/uid", `${uid}`]
   ) as unknown as ReversePullBlock;
-//  console.log(uid, result, ' paths ')
+  //  console.log(uid, result, ' paths ')
   if (result) {
     let strs: string[] = [];
     let ary = result[":block/_children"];
@@ -70,7 +70,7 @@ export const getAllUsers = () => {
 
 export const getAllPages = () => {
   // return PAGES;
-  
+
   return [...CACHE_PAGES.values()];
 };
 export const getAllBlocks = () => {
@@ -138,12 +138,18 @@ const PullStr = `:block/string
 export const isUnderTag = (tags: number[], item: RefsPullBlock) => {
   const relatedRefs = item[":block/refs"]?.map(item => item[":db/id"]) || [];
 
-  item[":block/parents"]?.map((p) => {
+  item[":block/parents"]?.forEach((p) => {
     relatedRefs.push(...CACHE_BLOCKS_BY_ID.get(p[":db/id"])?.[":block/refs"]?.map(ref => ref[":db/id"]) || [])
   })
-
-  return tags.some(tag => relatedRefs.some(ref => +ref === +tag))
-
+  const result = tags.some(tag => relatedRefs.some(ref => +ref === +tag))
+  if (result) {
+    // console.log(relatedRefs, ' ----- ', tags, {...item},
+    //   item[":block/parents"]?.map((p) => {
+    //     return { ...CACHE_BLOCKS_BY_ID.get(p[":db/id"]) };
+    //   })
+    // )
+  }
+  return result;
 }
 
 export const initCache = (config: { blockRefToString: boolean }) => {

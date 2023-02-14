@@ -5,6 +5,9 @@ import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 
 export const Query = (config: QueryConfig) => {
   console.time("SSSS");
+  const keywords = config.search;
+  const hasKeywords = keywords.some(key => !!key);
+
   const filterStringByKeywordsIntensive = (
     blocks: PullBlock[],
     keyword: string,
@@ -65,17 +68,19 @@ export const Query = (config: QueryConfig) => {
       });
 
       if (config.include.tags.length) {
-        if (item.block[":block/refs"] && config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
-          if (r) {
-            return true
+        const hasTagged = item.block[":block/refs"] && config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))
+        if (r) {
+          if (hasTagged) {
+            return true;
+          } else {
+            lowBlocks.push(item);
+            return false;
           }
-        }
-        if (isUnderTag(config.include.tags, item.block)) {
+        } else {
           lowBlocks.push(item);
+          return false;
         }
-        return false;
       }
-
 
       if (!r) {
         lowBlocks.push(item);
@@ -91,14 +96,15 @@ export const Query = (config: QueryConfig) => {
   };
   async function findAllRelatedBlocks(keywords: string[]) {
     let [topLevelBlocks, lowBlocks] = findBlocksContainsAllKeywords(keywords);
-    if (keywords.length <= 1) {
-      return [topLevelBlocks, lowBlocks?.map(block => {
-        return {
-          page: block.page,
-          children: [block]
-        }
-      })] as const;
-    }
+
+    // if (keywords.length <= 1) {
+    //   return [topLevelBlocks, lowBlocks?.map(block => {
+    //     return {
+    //       page: block.page,
+    //       children: [block]
+    //     }
+    //   })] as const;
+    // }
     // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
     // console.log("find low");
 
@@ -115,9 +121,12 @@ export const Query = (config: QueryConfig) => {
         // if (!config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
         //   return false
         // }
+
         lowBlocks = lowBlocks.filter(item => {
           return isUnderTag(config.include.tags, item.block)
         })
+        console.log(lowBlocks, ' --- ', config.include.tags, topLevelBlocks)
+
       }
     });
 
@@ -130,13 +139,15 @@ export const Query = (config: QueryConfig) => {
     const validateMap = new Map<string, boolean[]>();
     timemeasure("1", () => {
       lowBlocks = lowBlocks.filter((item) => {
-        let result = false;
+        let result = !hasKeywords;
         keywords.forEach((keyword, index) => {
           const r = includes(item.block[":block/string"], keyword);
+
           if (!validateMap.has(item.page)) {
             validateMap.set(item.page, []);
           }
           if (r) {
+            console.log({ ...item.block }, ' ===', keyword)
             validateMap.get(item.page)[index] = r;
             result = r;
           }
@@ -236,13 +247,11 @@ export const Query = (config: QueryConfig) => {
       return r;
     });
   }
-  const { search } = config;
   console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
-  const ary = search;
   const promise = Promise.all([
-    findAllRelatedPageUids(ary),
-    findAllRelatedBlocks(ary),
+    findAllRelatedPageUids(keywords),
+    findAllRelatedBlocks(keywords),
   ]);
 
   return {

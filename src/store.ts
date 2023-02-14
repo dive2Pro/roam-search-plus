@@ -24,6 +24,7 @@ import {
   findLowestParentFromBlocks,
   getAllPages,
   getAllUsers,
+  getCacheByUid,
   getCurrentPage,
   getMe,
   getPageUidsFromUids,
@@ -37,10 +38,11 @@ const delay = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function findLowestParentFromResult(block: ResultItem) {
   if (block.children.length) {
-    const lowestParent = findLowestParentFromBlocks(
+    let lowestParent = findLowestParentFromBlocks(
       block.children.map((item) => ({ uid: item.id }))
     );
     if (lowestParent) {
+      lowestParent = getCacheByUid(lowestParent[":block/uid"]).block
       const result = {
         id: lowestParent[":block/uid"],
         text: lowestParent[":block/string"],
