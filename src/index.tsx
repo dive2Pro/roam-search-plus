@@ -7,11 +7,16 @@ import { initExtention } from "./extentionApi";
 import { Button, Tooltip } from "@blueprintjs/core";
 import { initSettings } from "./config";
 
-const initListener = () => {
-  const handler = (e: KeyboardEvent) => {
-    if (e.shiftKey && e.ctrlKey && e.code === "KeyP") {
+const initListener = (extensionAPI: RoamExtensionAPI) => {
+  extensionAPI.ui.commandPalette.addCommand({
+    label: 'Open Search+',
+    "default-hotkey": ["ctrl-shift-p"],
+    callback() {
       store.actions.toggleDialog();
-    } else if (e.code === "Escape") {
+    }
+  })
+  const handler = (e: KeyboardEvent) => {
+    if (e.code === "Escape") {
       if (store.ui.isOpen() && !window.roamAlphaAPI.platform.isMobile && !store.ui.tab.isTabNameInputing()) {
         store.actions.toggleDialog();
       }
@@ -97,7 +102,7 @@ const PREFIX = "@ROAM-search+" + window.roamAlphaAPI.graph.name + '-'
 
 function compatialOffline(extensionAPI: RoamExtensionAPI): RoamExtensionAPI {
   if (window.roamAlphaAPI.graph.type === 'offline') {
-    const r =  {
+    const r = {
       settings: {
         async set(k: string, v: string) {
           localStorage.setItem(`${PREFIX}${k}`, v);
@@ -116,6 +121,11 @@ function compatialOffline(extensionAPI: RoamExtensionAPI): RoamExtensionAPI {
           return result;
         },
         panel: extensionAPI.settings.panel
+      },
+      ui: {
+        commandPalette: {
+          addCommand: () => {}
+        }
       }
     }
     extension_helper.on_uninstall(() => {
@@ -134,7 +144,7 @@ export default {
   onload: ({ extensionAPI }: { extensionAPI: RoamExtensionAPI }) => {
     extensionAPI = compatialOffline(extensionAPI);
     initSettings(extensionAPI);
-    initListener();
+    initListener(extensionAPI);
     initExtention(extensionAPI);
     initStore(extensionAPI);
     window.roamAlphaAPI.platform.isMobile

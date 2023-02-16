@@ -8,6 +8,16 @@ type RoamExtensionAPI = {
     };
     set: (k: string, v: unknown) => Promise<void>;
   };
+  ui: {
+    commandPalette: {
+      addCommand: (param: {
+        label: string;
+        "default-hotkey"?: string[];
+        callback?: () => void;
+        "disable-hotkey"?: boolean
+      }) => void;
+    }
+  }
 };
 
 type SelectDate =
