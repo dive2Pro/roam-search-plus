@@ -323,7 +323,15 @@
 
 .as-history {
   color: #828282;
+  display: flex;
+  flex-direction: column;
 }
+
+.as-history  section {
+  overflow: auto;
+  flex: 1;
+}
+
 
 .as-history .header .bp3-button-text {
   color: #828282;
@@ -334,6 +342,13 @@
   align-items: center;
   height: 46px;
   justify-content: space-between;
+  background-color: #ebf1f5;
+  position: sticky;
+  top: 0;
+}
+
+.bp3-dark .as-history .header {
+  background-color: var(--dark-bg-2);
 }
 
 .as-history section:hover button {
