@@ -38,7 +38,11 @@ const Row = observer((props: { item: ResultItem }) => {
       const search = store.ui.getSearch();
       const isLoading = store.ui.isLoading();
       clearTimeout(timeout);
-      if (!search || isLoading) {
+      if (isLoading) {
+        return;
+      }
+      if (!search) {
+        setText(props.item.text as JSX.Element);
         return;
       }
       window.requestIdleCallback(() => {
