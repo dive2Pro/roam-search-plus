@@ -385,7 +385,7 @@ const App = observer(() => {
         }`}
     >
       <div
-        onClickCapture={store.actions.toggleDialog}
+        onClickCapture={store.actions.close}
         className={`${CONSTNATS.el}-onevent`}
       />
       <dialog

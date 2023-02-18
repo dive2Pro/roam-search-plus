@@ -326,7 +326,7 @@ const trigger = debounce(
             paths: [],
             isSelected: false,
             children: [],
-            createUser: block.block[":create/user"]?.[":db/id"],
+            createUser: block.block[":create/user"] as unknown as number
           };
         }),
         ...topBlocks.map((block) => {
@@ -496,7 +496,8 @@ const disposeUiResult = observe(async () => {
     }
 
     if (result && users.length) {
-      result = users.some((user) => user.id === item.createUser);
+      // console.log(users, {...item}, typeof item.createUser, typeof users[0])
+      result = users.some((user) => user.id === item.createUser || !item.createUser);
     }
     return result;
   });
@@ -669,6 +670,17 @@ export const store = {
         ...item,
         selected: item.selected === 1 ? 0 : 1,
       });
+    },
+    close() {
+      if (store.ui.conditions.isPageSelecting()) {
+        store.actions.conditions.toggleSelect();
+        return;
+      }
+      if (windowUi.filter.open.get()) {
+        store.actions.toggleFilter();
+        return;
+      }
+      store.actions.closeDialog();
     },
     toggleDialog() {
       if (store.ui.conditions.isPageSelecting()) {
@@ -960,9 +972,13 @@ export const store = {
           }
         }
       },
-      toggleSelect() {
+      toggleSelect(b?: boolean) {
         setTimeout(() => {
-          windowUi.select.open.toggle();
+          if(b !== undefined) {
+            windowUi.select.open.set(b);
+          } else {
+            windowUi.select.open.toggle();
+          }
         }, 100)
       },
       async toggleBlockRefToString() {
@@ -1141,7 +1157,7 @@ export const store = {
       if (store.ui.conditions.isPageSelecting()) {
         return true
       }
-      
+
       return ui.search.get()?.length || filterCount > 0 || modificationDate?.start || modificationDate?.end
     },
     hasValidSearch() {
@@ -1206,7 +1222,10 @@ export const store = {
     },
     conditions: {
       isPageSelecting() {
-        return windowUi.select.open.get()
+        const r = windowUi.select.open.get()
+        
+        console.log(r, ' = r')
+        return r;
       },
       isBlockRefToString() {
         return ui.conditions.blockRefToString.get();

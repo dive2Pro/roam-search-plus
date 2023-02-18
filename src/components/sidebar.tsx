@@ -528,10 +528,10 @@ const SelectPages2 = observer(({ children, content, ...rest }: { children: React
   return (
     <Popover
       onOpened={() => {
-        store.actions.conditions.toggleSelect()
+        store.actions.conditions.toggleSelect(true)
       }}
-      onClose={() => {
-        store.actions.conditions.toggleSelect()
+      onClosed={() => {
+        store.actions.conditions.toggleSelect(false)
       }}
       autoFocus={false}
       content={content}>
@@ -539,39 +539,6 @@ const SelectPages2 = observer(({ children, content, ...rest }: { children: React
     </Popover >
   );
 });
-
-const SelectPages = observer(({ children, ...rest }: { children: ReactNode } & Omit<MultiSelectProps<{ id: string, text: string }>, 'tagRenderer'>) => {
-  return (
-    <Popover
-      onOpened={() => {
-        store.actions.conditions.toggleSelect()
-      }}
-      onClose={() => {
-        store.actions.conditions.toggleSelect()
-      }}
-      content={
-        <MultiSelect
-          className="w-100p page-select"
-          {...rest}
-          popoverProps={{
-            usePortal: usePortal(),
-          }}
-          itemPredicate={(query, item, index) => {
-            return item.text.toLowerCase().indexOf(query.toLowerCase()) > -1;
-          }}
-          tagRenderer={function (item: { id: string; text: string; }): ReactNode {
-            return item.text
-          }}
-        >
-        </MultiSelect>}
-    >
-      {children}
-    </Popover>
-
-  );
-});
-
-
 
 const SelectCreateUsers = observer((props: { children: ReactNode }) => {
   return (

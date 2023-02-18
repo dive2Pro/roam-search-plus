@@ -132,6 +132,8 @@ const PullStr = `:block/string
       :block/parents
       :block/_refs
       :block/refs
+      :create/time
+      :create/user
       :db/id
 `;
 
