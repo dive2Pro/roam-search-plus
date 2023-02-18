@@ -1223,8 +1223,6 @@ export const store = {
     conditions: {
       isPageSelecting() {
         const r = windowUi.select.open.get()
-        
-        console.log(r, ' = r')
         return r;
       },
       isBlockRefToString() {
