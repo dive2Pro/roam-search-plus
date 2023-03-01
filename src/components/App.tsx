@@ -14,6 +14,7 @@ import {
   Toaster,
   ControlGroup,
   Intent,
+  Tooltip,
 } from "@blueprintjs/core";
 
 import { store } from "../store";
@@ -199,7 +200,7 @@ const MainView = observer(() => {
         ) : null}
 
         <sub className="hint">
-          {store.ui.result.listSize() > 0  ? (
+          {store.ui.result.listSize() > 0 ? (
             <span>
               <strong>+{store.ui.result.listSize()}</strong> results
             </span>
@@ -211,7 +212,7 @@ const MainView = observer(() => {
   );
 });
 
-const RoamMainView: FC = (props) => {
+const RoamMainView: FC = observer((props) => {
   useEffect(() => {
     const App = observer(() => {
       useEffect(() => {
@@ -249,11 +250,12 @@ const RoamMainView: FC = (props) => {
     roamMain.appendChild(el);
     ReactDOM.render(<App />, el);
     return () => {
+      ReactDOM.unmountComponentAtNode(el);
       roamMain.removeChild(el);
     };
   }, []);
   return null;
-};
+});
 
 const useConfirmInputProps = (onSuccess: (title: string) => void) => {
   const [state, setState] = useState({
@@ -307,11 +309,13 @@ const ConfirmInputDialog = (props: ReturnType<typeof useConfirmInputProps>) => {
     </div>
   </Dialog>
 }
-const App = observer(() => {
+
+const AppContent = observer(() => {
   const confirmInputProps = useConfirmInputProps((title) => {
     store.actions.tab.addTab(title);
   })
-  const content = (
+
+  return  (
     <LoadingGraph>
       <div className="titlebar-container bp3-dialog-header">
         <div className="bp3-heading">
@@ -376,8 +380,13 @@ const App = observer(() => {
       </div>
     </LoadingGraph>
   );
+})
+const App = observer(() => {
+  
   if (store.ui.mode.isMaximize()) {
-    return <RoamMainView>{content}</RoamMainView>;
+    return <RoamMainView>
+      <AppContent />
+    </RoamMainView>;
   }
   return (
     <div
@@ -396,7 +405,7 @@ const App = observer(() => {
           alignItems: "flex-start",
         }}
       >
-        {content}
+        <AppContent />
       </dialog>
     </div>
   );
