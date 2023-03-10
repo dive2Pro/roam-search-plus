@@ -30,7 +30,7 @@
 
 You can open the search dialog in two ways
 
-- click in sidebar menu ![](https://github.com/dive2Pro/roam-search-plus/blob/main/images/side-menu.png)
+- click in sidebar menu ![image](https://user-images.githubusercontent.com/23192045/224223069-22f2bf6b-df13-4d0f-9e0d-087ae017175c.png)
 
 - ctrl + shift + p
 
