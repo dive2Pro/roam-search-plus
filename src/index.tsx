@@ -1,17 +1,23 @@
 import "./styles.css";
 import App from "./components/App";
-import { CONSTNATS, extension_helper } from "./helper";
+import { CONSTNATS, extension_helper, simulateClick } from "./helper";
 import ReactDOM from "react-dom";
 import { store, initStore } from "./store";
 import { initExtention } from "./extentionApi";
 import { Button, Tooltip } from "@blueprintjs/core";
 import { initSettings } from "./config";
 
+// The shortcut to open the search + dialog still retains the selection status, which may cause accidental deletion of  blocks.
+const blurRoamSelection = () => {
+  simulateClick(document.body)
+}
 const initListener = (extensionAPI: RoamExtensionAPI) => {
   extensionAPI.ui.commandPalette.addCommand({
     label: 'Open Search+',
     "default-hotkey": ["ctrl-shift-p"],
     callback() {
+      // blur from selection;
+      blurRoamSelection();
       store.actions.toggleDialog();
     }
   })

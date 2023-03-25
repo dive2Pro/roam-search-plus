@@ -132,3 +132,9 @@ export const date = {
 export const clone = <T,>(obj: T) => {
   return JSON.parse(JSON.stringify(obj)) as T
 }
+
+export function simulateClick(a: Element) {
+  'mouseover mousedown mouseup click'.split(' ').forEach(type => {
+    a.dispatchEvent(new MouseEvent(type, { view: window, bubbles: true, cancelable: true, buttons: 1 }));
+  });
+}
