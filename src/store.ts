@@ -1,17 +1,20 @@
-import { Toaster } from "@blueprintjs/core";
+import { TextArea, Toast, Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
 import {
   batch,
+  computed,
   observable,
+  ObservableObject,
   observe,
 } from "@legendapp/state";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
 import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
 import { clone, CONSTNATS, debounce, extension_helper } from "./helper";
 import { Query } from "./query";
 import {
+  CacheBlockType,
   deleteFromCacheByUid,
   findLowestParentFromBlocks,
   getAllPages,
@@ -19,6 +22,7 @@ import {
   getCacheByUid,
   getCurrentPage,
   getMe,
+  getPageUidsFromUids,
   getParentsStrFromBlockUid,
   initCache,
   opens,
@@ -35,7 +39,7 @@ export function findLowestParentFromResult(block: ResultItem) {
     lowestParent = lowestParent ? getCacheByUid(lowestParent[":block/uid"])?.block : null;
 
     if (lowestParent) {
-      // lowestParent = getCacheByUid(lowestParent[":block/uid"]).block
+      
       const result = {
         id: lowestParent[":block/uid"],
         text: lowestParent[":block/string"],
@@ -264,7 +268,7 @@ const getList = () => {
   return _list;
 };
 
-let cancelPre = () => { };
+let cancelPre = () => {};
 const trigger = debounce(
   async (config: Omit<QueryConfig, "search"> & { search: string }) => {
     cancelPre();
@@ -406,6 +410,38 @@ const triggerWhenSearchChange = async (next: string) => {
 const disposeSearch = ui.search.onChange(async (next) => {
   triggerWhenSearchChange(next);
 });
+
+const getFilterExcludePageIds = (): string[] => {
+  const pageFilter = ui.conditions.filter.page.get();
+  if (pageFilter?.exclude) {
+    return pageFilter.exclude.map((item) => item.id);
+  }
+  return [];
+};
+
+const getFilterIncludePageIds = (): string[] => {
+  const pageFilter = ui.conditions.filter.page.get();
+  if (pageFilter?.include) {
+    return pageFilter.include.map((item) => item.id);
+  }
+  return [];
+};
+
+const getFilterIncludeTags = (): number[] => {
+  const tagsFilter = ui.conditions.filter.tags.get();
+  if (tagsFilter?.include) {
+    return tagsFilter.include.map((item) => item.dbId!);
+  }
+  return [];
+};
+
+const getFilterExcludeTags = (): number[] => {
+  const tagsFilter = ui.conditions.filter.tags.get();
+  if (tagsFilter?.exclude) {
+    return tagsFilter.exclude.map((item) => item.dbId!);
+  }
+  return [];
+};
 
 const dispose = observe(async () => {
   const search = ui.search.peek().trim();
@@ -1076,7 +1112,7 @@ export const store = {
           windowUi.tab.nameInputing.toggle();
         }, 100);
       },
-      changeName(index: number, str: string) { },
+      changeName(index: number, str: string) {},
       deleteTab(id: string) {
         deleteFromTabs(id);
       },
@@ -1337,7 +1373,7 @@ export const store = {
           nowConditions.includePage !== defaultConditions.includePage,
           nowConditions.includeCode !== defaultConditions.includeCode,
           nowConditions.pages.selected.length !==
-          defaultConditions.pages.selected.length,
+            defaultConditions.pages.selected.length,
           nowConditions.sort.selected !== defaultConditions.sort.selected,
         ].some((v) => v);
       },
@@ -1380,7 +1416,7 @@ export const store = {
       return getParentsStrFromBlockUid(uid);
     },
     size: {
-      resultList() { },
+      resultList() {},
     },
     hasResult() {
       return getList().length > 0;
