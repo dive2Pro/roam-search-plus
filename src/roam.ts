@@ -483,7 +483,8 @@ export function findLowestParentFromBlocks(blocks: { uid: string }[]) {
     })
     .map((item) => {
       let result: ReversePullBlock[] = [item];
-      let ary = item[":block/_children"];
+      console.log(item, ' - item')
+      let ary = item?.[":block/_children"];
       while (ary && ary.length) {
         const block = ary[0];
         result.unshift(block);

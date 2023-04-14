@@ -1,25 +1,17 @@
-import { TextArea, Toast, Toaster } from "@blueprintjs/core";
+import { Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
 import {
   batch,
-  computed,
   observable,
-  ObservableObject,
   observe,
 } from "@legendapp/state";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
 import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
-import {
-  clone,
-  CONSTNATS,
-  debounce,
-  extension_helper,
-} from "./helper";
+import { clone, CONSTNATS, debounce, extension_helper } from "./helper";
 import { Query } from "./query";
 import {
-  CacheBlockType,
   deleteFromCacheByUid,
   findLowestParentFromBlocks,
   getAllPages,
@@ -27,7 +19,6 @@ import {
   getCacheByUid,
   getCurrentPage,
   getMe,
-  getPageUidsFromUids,
   getParentsStrFromBlockUid,
   initCache,
   opens,
@@ -41,8 +32,10 @@ export function findLowestParentFromResult(block: ResultItem) {
     let lowestParent = findLowestParentFromBlocks(
       block.children.map((item) => ({ uid: item.id }))
     );
+    lowestParent = lowestParent ? getCacheByUid(lowestParent[":block/uid"])?.block : null;
+
     if (lowestParent) {
-      lowestParent = getCacheByUid(lowestParent[":block/uid"]).block
+      // lowestParent = getCacheByUid(lowestParent[":block/uid"]).block
       const result = {
         id: lowestParent[":block/uid"],
         text: lowestParent[":block/string"],
@@ -84,7 +77,6 @@ const query = observable({
   list: [] as ResultItem[],
 });
 
-
 const MIN = 450;
 
 const defaultConditions = {
@@ -125,23 +117,23 @@ const defaultConditions = {
   },
   exclude: {
     pages: [] as BaseUiItem[],
-    tags: [] as (BaseUiItem)[],
-    blocks: [] as BaseUiItem[]
+    tags: [] as BaseUiItem[],
+    blocks: [] as BaseUiItem[],
   },
   filter: {
     tags: {
       include: [] as BaseUiItem[],
-      exclude: [] as BaseUiItem[]
+      exclude: [] as BaseUiItem[],
     },
     page: {
       include: [] as BaseUiItem[],
-      exclude: [] as BaseUiItem[]
-    }
-  }
+      exclude: [] as BaseUiItem[],
+    },
+  },
 };
 
 const defaultTab = () => ({
-  title: 'Search+',
+  title: "Search+",
   id: window.roamAlphaAPI.util.generateUID(),
   graph: {
     loading: false,
@@ -156,24 +148,24 @@ const defaultTab = () => ({
   height: MIN,
 });
 
-type ITab = ReturnType<typeof defaultTab>
+type ITab = ReturnType<typeof defaultTab>;
 // 为什么要有 Tabs 和 windowUi.tab.tabs
 // ui 是读取 Tabs[activeIndex] 的值, 如果直接调用 ui.set(Tabs[activeIndex]) 会覆盖掉 windowUi.tab.tabs 中的值
 // 所以需要 Tabs 作为原始值, 来保存修改后的数据
 
-let Tabs = ([defaultTab()]) as ITab[];
+let Tabs = [defaultTab()] as ITab[];
 
 const addToTabs = (newTab: ITab) => {
-  console.log(Tabs.length, windowUi.tab.tabs.length)
+  console.log(Tabs.length, windowUi.tab.tabs.length);
   Tabs.push(newTab);
   windowUi.tab.tabs.push(newTab);
-  console.log(Tabs.length, windowUi.tab.tabs.length)
+  console.log(Tabs.length, windowUi.tab.tabs.length);
   Tab.save(Tabs);
   focusInTabs(newTab.id);
-}
+};
 
 const deleteFromTabs = (id: string) => {
-  const index = Tabs.findIndex(tab => tab.id === id);
+  const index = Tabs.findIndex((tab) => tab.id === id);
   Tabs.splice(index, 1);
   windowUi.tab.tabs.splice(index, 1);
   focusInTabs(Tabs[0].id);
@@ -182,14 +174,12 @@ const deleteFromTabs = (id: string) => {
 
 const focusInTabs = (v: string) => {
   const prevFocus = windowUi.tab.active.get();
-  let index = Tabs.findIndex(tab => tab.id === prevFocus);
-  if (index > -1)
-    Tabs[index] = ui.get();
+  let index = Tabs.findIndex((tab) => tab.id === prevFocus);
+  if (index > -1) Tabs[index] = ui.get();
   windowUi.tab.active.set(v);
-  index = Tabs.findIndex(tab => tab.id === v);
+  index = Tabs.findIndex((tab) => tab.id === v);
   ui.set(Tabs[index]);
-}
-
+};
 
 const windowUi = observable({
   open: false,
@@ -210,22 +200,22 @@ const windowUi = observable({
     nameInputing: false,
   },
   select: {
-    open: false
-  }
+    open: false,
+  },
 });
 
-let ui = observable(Tabs.find(tab => tab.id === windowUi.tab.active.get()))
-ui.onChange(v => {
-  const index = Tabs.findIndex(tab => tab.id === v.id)
+let ui = observable(Tabs.find((tab) => tab.id === windowUi.tab.active.get()));
+ui.onChange((v) => {
+  const index = Tabs.findIndex((tab) => tab.id === v.id);
   Tabs[index] = v;
   Tab.save(Tabs);
-})
-ui.conditions.blockRefToString.onChange(async v => {
+});
+ui.conditions.blockRefToString.onChange(async (v) => {
   const search = ui.search.get();
   store.actions.changeSearch("");
   await store.actions.loadingGraph();
   store.actions.changeSearch(search);
-})
+});
 
 extension_helper.on_uninstall(
   windowUi.history.viewed.onChange((items) => {
@@ -276,25 +266,24 @@ const getList = () => {
 
 let cancelPre = () => { };
 const trigger = debounce(
-  async (config: Omit<QueryConfig, 'search'> & { search: string }) => {
+  async (config: Omit<QueryConfig, "search"> & { search: string }) => {
     cancelPre();
     if (!config.search) {
       let filterCount = 0;
       if (config.exclude) {
-        Object.keys(config.exclude).forEach(key => {
-          filterCount += (config.exclude as any)[key].length
-        })
+        Object.keys(config.exclude).forEach((key) => {
+          filterCount += (config.exclude as any)[key].length;
+        });
       }
       if (config.include) {
-        Object.keys(config.include).forEach(key => {
-          filterCount += (config.include as any)[key].length
-        })
+        Object.keys(config.include).forEach((key) => {
+          filterCount += (config.include as any)[key].length;
+        });
       }
       if (filterCount === 0 && !ui.conditions.modificationDate.peek()) {
-        console.log('return search', config)
+        console.log("return search", config);
         return;
       }
-
     }
     // console.log(search, " start search");
     const queryAPi = Query({
@@ -326,7 +315,7 @@ const trigger = debounce(
             paths: [],
             isSelected: false,
             children: [],
-            createUser: block.block[":create/user"] as unknown as number
+            createUser: block.block[":create/user"] as unknown as number,
           };
         }),
         ...topBlocks.map((block) => {
@@ -394,20 +383,18 @@ const triggerWhenSearchChange = async (next: string) => {
   try {
     // const selectedPagesUids = ui.conditions.pages.selected.peek();
     const caseIntensive = ui.conditions.caseIntensive.peek();
-    const pageFilter = ui.conditions.filter.page.peek();
-    const tagFilter = ui.conditions.filter.tags.peek();
     await trigger({
       search: nextStr,
       caseIntensive,
       // uids: selectedPagesUids.map((item) => item.id),
       exclude: {
-        pages: pageFilter.exclude.map(item => item.id),
-        tags: tagFilter.exclude.map(item => item.dbId!),
+        pages: getFilterExcludePageIds(),
+        tags: getFilterExcludeTags(),
       },
       include: {
-        pages: pageFilter.include.map(item => item.id),
-        tags: tagFilter.include.map(item => item.dbId!),
-      }
+        pages: getFilterIncludePageIds(),
+        tags: getFilterIncludeTags(),
+      },
     });
   } catch (e) {
     console.error(e);
@@ -424,29 +411,25 @@ const dispose = observe(async () => {
   const search = ui.search.peek().trim();
   const caseIntensive = ui.conditions.caseIntensive.get();
   // const exclude = ui.conditions.exclude.get();
-  const pageFilter = ui.conditions.filter.page.get();
-  const tagFilter = ui.conditions.filter.tags.get();
   ui.loading.set(!!search);
   try {
-    await trigger(
-      {
-        search,
-        caseIntensive,
-        // uids: selectedPagesUids.map((item) => item.id),
-        exclude: {
-          pages: pageFilter.exclude.map(item => item.id),
-          tags: tagFilter.exclude.map(item => item.dbId!),
-        },
-        include: {
-          pages: pageFilter.include.map(item => item.id),
-          tags: tagFilter.include.map(item => item.dbId!),
-        }
-        // exclude: {
-        //   pageUids: exclude.pages.map(item => item.id),
-        //   tagsUids: exclude.tags.map(item => item.dbId!)
-        // }
-      }
-    );
+    await trigger({
+      search,
+      caseIntensive,
+      // uids: selectedPagesUids.map((item) => item.id),
+      exclude: {
+        pages: getFilterExcludePageIds(),
+        tags: getFilterExcludeTags(),
+      },
+      include: {
+        pages: getFilterIncludePageIds(),
+        tags: getFilterIncludeTags(),
+      },
+      // exclude: {
+      //   pageUids: exclude.pages.map(item => item.id),
+      //   tagsUids: exclude.tags.map(item => item.dbId!)
+      // }
+    });
   } catch (e) {
     console.error(e, " ---");
     ui.loading.set(false);
@@ -497,7 +480,9 @@ const disposeUiResult = observe(async () => {
 
     if (result && users.length) {
       // console.log(users, {...item}, typeof item.createUser, typeof users[0])
-      result = users.some((user) => user.id === item.createUser || !item.createUser);
+      result = users.some(
+        (user) => user.id === item.createUser || !item.createUser
+      );
     }
     return result;
   });
@@ -518,12 +503,8 @@ const disposeUiResult = observe(async () => {
     const end = dayjs(modificationDate.end);
     uiResult = uiResult.filter((item) => {
       // console.log(item.editTime, +start, + end)
-      return (
-        item.editTime >= +start &&
-        item.editTime <= +end
-      );
+      return item.editTime >= +start && item.editTime <= +end;
     });
-
   }
   if (creationDate) {
     uiResult = uiResult.filter((item) => {
@@ -628,7 +609,9 @@ const saveToSearchViewed = (items: ResultItem[]) => {
   windowUi.history.viewed.push(
     ...items
       .filter(
-        (item) => viewed.findIndex((vItem) => item.id === vItem.id) === -1 || !!item.text
+        (item) =>
+          viewed.findIndex((vItem) => item.id === vItem.id) === -1 ||
+          !!item.text
       )
       .map((item) => ({
         id: item.id,
@@ -684,7 +667,7 @@ export const store = {
     },
     toggleDialog() {
       if (store.ui.conditions.isPageSelecting()) {
-        return
+        return;
       }
       if (windowUi.visible.get()) {
         if (windowUi.filter.open.get()) {
@@ -842,10 +825,10 @@ export const store = {
       store.actions.history.saveSearch(search);
       ui.selectedTarget
         .peek()
-        .filter(item => item.selected === 1)
+        .filter((item) => item.selected === 1)
         .forEach((item) => {
-          opens.sidebar(item.id)
-        })
+          opens.sidebar(item.id);
+        });
       ui.selectedTarget.set([]);
       store.actions.toggleDialog();
       ui.showSelectedTarget.set(false);
@@ -856,7 +839,7 @@ export const store = {
       // console.log(ui.selectedTarget.get(), '----')
       const pasteStr = ui.selectedTarget
         .peek()
-        .filter(item => item.selected === 1)
+        .filter((item) => item.selected === 1)
         .map((item) => {
           if (item.isPage) {
             return `[[${item.text}]]`;
@@ -922,7 +905,7 @@ export const store = {
               } else {
                 ui.conditions.filter.tags.include.push(obj);
               }
-            }
+            },
           },
           exclude: {
             clearSelected() {
@@ -938,7 +921,6 @@ export const store = {
               }
             },
           },
-
         },
         page: {
           include: {
@@ -953,7 +935,7 @@ export const store = {
               } else {
                 ui.conditions.filter.page.include.push(obj);
               }
-            }
+            },
           },
           exclude: {
             clearSelected() {
@@ -968,18 +950,17 @@ export const store = {
                 ui.conditions.filter.page.exclude.push(obj);
               }
             },
-
-          }
-        }
+          },
+        },
       },
       toggleSelect(b?: boolean) {
         setTimeout(() => {
-          if(b !== undefined) {
+          if (b !== undefined) {
             windowUi.select.open.set(b);
           } else {
             windowUi.select.open.toggle();
           }
-        }, 100)
+        }, 100);
       },
       async toggleBlockRefToString() {
         ui.conditions.blockRefToString.toggle();
@@ -1000,7 +981,7 @@ export const store = {
         ui.conditions.caseIntensive.toggle();
       },
       clearSelectedPages() {
-        ui.conditions.pages.selected.set([])
+        ui.conditions.pages.selected.set([]);
       },
       changeSelectedPages(obj: { id: string; text: string }) {
         const selected = ui.conditions.pages.selected.peek();
@@ -1038,7 +1019,7 @@ export const store = {
             } else {
               ui.conditions.exclude.pages.push(obj);
             }
-          }
+          },
         },
         tag: {
           clearSelected() {
@@ -1052,9 +1033,9 @@ export const store = {
             } else {
               ui.conditions.exclude.tags.push(obj);
             }
-          }
-        }
-      }
+          },
+        },
+      },
     },
     setHeight(vHeight: number) {
       const windowHeight = document.body.getBoundingClientRect().height;
@@ -1093,25 +1074,23 @@ export const store = {
          *  */
         setTimeout(() => {
           windowUi.tab.nameInputing.toggle();
-        }, 100)
+        }, 100);
       },
-      changeName(index: number, str: string) {
-
-      },
+      changeName(index: number, str: string) { },
       deleteTab(id: string) {
         deleteFromTabs(id);
       },
       addTab(str: string) {
-        const newTab = ({
+        const newTab = {
           ...defaultTab(),
-          title: str
-        })
-        addToTabs(newTab)
+          title: str,
+        };
+        addToTabs(newTab);
       },
       focus(v: string) {
         focusInTabs(v);
-      }
-    }
+      },
+    },
   },
   ui: {
     tab: {
@@ -1125,7 +1104,7 @@ export const store = {
         return v === windowUi.tab.active.get();
       },
       isTabNameInputing() {
-        return windowUi.tab.nameInputing.get()
+        return windowUi.tab.nameInputing.get();
       },
     },
     mode: {
@@ -1151,14 +1130,22 @@ export const store = {
     },
     isTyped() {
       const filter = ui.conditions.filter.get();
-      const filterCount = filter.page.exclude.length + filter.page.include.length +
-        filter.tags.exclude.length + filter.tags.include.length
+      const filterCount =
+        filter.page.exclude.length +
+        filter.page.include.length +
+        filter.tags.exclude.length +
+        filter.tags.include.length;
       const modificationDate = ui.conditions.modificationDate.get();
       if (store.ui.conditions.isPageSelecting()) {
-        return true
+        return true;
       }
 
-      return ui.search.get()?.length || filterCount > 0 || modificationDate?.start || modificationDate?.end
+      return (
+        ui.search.get()?.length ||
+        filterCount > 0 ||
+        modificationDate?.start ||
+        modificationDate?.end
+      );
     },
     hasValidSearch() {
       return ui.search.get()?.trim()?.length;
@@ -1222,7 +1209,7 @@ export const store = {
     },
     conditions: {
       isPageSelecting() {
-        const r = windowUi.select.open.get()
+        const r = windowUi.select.open.get();
         return r;
       },
       isBlockRefToString() {
@@ -1250,7 +1237,7 @@ export const store = {
               id: item.block[":block/uid"],
               text: item.block[":node/title"],
               dbId: item.block[":db/id"],
-              backlinkCount: item.block[":block/_refs"]?.length || 0
+              backlinkCount: item.block[":block/_refs"]?.length || 0,
             }))
             .filter((item) => item.text);
         },
@@ -1292,20 +1279,28 @@ export const store = {
       exclude: {
         page: {
           getSelected() {
-            return ui.conditions.exclude.pages.get()
+            return ui.conditions.exclude.pages.get();
           },
           isSelected(id: string) {
-            return ui.conditions.exclude.pages.get().findIndex(item => item.id === id) > -1
-          }
+            return (
+              ui.conditions.exclude.pages
+                .get()
+                .findIndex((item) => item.id === id) > -1
+            );
+          },
         },
         tag: {
           getSelected() {
-            return ui.conditions.exclude.tags.get()
+            return ui.conditions.exclude.tags.get();
           },
           isSelected(id: string) {
-            return ui.conditions.exclude.tags.get().findIndex(item => item.id === id) > -1
-          }
-        }
+            return (
+              ui.conditions.exclude.tags
+                .get()
+                .findIndex((item) => item.id === id) > -1
+            );
+          },
+        },
       },
       filter: {
         tag: {
@@ -1314,7 +1309,7 @@ export const store = {
           },
           exclude() {
             return ui.conditions.filter.tags.exclude.get();
-          }
+          },
         },
         page: {
           include() {
@@ -1322,8 +1317,8 @@ export const store = {
           },
           exclude() {
             return ui.conditions.filter.page.exclude.get();
-          }
-        }
+          },
+        },
       },
 
       hasChanged() {
@@ -1424,7 +1419,7 @@ windowUi.open.onChange((next) => {
 });
 
 export const initStore = (extensionAPI: RoamExtensionAPI) => {
-  const tabConfig = Tab.read()
+  const tabConfig = Tab.read();
   if (tabConfig) {
     Tabs = tabConfig;
     windowUi.tab.tabs.set(clone(tabConfig));
