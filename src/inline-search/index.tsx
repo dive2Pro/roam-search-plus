@@ -150,57 +150,16 @@ function useFormBiz(immediateStore: Observable<{
     } as const
 }
 function InlineSearchPlus_FormBiz(props: ChildFn<ReturnType<typeof useFormBiz> & {
-    search: () => void,
+    doSearch: () => void,
+    isLoadingGraph: boolean,
+    search: string,
+    tags: Tag[],
+    filterdTags: Tag[],
+    changeSearch(v: string): void
 }, {
     uid: string,
-    store: {
-        searching(arg0: {
-            exclude: { tags: number[]; };
-            include: { tags: number[]; };
-            caseIntensive: boolean;
-        }): Promise<void>;
-    }
+    search: string
 }>) {
-    const immediateStore = useFormBizObservableStore(useMemo(() => {
-        const attrs = BlockAttrs.read(props.uid)
-        return attrs
-    }, []))
-
-    useEffect(() => {
-        immediateStore.onChange((value) => {
-            BlockAttrs.save(props.uid, value)
-        })
-        // ref.current.focus();
-    }, [])
-
-    const biz = useFormBiz(
-        immediateStore);
-
-    const searchWithConfig = () => {
-        const _store = immediateStore.get()
-        props.store.searching({
-            ..._store,
-            exclude: {
-                tags: _store.exclude.tags.map(item => {
-                    return item.id
-                })
-            },
-            include: {
-                tags: _store.include.tags.map(item => {
-                    return item.id
-                })
-            },
-        });
-    }
-
-    return props.children({ ...biz, search: searchWithConfig })
-}
-
-export const InlineSearchPlus = observer((props: {
-    onSearchChange: (search: string) => void,
-    uid: string, search: string
-}) => {
-    const ref = useRef<HTMLInputElement>()
     console.log(props, ' = props')
     const store = useObservable(() => {
         return {
@@ -265,12 +224,62 @@ export const InlineSearchPlus = observer((props: {
             })
     }
 
-
-    const storeBiz = {
-        searching
+    const searchWithConfig = () => {
+        const _store = immediateStore.get()
+        searching({
+            ..._store,
+            exclude: {
+                tags: _store.exclude.tags.map(item => {
+                    return item.id
+                })
+            },
+            include: {
+                tags: _store.include.tags.map(item => {
+                    return item.id
+                })
+            },
+        });
     }
 
-    return <InlineSearchPlus_FormBiz uid={props.uid} store={storeBiz}>
+    const immediateStore = useFormBizObservableStore(useMemo(() => {
+        const attrs = BlockAttrs.read(props.uid)
+        return attrs
+    }, []))
+
+    useEffect(() => {
+        immediateStore.onChange((value) => {
+            BlockAttrs.save(props.uid, value)
+        })
+        // ref.current.focus();
+    }, [])
+
+    const biz = useFormBiz(immediateStore);
+
+
+    return props.children({
+        ...biz,
+        isLoadingGraph: store.loading.get(),
+        search: store.search.get(),
+        doSearch: searchWithConfig,
+        tags: store.tags.get(),
+        filterdTags: store.tags.get().filter(biz.tagNotFiltered),
+        changeSearch(search: string) {
+            store.search.set(search)
+        }
+    })
+}
+
+export const InlineSearchPlus = observer((props: {
+    onSearchChange: (search: string) => void,
+    uid: string, search: string
+}) => {
+    const ref = useRef<HTMLInputElement>()
+    const focusInput = () => {
+        ref.current.focus()
+    }
+    return <InlineSearchPlus_FormBiz
+        search={props.search}
+        uid={props.uid} >
         {
             (formBiz) => {
                 return <Callout >
@@ -282,25 +291,25 @@ export const InlineSearchPlus = observer((props: {
                                 formBiz.toggle()
                             }}
                         />
-                        <ControlGroup onClick={() => ref.current.focus()}>
+                        <ControlGroup onClick={() => focusInput()}>
                             <InputGroup
                                 leftIcon={
-                                    store.loading.get() ? (
+                                    formBiz.isLoadingGraph ? (
                                         <Icon icon="refresh" size={14} className="loading" />
                                     ) : (
                                         "search"
                                     )
                                 }
-                                inputRef={ref} value={store.search.get()}
+                                inputRef={ref} value={formBiz.search}
                                 onChange={(e) => {
-                                    store.search.set(e.target.value);
+                                    formBiz.changeSearch(e.target.value)
                                     formBiz.tagsFilterClean()
                                 }}
                             />
                             <Button
                                 onClick={() => {
-                                    props.onSearchChange(store.search.peek());
-                                    formBiz.search()
+                                    props.onSearchChange(formBiz.search);
+                                    formBiz.doSearch()
                                 }}>
                                 Search+
                             </Button>
@@ -309,24 +318,23 @@ export const InlineSearchPlus = observer((props: {
                                     minimal
                                     icon="reset"
                                     onClick={() => {
-                                        props.onSearchChange(store.search.peek());
+                                        props.onSearchChange(formBiz.search);
                                         setGraphLoaded(false)
-                                        formBiz.search()
-
+                                        formBiz.doSearch()
                                     }}
                                 />
                             </Tooltip>
                         </ControlGroup>
                     </div>
                     <Popover
-                        disabled={store.tags.length === 0}
+                        disabled={formBiz.tags.length === 0}
                         onOpened={() => { }}
                         onClosed={() => { }}
                         autoFocus={false}
                         content={
                             <RoamPageFilter
                                 items={
-                                    store.tags.get().filter(formBiz.tagNotFiltered)
+                                    formBiz.filterdTags
                                 }
                                 itemRenderer={(index, item) => {
                                     return (
@@ -350,23 +358,23 @@ export const InlineSearchPlus = observer((props: {
                                         excludes={formBiz.excludeTags}
                                         onItemAddClick={(item) => {
                                             formBiz.changeIncludeSelected(item);
-                                            formBiz.search()
+                                            formBiz.doSearch()
 
                                         }}
                                         onItemRemoveClick={(item => {
                                             formBiz.changeExcludeSelected(item);
-                                            formBiz.search()
+                                            formBiz.doSearch()
 
                                         })}
                                         onClearAdded={() => {
                                             formBiz.includeTagsClean()
-                                            formBiz.search()
+                                            formBiz.doSearch()
 
                                             // store.actions.conditions.filter.page.include.clearSelected();
                                         }}
                                         onClearexcludes={() => {
                                             formBiz.excludeTagsClean();
-                                            formBiz.search()
+                                            formBiz.doSearch()
 
                                         }}
                                     />
