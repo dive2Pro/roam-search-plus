@@ -46,12 +46,12 @@ export const Query = (config: QueryConfig) => {
         }
       }
 
-      if (config.exclude.pages.length) {
+      if (config.exclude.pages?.length) {
         if (config.exclude.pages.some(pageUid => pageUid === item.page)) {
           return false;
         }
       }
-      if (config.exclude.tags.length) {
+      if (config.exclude.tags?.length) {
         // console.log(config.exclude.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]))
         // if (config.exclude.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
         // return false
@@ -68,7 +68,11 @@ export const Query = (config: QueryConfig) => {
       });
 
       if (config.include.tags.length) {
-        const hasTagged = item.block[":block/refs"] && config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))
+        const hasTagged = item.block[":block/refs"] &&
+          config.include.tags.some(tagId =>
+            item.block[":block/refs"].some(ref =>
+              String(ref[":db/id"]) === String(tagId)))
+        console.log(hasTagged, config.include.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]), '____item book')
         if (r) {
           if (hasTagged) {
             return true;
@@ -213,12 +217,12 @@ export const Query = (config: QueryConfig) => {
 
       // 过滤掉非选中页面
       if (config.exclude) {
-        if (config.exclude.pages.length) {
+        if (config.exclude.pages?.length) {
           if (config.exclude.pages.some(uid => page.block[":block/uid"] === uid)) {
             return false
           }
         }
-        if (config.exclude.tags.length && page.block[":block/refs"]?.length) {
+        if (config.exclude.tags?.length && page.block[":block/refs"]?.length) {
           // console.log(config.exclude.tags, page.block[":block/refs"]?.map(item => item[":db/id"]))
           if (config.exclude.tags.some(tagId => page.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
             return false

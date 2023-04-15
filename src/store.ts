@@ -10,8 +10,10 @@ import {
 import dayjs, { Dayjs } from "dayjs";
 import { ReactNode } from "react";
 import { PullBlock } from "roamjs-components/types";
+import { delay } from "./delay";
 import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
 import { clone, CONSTNATS, debounce, extension_helper } from "./helper";
+import { isGraphLoaded, setGraphLoaded } from "./loaded";
 import { Query } from "./query";
 import {
   CacheBlockType,
@@ -29,7 +31,6 @@ import {
   renewCache2,
 } from "./roam";
 
-const delay = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function findLowestParentFromResult(block: ResultItem) {
   if (block.children.length) {
@@ -141,7 +142,6 @@ const defaultTab = () => ({
   id: window.roamAlphaAPI.util.generateUID(),
   graph: {
     loading: false,
-    loaded: false,
   },
   search: "",
   multiple: false,
@@ -713,7 +713,7 @@ export const store = {
         }
       } else {
         store.actions.openDialog();
-        if (!ui.graph.loaded.get()) {
+        if (!isGraphLoaded()) {
           store.actions.loadingGraph();
         } else {
           store.actions.renewGraph();
@@ -1091,7 +1091,8 @@ export const store = {
         await delay(200);
       }
       ui.graph.loading.set(false);
-      ui.graph.loaded.set(true);
+      // ui.graph.loaded.set(true);
+      setGraphLoaded(true)
     },
     async renewGraph() {
       await delay();

@@ -1,3 +1,5 @@
+import { PullBlock } from "roamjs-components/types";
+
 let extentionAPI: RoamExtensionAPI;
 
 export const initExtention = (api: RoamExtensionAPI) => {
@@ -75,5 +77,31 @@ export const Tab = {
     } catch (e) {
       console.log(e, ' = error')
     }
+  }
+}
+
+
+type BlockAttrs = {
+  closed?: boolean
+}
+
+export const BlockAttrs = {
+  save: (blockUid: string, props: BlockAttrs) => {
+    window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: blockUid,
+        // @ts-ignore
+        props: {
+          searchPlus: props
+        }
+      }
+    })
+  },
+  read: (blockUid: string): BlockAttrs => {
+    const block = window.roamAlphaAPI.q(`[:find (pull ?e [*])  . :where [?e :block/uid "${blockUid}"]]`) as any
+    if (block) {
+      return block.props?.searchPlus || {}
+    }
+    return {}
   }
 }

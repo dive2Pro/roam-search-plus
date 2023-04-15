@@ -9,20 +9,19 @@ import {
   MenuItem,
   MenuItemProps,
   Menu,
-  InputGroup,
-  Divider,
 } from "@blueprintjs/core";
 import { DateRange, DateRangePicker } from "@blueprintjs/datetime";
 import { Select, MultiSelect, MultiSelectProps } from "@blueprintjs/select";
 import { observable } from "@legendapp/state";
 import { observer } from "@legendapp/state/react";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { CONSTNATS } from "../helper";
 import { MOMENT_FORMATS } from "../moment";
 import { store } from "../store";
 import { BottomPopup } from "./bottom-popup";
 import { usePortal } from "./commons/use-portal";
-import { Virtuoso } from "react-virtuoso";
+import { RoamPageFilter } from "./RoamPageFilter";
+import { RoamTagFilterHeader } from "./RoamTagFilterHeader";
 
 function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
   return (
@@ -432,97 +431,6 @@ export const Sidebar = observer(() => {
     </section>
   );
 });
-
-function RoamTagFilterHeader<T extends { text: string }>(props: {
-  onItemAddClick?: (item: T) => void,
-  onItemRemoveClick?: (item: T) => void,
-  onClearAdded?: () => void,
-  onClearexcludes?: () => void,
-  includes: T[],
-  excludes: T[]
-}) {
-
-  return <div className="flex-row">
-    <div className="flex-1">
-      <div className="flex-row p-1.5">
-        <strong style={{ marginRight: 8 }}>Includes{` `}</strong> Click to Add
-        <div className="flex-1" />
-        {
-          props.includes.length ?
-            <Button minimal autoFocus={false} small icon="delete" onClick={() => {
-              props.onClearAdded();
-            }} />
-            : null
-        }
-
-      </div>
-      {props.includes.length ?
-        <div className="flex-row flex-wrap flex-1">
-          {props.includes.map(item => {
-            return <Button text={item.text} style={{ margin: 4 }}
-              onClick={() => props.onItemAddClick(item)}
-            />
-          })}
-        </div> : null
-
-      }
-
-    </div>
-    <Divider />
-    <div className="flex-1">
-      <div className="flex-row p-1.5">
-        <strong style={{ marginRight: 8 }}>Excludes</strong> Shift+Click to Add
-        <div className="flex-1" />
-        {
-          props.excludes.length ?
-            <Button minimal small icon="delete" onClick={() => {
-              props.onClearexcludes();
-            }} />
-            : null
-        }
-      </div>
-      <div className="flex-row flex-wrap flex-1">
-        {props.excludes.map(item => {
-          return <Button small text={item.text} style={{ margin: 4 }}
-            onClick={() => props.onItemRemoveClick(item)}
-          />
-        })}
-      </div>
-    </div>
-    <div className="rm-line"></div>
-  </div>
-
-}
-
-function RoamPageFilter<T extends { text: string }>(props: {
-  items: T[],
-  header?: JSX.Element,
-  itemRenderer: (index: number, d: T) => JSX.Element
-}) {
-  const [search, setSearch] = useState("");
-  const pages = props.items.filter(item => {
-    return item.text.toLowerCase().includes(search.toLowerCase());
-  });
-
-  return <div className="page-select">
-    {props.header}
-    <InputGroup
-      value={search}
-      placeholder="search..."
-      onChange={e => setSearch(e.target.value)}
-    />
-    <Virtuoso
-      style={{
-        height: 300,
-      }}
-      totalCount={pages.length}
-      data={pages}
-      itemContent={(index, data) => {
-        return props.itemRenderer(index, data);
-      }}
-    />
-  </div>
-}
 
 const SelectPages2 = observer(({ children, content, ...rest }: { children: ReactNode, content: JSX.Element }) => {
   return (

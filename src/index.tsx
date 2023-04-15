@@ -6,6 +6,7 @@ import { store, initStore } from "./store";
 import { initExtention } from "./extentionApi";
 import { Button, Tooltip } from "@blueprintjs/core";
 import { initSettings } from "./config";
+import { initInlineSearch } from "./inline-search/starter";
 
 // The shortcut to open the search + dialog still retains the selection status, which may cause accidental deletion of  blocks.
 const blurRoamSelection = () => {
@@ -153,6 +154,7 @@ export default {
     initListener(extensionAPI);
     initExtention(extensionAPI);
     initStore(extensionAPI);
+    initInlineSearch(extensionAPI);
     window.roamAlphaAPI.platform.isMobile
       ? initToolbarIcon()
       : initSidebarIcon();
