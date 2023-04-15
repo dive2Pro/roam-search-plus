@@ -83,7 +83,6 @@ export const InlineSearchPlus = observer((props: {
         }
     });
 
-    
     const immediateStore = useObservable(() => {
         const attrs = BlockAttrs.read(props.uid)
         return {
@@ -98,6 +97,7 @@ export const InlineSearchPlus = observer((props: {
                 !!attrs.closed,
         }
     })
+    
     function changeExcludeSelected(obj: {
         id: number,
         text: string,
@@ -197,10 +197,13 @@ export const InlineSearchPlus = observer((props: {
 
     return <Callout >
         <div className="flex">
-            <Button icon={immediateStore.closed.get() ? "caret-right" : "caret-down"} minimal onClickCapture={() => {
-                immediateStore.closed.toggle();
-
-            }} />
+            <Button
+                icon={immediateStore.closed.get() ? "caret-right" : "caret-down"}
+                minimal
+                onClickCapture={() => {
+                    immediateStore.closed.toggle();
+                }}
+            />
             <ControlGroup onClick={() => ref.current.focus()}>
                 <InputGroup
                     leftIcon={
@@ -213,7 +216,6 @@ export const InlineSearchPlus = observer((props: {
                     inputRef={ref} value={store.search.get()}
                     onChange={(e) => {
                         store.search.set(e.target.value);
-
                         immediateStore.include.tags.set([]);
                         immediateStore.exclude.tags.set([]);
                     }}
@@ -221,87 +223,82 @@ export const InlineSearchPlus = observer((props: {
                 <Button
                     onClick={() => {
                         props.onSearchChange(store.search.peek());
-
                         searchWithConfig()
                     }}>
                     Search+
                 </Button>
                 <Tooltip content={"Full Page Reload"}>
-                    <Button minimal icon="reset" onClick={() => {
-                        props.onSearchChange(store.search.peek());
-                        setGraphLoaded(false)
-                        searchWithConfig()
-
-                    }} />
+                    <Button
+                        minimal
+                        icon="reset"
+                        onClick={() => {
+                            props.onSearchChange(store.search.peek());
+                            setGraphLoaded(false)
+                            searchWithConfig()
+                        }}
+                    />
                 </Tooltip>
-
             </ControlGroup>
         </div>
         <Popover
             disabled={store.tags.length === 0}
-            onOpened={() => {
-                if (!isGraphLoaded()) {
-
-                }
-            }}
-            onClosed={() => {
-
-            }}
+            onOpened={() => {}}
+            onClosed={() => {}}
             autoFocus={false}
-            content={<RoamPageFilter
-                items={
-                    store.tags.get().filter((tag) => {
-                        return !immediateStore.exclude.tags.get().some(excludeTag => {
-                            return tag.id === excludeTag.id
-                        }) &&
-                            !immediateStore.include.tags.get().some(excludeTag => {
+            content={
+                <RoamPageFilter
+                    items={
+                        store.tags.get().filter((tag) => {
+                            return !immediateStore.exclude.tags.get().some(excludeTag => {
                                 return tag.id === excludeTag.id
-                            })
-                    })
-                }
-                itemRenderer={(index, item) => {
+                            }) &&
+                                !immediateStore.include.tags.get().some(excludeTag => {
+                                    return tag.id === excludeTag.id
+                                })
+                        })
+                    }
+                    itemRenderer={(index, item) => {
+                        return (
+                            <Button
+                                minimal fill alignText="left" text={item.text} onClick={e => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (e.shiftKey) {
+                                        // store.actions.conditions.filter.page.exclude.changeSelected(item);
+                                        changeExcludeSelected(item)
+                                        return
+                                    }
+                                    changeIncludeSelected(item)
+                                }}>
+                            </Button>
+                        );
+                    }}
+                    header={
+                        <RoamTagFilterHeader
+                            includes={immediateStore.include.tags.get()}
+                            excludes={immediateStore.exclude.tags.get()}
+                            onItemAddClick={(item) => {
+                                changeIncludeSelected(item);
+                                searchWithConfig()
+                            }}
+                            onItemRemoveClick={(item => {
+                                changeExcludeSelected(item);
+                                searchWithConfig()
+                            })}
+                            onClearAdded={() => {
+                                immediateStore.include.tags.set([])
+                                searchWithConfig()
 
-                    return (
-                        <Button
-                            minimal fill alignText="left" text={item.text} onClick={e => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (e.shiftKey) {
-                                    // store.actions.conditions.filter.page.exclude.changeSelected(item);
-                                    changeExcludeSelected(item)
-                                    return
-                                }
-                                changeIncludeSelected(item)
-                            }}>
-                        </Button>
-                    );
-                }}
-                header={
-                    <RoamTagFilterHeader
-                        includes={immediateStore.include.tags.get()}
-                        excludes={immediateStore.exclude.tags.get()}
-                        onItemAddClick={(item) => {
-                            changeIncludeSelected(item);
-                            searchWithConfig()
-                        }}
-                        onItemRemoveClick={(item => {
-                            changeExcludeSelected(item);
-                            searchWithConfig()
-                        })}
-                        onClearAdded={() => {
-                            immediateStore.include.tags.set([])
-                            searchWithConfig()
+                                // store.actions.conditions.filter.page.include.clearSelected();
+                            }}
+                            onClearexcludes={() => {
+                                immediateStore.exclude.tags.set([])
+                                searchWithConfig()
 
-                            // store.actions.conditions.filter.page.include.clearSelected();
-                        }}
-                        onClearexcludes={() => {
-                            immediateStore.exclude.tags.set([])
-                            searchWithConfig()
-
-                        }}
-                    />
-                }
-            />}
+                            }}
+                        />
+                    }
+                />}
         >
             <Button
                 icon="document"
