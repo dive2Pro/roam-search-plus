@@ -81,7 +81,7 @@ export const Tab = {
 }
 
 
-type BlockAttrs = {
+export type BlockAttrs = {
   closed?: boolean,
   exclude?: {
     tags: {}[]

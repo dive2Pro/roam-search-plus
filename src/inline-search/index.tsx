@@ -1,6 +1,6 @@
-import { Button, Callout, ControlGroup, FormGroup, Icon, InputGroup, Popover, Tooltip } from "@blueprintjs/core";
+import { Button, Callout, ControlGroup, FormGroup, Icon, IconName, InputGroup, Popover, Tooltip } from "@blueprintjs/core";
 import { observer, useComputed, useObserveEffect } from "@legendapp/state/react";
-import React, { ReactNode, useEffect, useRef } from "react";
+import React, { ReactNode, useEffect, useMemo, useRef } from "react";
 import ReactDOM from "react-dom";
 import { useObservable } from '@legendapp/state/react'
 import { RoamPageFilter } from "../components/RoamPageFilter";
@@ -11,6 +11,7 @@ import { isGraphLoaded, setGraphLoaded } from "../loaded";
 import { BlockAttrs } from "../extentionApi";
 import { RoamTagFilterHeader } from "../components/RoamTagFilterHeader";
 import { PullBlock } from "roamjs-components/types";
+import { Observable } from "@legendapp/state";
 
 
 export function renderNode(node: HTMLElement) {
@@ -59,32 +60,13 @@ type Tag = {
     dbId: number
 }
 
-export const InlineSearchPlus = observer((props: {
-    onSearchChange: (search: string) => void,
-    uid: string, search: string
-}) => {
-    const ref = useRef<HTMLInputElement>()
-    console.log(props, ' = props')
-    const store = useObservable(() => {
-        return {
-            search: props.search,
-            list: {
-                pages: [],
-                blocks: []
-            },
-            selected: [],
-            loading: false,
+type ChildFn<P, S> = {
+    children: (v: P) => any,
+} & S
 
-            tags: [] as {
-                id: number,
-                text: string,
-                dbId: number
-            }[]
-        }
-    });
 
-    const immediateStore = useObservable(() => {
-        const attrs = BlockAttrs.read(props.uid)
+function useFormBizObservableStore(attrs: BlockAttrs) {
+    return useObservable(() => {
         return {
             caseIntensive: false,
             exclude: {
@@ -97,7 +79,20 @@ export const InlineSearchPlus = observer((props: {
                 !!attrs.closed,
         }
     })
-    
+}
+
+function useFormBiz(immediateStore: Observable<{
+    caseIntensive: boolean,
+    exclude: {
+        tags: Tag[]
+    },
+    include: {
+        tags: Tag[]
+    },
+    closed: boolean
+}>) {
+
+
     function changeExcludeSelected(obj: {
         id: number,
         text: string,
@@ -124,9 +119,66 @@ export const InlineSearchPlus = observer((props: {
         }
     }
 
+    return {
+        toggle: () => {
+            immediateStore.closed.toggle();
+        },
+        caretIcon: immediateStore.closed.get() ? "caret-right" : "caret-down" as IconName,
+        tagsFilterClean: () => {
+            immediateStore.include.tags.set([]);
+            immediateStore.exclude.tags.set([]);
+        },
+        includeTagsClean: function () {
+            immediateStore.include.tags.set([]);
+        },
+        excludeTagsClean: function () {
+            immediateStore.exclude.tags.set([]);
+        },
+        includeTags: immediateStore.include.tags.get(),
+        excludeTags: immediateStore.exclude.tags.get(),
+        tagNotFiltered: function (tag: Tag) {
+            return !immediateStore.exclude.tags.get().some(excludeTag => {
+                return tag.id === excludeTag.id;
+            }) &&
+                !immediateStore.include.tags.get().some(excludeTag => {
+                    return tag.id === excludeTag.id;
+                });
+        },
+        changeExcludeSelected,
+        changeIncludeSelected,
+        hasTagFiltered: immediateStore.include.tags.get().length > 0 || immediateStore.exclude.tags.get().length > 0,
+    } as const
+}
+function InlineSearchPlus_FormBiz(props: ChildFn<ReturnType<typeof useFormBiz> & {
+    search: () => void,
+}, {
+    uid: string,
+    store: {
+        searching(arg0: {
+            exclude: { tags: number[]; };
+            include: { tags: number[]; };
+            caseIntensive: boolean;
+        }): Promise<void>;
+    }
+}>) {
+    const immediateStore = useFormBizObservableStore(useMemo(() => {
+        const attrs = BlockAttrs.read(props.uid)
+        return attrs
+    }, []))
+
+    useEffect(() => {
+        immediateStore.onChange((value) => {
+            BlockAttrs.save(props.uid, value)
+        })
+        // ref.current.focus();
+    }, [])
+
+    const biz = useFormBiz(
+        immediateStore);
+
     const searchWithConfig = () => {
         const _store = immediateStore.get()
-        searching({
+        props.store.searching({
             ..._store,
             exclude: {
                 tags: _store.exclude.tags.map(item => {
@@ -138,10 +190,35 @@ export const InlineSearchPlus = observer((props: {
                     return item.id
                 })
             },
-            search: store.search.peek().split(" ")
         });
     }
-    const searching = async (config: QueryConfig) => {
+
+    return props.children({ ...biz, search: searchWithConfig })
+}
+
+export const InlineSearchPlus = observer((props: {
+    onSearchChange: (search: string) => void,
+    uid: string, search: string
+}) => {
+    const ref = useRef<HTMLInputElement>()
+    console.log(props, ' = props')
+    const store = useObservable(() => {
+        return {
+            search: props.search,
+            list: {
+                pages: [],
+                blocks: []
+            },
+            loading: false,
+            tags: [] as {
+                id: number,
+                text: string,
+                dbId: number
+            }[]
+        }
+    });
+
+    const searching = async (config: Omit<QueryConfig, "search">) => {
         store.loading.set(true);
         if (!isGraphLoaded()) {
             await delay(10)
@@ -152,7 +229,7 @@ export const InlineSearchPlus = observer((props: {
         renewCache2({ blockRefToString: false });
         store.loading.set(false);
 
-        return Query(config).promise
+        return Query({ ...config, search: store.search.peek().split(" ") }).promise
             .then((res) => {
                 console.log(res[0], ' = res');
                 store.list.set({
@@ -188,140 +265,142 @@ export const InlineSearchPlus = observer((props: {
             })
     }
 
-    useEffect(() => {
-        immediateStore.onChange((value) => {
-            BlockAttrs.save(props.uid, value)
-        })
-        // ref.current.focus();
-    }, [])
 
-    return <Callout >
-        <div className="flex">
-            <Button
-                icon={immediateStore.closed.get() ? "caret-right" : "caret-down"}
-                minimal
-                onClickCapture={() => {
-                    immediateStore.closed.toggle();
-                }}
-            />
-            <ControlGroup onClick={() => ref.current.focus()}>
-                <InputGroup
-                    leftIcon={
-                        store.loading.get() ? (
-                            <Icon icon="refresh" size={14} className="loading" />
-                        ) : (
-                            "search"
-                        )
-                    }
-                    inputRef={ref} value={store.search.get()}
-                    onChange={(e) => {
-                        store.search.set(e.target.value);
-                        immediateStore.include.tags.set([]);
-                        immediateStore.exclude.tags.set([]);
-                    }}
-                />
-                <Button
-                    onClick={() => {
-                        props.onSearchChange(store.search.peek());
-                        searchWithConfig()
-                    }}>
-                    Search+
-                </Button>
-                <Tooltip content={"Full Page Reload"}>
-                    <Button
-                        minimal
-                        icon="reset"
-                        onClick={() => {
-                            props.onSearchChange(store.search.peek());
-                            setGraphLoaded(false)
-                            searchWithConfig()
-                        }}
-                    />
-                </Tooltip>
-            </ControlGroup>
-        </div>
-        <Popover
-            disabled={store.tags.length === 0}
-            onOpened={() => {}}
-            onClosed={() => {}}
-            autoFocus={false}
-            content={
-                <RoamPageFilter
-                    items={
-                        store.tags.get().filter((tag) => {
-                            return !immediateStore.exclude.tags.get().some(excludeTag => {
-                                return tag.id === excludeTag.id
-                            }) &&
-                                !immediateStore.include.tags.get().some(excludeTag => {
-                                    return tag.id === excludeTag.id
-                                })
-                        })
-                    }
-                    itemRenderer={(index, item) => {
-                        return (
-                            <Button
-                                minimal fill alignText="left" text={item.text} onClick={e => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    if (e.shiftKey) {
-                                        // store.actions.conditions.filter.page.exclude.changeSelected(item);
-                                        changeExcludeSelected(item)
-                                        return
-                                    }
-                                    changeIncludeSelected(item)
-                                }}>
-                            </Button>
-                        );
-                    }}
-                    header={
-                        <RoamTagFilterHeader
-                            includes={immediateStore.include.tags.get()}
-                            excludes={immediateStore.exclude.tags.get()}
-                            onItemAddClick={(item) => {
-                                changeIncludeSelected(item);
-                                searchWithConfig()
-                            }}
-                            onItemRemoveClick={(item => {
-                                changeExcludeSelected(item);
-                                searchWithConfig()
-                            })}
-                            onClearAdded={() => {
-                                immediateStore.include.tags.set([])
-                                searchWithConfig()
+    const storeBiz = {
+        searching
+    }
 
-                                // store.actions.conditions.filter.page.include.clearSelected();
-                            }}
-                            onClearexcludes={() => {
-                                immediateStore.exclude.tags.set([])
-                                searchWithConfig()
-
+    return <InlineSearchPlus_FormBiz uid={props.uid} store={storeBiz}>
+        {
+            (formBiz) => {
+                return <Callout >
+                    <div className="flex">
+                        <Button
+                            icon={formBiz.caretIcon}
+                            minimal
+                            onClickCapture={() => {
+                                formBiz.toggle()
                             }}
                         />
-                    }
-                />}
-        >
-            <Button
-                icon="document"
-                alignText="left"
-                minimal
-                style={{
-                    maxWidth: '100%'
-                }}
-                outlined={!!store.selected.length}
-                intent={store.selected.length ? "primary" : 'none'}
-                text={
-                    <span className={"ellipsis-to-left block " +
-                        (store.selected.length ? 'primary' : '')
-                    }
-                        style={{
-                            direction: 'unset',
-                            display: 'block',
-                        }}
-                    >
-                        Tag: {store.selected.map(item => item.text).join(",")}
-                    </span>
-                } />
-        </Popover >
+                        <ControlGroup onClick={() => ref.current.focus()}>
+                            <InputGroup
+                                leftIcon={
+                                    store.loading.get() ? (
+                                        <Icon icon="refresh" size={14} className="loading" />
+                                    ) : (
+                                        "search"
+                                    )
+                                }
+                                inputRef={ref} value={store.search.get()}
+                                onChange={(e) => {
+                                    store.search.set(e.target.value);
+                                    formBiz.tagsFilterClean()
+                                }}
+                            />
+                            <Button
+                                onClick={() => {
+                                    props.onSearchChange(store.search.peek());
+                                    formBiz.search()
+                                }}>
+                                Search+
+                            </Button>
+                            <Tooltip content={"Full Page Reload"}>
+                                <Button
+                                    minimal
+                                    icon="reset"
+                                    onClick={() => {
+                                        props.onSearchChange(store.search.peek());
+                                        setGraphLoaded(false)
+                                        formBiz.search()
 
-    </Callout >
+                                    }}
+                                />
+                            </Tooltip>
+                        </ControlGroup>
+                    </div>
+                    <Popover
+                        disabled={store.tags.length === 0}
+                        onOpened={() => { }}
+                        onClosed={() => { }}
+                        autoFocus={false}
+                        content={
+                            <RoamPageFilter
+                                items={
+                                    store.tags.get().filter(formBiz.tagNotFiltered)
+                                }
+                                itemRenderer={(index, item) => {
+                                    return (
+                                        <Button
+                                            minimal fill alignText="left" text={item.text} onClick={e => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                if (e.shiftKey) {
+                                                    // store.actions.conditions.filter.page.exclude.changeSelected(item);
+                                                    formBiz.changeExcludeSelected(item)
+                                                    return
+                                                }
+                                                formBiz.changeIncludeSelected(item)
+                                            }}>
+                                        </Button>
+                                    );
+                                }}
+                                header={
+                                    <RoamTagFilterHeader
+                                        includes={formBiz.includeTags}
+                                        excludes={formBiz.excludeTags}
+                                        onItemAddClick={(item) => {
+                                            formBiz.changeIncludeSelected(item);
+                                            formBiz.search()
+
+                                        }}
+                                        onItemRemoveClick={(item => {
+                                            formBiz.changeExcludeSelected(item);
+                                            formBiz.search()
+
+                                        })}
+                                        onClearAdded={() => {
+                                            formBiz.includeTagsClean()
+                                            formBiz.search()
+
+                                            // store.actions.conditions.filter.page.include.clearSelected();
+                                        }}
+                                        onClearexcludes={() => {
+                                            formBiz.excludeTagsClean();
+                                            formBiz.search()
+
+                                        }}
+                                    />
+                                }
+                            />}
+                    >
+                        <Button
+                            icon="document"
+                            alignText="left"
+                            minimal
+                            style={{
+                                maxWidth: '100%'
+                            }}
+                            outlined={formBiz.hasTagFiltered}
+                            intent={formBiz.hasTagFiltered ? "primary" : 'none'}
+                            text={
+                                <span className={"ellipsis-to-left block " +
+                                    (formBiz.hasTagFiltered ? 'primary' : '')
+                                }
+                                    style={{
+                                        direction: 'unset',
+                                        display: 'block',
+                                    }}
+                                >
+                                    Tag:
+                                    {formBiz.includeTags.join(",")}
+                                    {formBiz.excludeTags.join(",")}
+                                </span>
+                            } />
+                    </Popover >
+
+                </Callout >
+            }
+        }
+    </InlineSearchPlus_FormBiz>
+
 })
