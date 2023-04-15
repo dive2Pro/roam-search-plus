@@ -15,48 +15,86 @@ import { PullBlock } from "roamjs-components/types";
 
 export function renderNode(node: HTMLElement) {
     console.log(node, ' - renderNode',);
+    const block = node.closest("[id^='block-input']")
     const id = node.closest("[id^='block-input']")?.id
     if (!id) {
         return
     }
-    const blockUid = id.split("-").pop()
-    ReactDOM.render(<InlineSearchPlus uid={blockUid} />, node.parentElement)
+    let uid = id.split("-").pop();
+    const searchPlusElements = Array.from(block.querySelectorAll(".rm-xparser-default-search-plus"));
+    let index = 0;
+    const reg = /{{(\[\[)*search-plus(]])*(:*)([^}}]*)/gi;
+
+    while (searchPlusElements.length) {
+        const linkButton = searchPlusElements[index];
+        const rmRef = linkButton.closest(".rm-block-ref")
+        if (rmRef) {
+            uid = rmRef.getAttribute("data-uid")
+        }
+        const str = window.roamAlphaAPI.pull("[:block/string]", [":block/uid", uid])[":block/string"]
+
+        let result = reg.exec(str);
+        // console.log(linkPreviewElements[index], url, result, linkPreviewElements, block, );
+        // console.log(linkPreviewElements[index].parentElement, '@@')
+        const text = result[4];
+        console.log(result, ' ____ url', result[4])
+        let inputStr = result.input
+        ReactDOM.render(<InlineSearchPlus uid={uid} onSearchChange={search => {
+            const nextInputStr = `{{[[search-plus]]: ${search}}}`;
+            const str = window.roamAlphaAPI.pull("[:block/string]", [":block/uid", uid])[":block/string"]
+            const nextBlockString = str.replace(inputStr, nextInputStr);
+            inputStr = nextInputStr;
+            BlockAttrs.updateString(uid, nextBlockString);
+        }} search={text ? text.trim() : ''} />, searchPlusElements[index++].parentElement)
+        result = reg.exec(str);
+        if (!result) {
+            break
+        }
+    }
 }
 
 
-export const InlineSearchPlus = observer((props: { uid: string }) => {
+export const InlineSearchPlus = observer((props: {
+    onSearchChange: (search: string) => void,
+    uid: string, search: string
+}) => {
     const ref = useRef<HTMLInputElement>()
-    const store = useObservable({
-        search: '',
-        list: {
-            pages: [],
-            blocks: []
-        },
-        selected: [],
-        loading: false,
-        closed:
-            !!BlockAttrs.read(props.uid).closed,
-        tags: [] as {
-            id: number,
-            text: string,
-            dbId: number
-        }[]
-    });
-    useComputed(() => {
+    console.log(props, ' = props')
+    const store = useObservable(() => {
+        return {
+            search: props.search,
+            list: {
+                pages: [],
+                blocks: []
+            },
+            selected: [],
+            loading: false,
 
-    })
+            tags: [] as {
+                id: number,
+                text: string,
+                dbId: number
+            }[]
+        }
+    });
+
     type Tag = {
         id: number,
         text: string,
         dbId: number
     }
-    const immediateStore = useObservable({
-        caseIntensive: false,
-        exclude: {
-            tags: [] as Tag[], // 引用该 tag
-        },
-        include: {
-            tags: [] as Tag[] // 引用该 tag
+    const immediateStore = useObservable(() => {
+        const attrs = BlockAttrs.read(props.uid)
+        return {
+            caseIntensive: false,
+            exclude: {
+                tags: (attrs.exclude?.tags || []) as Tag[], // 引用该 tag
+            },
+            include: {
+                tags: (attrs.include?.tags || []) as Tag[] // 引用该 tag
+            },
+            closed:
+                !!attrs.closed,
         }
     })
     function changeExcludeSelected(obj: {
@@ -152,19 +190,19 @@ export const InlineSearchPlus = observer((props: { uid: string }) => {
     }
 
     useEffect(() => {
-        immediateStore.onChange((prev) => {
-            console.log(prev, ' =prev')
-            searchWithConfig();
+        immediateStore.onChange((value) => {
+            console.log(value, ' =prev')
+            // searchWithConfig();
+            BlockAttrs.save(props.uid, value)
         })
+        ref.current.focus();
     }, [])
 
     return <Callout >
         <div className="flex">
-            <Button icon={store.closed.get() ? "caret-right" : "caret-down"} minimal onClickCapture={() => {
-                store.closed.toggle();
-                BlockAttrs.save(props.uid, {
-                    closed: store.closed.get()
-                })
+            <Button icon={immediateStore.closed.get() ? "caret-right" : "caret-down"} minimal onClickCapture={() => {
+                immediateStore.closed.toggle();
+
             }} />
             <ControlGroup onClick={() => ref.current.focus()}>
                 <InputGroup
@@ -176,16 +214,24 @@ export const InlineSearchPlus = observer((props: { uid: string }) => {
                         )
                     }
                     inputRef={ref} value={store.search.get()}
-                    onChange={(e) => store.search.set(e.target.value)}
+                    onChange={(e) => {
+                        store.search.set(e.target.value);
+
+                        immediateStore.include.tags.set([]);
+                        immediateStore.exclude.tags.set([]);
+                    }}
                 />
                 <Button
                     onClick={() => {
+                        props.onSearchChange(store.search.peek());
+
                         searchWithConfig()
                     }}>
                     Search+
                 </Button>
                 <Tooltip content={"Full Page Reload"}>
                     <Button minimal icon="reset" onClick={() => {
+                        props.onSearchChange(store.search.peek());
                         setGraphLoaded(false)
                         searchWithConfig()
 
@@ -202,10 +248,20 @@ export const InlineSearchPlus = observer((props: { uid: string }) => {
                 }
             }}
             onClosed={() => {
+
             }}
             autoFocus={false}
             content={<RoamPageFilter
-                items={store.tags.get()}
+                items={
+                    store.tags.get().filter((tag) => {
+                        return !immediateStore.exclude.tags.get().some(excludeTag => {
+                            return tag.id === excludeTag.id
+                        }) &&
+                            !immediateStore.include.tags.get().some(excludeTag => {
+                                return tag.id === excludeTag.id
+                            })
+                    })
+                }
                 itemRenderer={(index, item) => {
 
                     return (
@@ -229,15 +285,22 @@ export const InlineSearchPlus = observer((props: { uid: string }) => {
                         excludes={immediateStore.exclude.tags.get()}
                         onItemAddClick={(item) => {
                             changeIncludeSelected(item);
+                            searchWithConfig()
                         }}
                         onItemRemoveClick={(item => {
                             changeExcludeSelected(item);
+                            searchWithConfig()
                         })}
                         onClearAdded={() => {
+                            immediateStore.include.tags.set([])
+                            searchWithConfig()
+
                             // store.actions.conditions.filter.page.include.clearSelected();
                         }}
                         onClearexcludes={() => {
-                            // store.actions.conditions.filter.page.exclude.clearSelected();
+                            immediateStore.exclude.tags.set([])
+                            searchWithConfig()
+
                         }}
                     />
                 }

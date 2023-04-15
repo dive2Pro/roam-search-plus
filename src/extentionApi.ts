@@ -82,7 +82,13 @@ export const Tab = {
 
 
 type BlockAttrs = {
-  closed?: boolean
+  closed?: boolean,
+  exclude?: {
+    tags: {}[]
+  },
+  include?: {
+    tags: {}[]
+  }
 }
 
 export const BlockAttrs = {
@@ -93,7 +99,7 @@ export const BlockAttrs = {
         // @ts-ignore
         props: {
           searchPlus: props
-        }
+        },
       }
     })
   },
@@ -103,5 +109,13 @@ export const BlockAttrs = {
       return block.props?.searchPlus || {}
     }
     return {}
+  },
+  updateString: (blockUid: string, value: string) => {
+    window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: blockUid,
+        string: value
+      }
+    })
   }
 }

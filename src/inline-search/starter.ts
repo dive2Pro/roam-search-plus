@@ -21,10 +21,11 @@ export function initInlineSearch(extensionAPI: RoamExtensionAPI) {
 
 const isTargetFormat = (d: Element) => {
     const text = d.textContent;
-    return text.startsWith("search+") || text.startsWith("[[search+]]")
+    return text.startsWith("search-plus") || text.startsWith("[[search-plus]]")
 }
 const process = (node: Node) => {
-    Array.from((node as HTMLElement)?.querySelectorAll(".bp3-button")).filter(d => d.tagName === 'BUTTON' && isTargetFormat(d))
+    Array.from((node as HTMLElement)?.querySelectorAll(".bp3-button"))
+        .filter(d => d.tagName === 'BUTTON' && isTargetFormat(d))
         .forEach(d => {
             renderNode(d as HTMLButtonElement);
         })
