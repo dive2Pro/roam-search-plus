@@ -195,11 +195,23 @@ function InlineSearchPlus_FormBiz(props: ChildFn<ReturnType<typeof useFormBiz> &
                     pages: res[0],
                     blocks: res.slice(1)
                 });
+                
                 const tags = [] as PullBlock[];
+                
                 const addToTags = (items: PullBlock[]) => {
                     console.log(items, ' = items')
                     tags.push(...items)
                 }
+                const blocksToTags = () => {
+                    return tags.map(item => {
+                        return {
+                            id: item[":db/id"],
+                            text: item[":block/string"] || item[":node/title"],
+                            dbId: item[":db/id"]
+                        }
+                    })
+                }
+
                 res[0].map(item => {
                     addToTags(item.block[":block/refInstances"] || [])
                 })
@@ -213,14 +225,7 @@ function InlineSearchPlus_FormBiz(props: ChildFn<ReturnType<typeof useFormBiz> &
                         addToTags(child.block[":block/refInstances"] || [])
                     })
                 })
-                console.log(tags, ' = tags')
-                store.tags.set(tags.map(item => {
-                    return {
-                        id: item[":db/id"],
-                        text: item[":block/string"] || item[":node/title"],
-                        dbId: item[":db/id"]
-                    }
-                }))
+                store.tags.set(blocksToTags())
             })
     }
 
