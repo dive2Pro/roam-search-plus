@@ -53,6 +53,11 @@ export function renderNode(node: HTMLElement) {
     }
 }
 
+type Tag = {
+    id: number,
+    text: string,
+    dbId: number
+}
 
 export const InlineSearchPlus = observer((props: {
     onSearchChange: (search: string) => void,
@@ -78,11 +83,7 @@ export const InlineSearchPlus = observer((props: {
         }
     });
 
-    type Tag = {
-        id: number,
-        text: string,
-        dbId: number
-    }
+    
     const immediateStore = useObservable(() => {
         const attrs = BlockAttrs.read(props.uid)
         return {
@@ -102,8 +103,6 @@ export const InlineSearchPlus = observer((props: {
         text: string,
         dbId: number
     }) {
-
-
         const index = immediateStore.exclude.tags.findIndex((_item) => _item.id === obj.id);
         if (index > -1) {
             immediateStore.exclude.tags.splice(index, 1);
@@ -191,11 +190,9 @@ export const InlineSearchPlus = observer((props: {
 
     useEffect(() => {
         immediateStore.onChange((value) => {
-            console.log(value, ' =prev')
-            // searchWithConfig();
             BlockAttrs.save(props.uid, value)
         })
-        ref.current.focus();
+        // ref.current.focus();
     }, [])
 
     return <Callout >
