@@ -257,6 +257,11 @@
   pointer-events: none;
 }
 
+.invisible * {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .loading {
   -webkit-transition-property: -webkit-transform;
   -webkit-transition-duration: 1.2s;
