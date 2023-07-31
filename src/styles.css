@@ -257,7 +257,7 @@
   pointer-events: none;
 }
 
-.invisible * {
+.advanced-search-el.invisible * {
   opacity: 0;
   pointer-events: none;
 }
