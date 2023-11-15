@@ -1,0 +1,109 @@
+
+.film-select {
+  display: inline-block;
+}
+
+.flex {
+  display: flex;
+  flex-direction: row;
+}
+
+.inner-group {
+  border: 1px solid gainsboro;
+  border-radius: 8px;
+  z-index: 1;
+  position: relative;
+  padding-right: 15px;
+  align-items: center;
+}
+
+.search-group {
+  padding: 10px;
+  z-index: 2;
+  background-color: white;
+  min-width: 450px;
+  position: relative;
+}
+
+.search-group-toggle {
+  position: absolute;
+  left: 10px;
+  background-color: white;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.search-group-toggle:hover {
+  background-color: #ddd;
+}
+
+.search-group-btns {
+  margin-top: 24px;
+}
+
+.search-filters-container {
+}
+
+.search-filters {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  background-color: white;
+  padding-left: 10px;
+}
+.search-filters > div {
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.search-rect {
+  border: 2px solid gray;
+  width: 100px;
+  border-radius: 15px;
+  left: 30px;
+  /* pointer-events: none; */
+  z-index: -1;
+}
+
+.gap-8 {
+  gap: 8px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.search-highlight.inner-group {
+  background-color: #ffe6eb;
+}
+
+.search-highlight .inner-group {
+  background-color: #ffe6eb;
+}
+
+.search-highlight .search-filters {
+  background-color: #ffe6eb;
+}
+
+.search-highlight button {
+  background-color: #ffe6eb !important;
+}
+
+.search-highlight .bp3-tag-input-values {
+  background-color: #ffe6eb !important;
+}
+
+.search-highlight input {
+  background-color: #ffe6eb;
+}
+
+.search-group .date-range input {
+  width: 120px;
+}
+
+
+.search-popover {
+    overflow: auto;
+}

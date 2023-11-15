@@ -21,7 +21,7 @@ export function initInlineSearch(extensionAPI: RoamExtensionAPI) {
 
 const isTargetFormat = (d: Element) => {
     const text = d.textContent;
-    return text.startsWith("search-plus") || text.startsWith("[[search-plus]]")
+    return text.startsWith("search+") || text.startsWith("[[search+]]")
 }
 const process = (node: Node) => {
     Array.from((node as HTMLElement)?.querySelectorAll(".bp3-button"))
