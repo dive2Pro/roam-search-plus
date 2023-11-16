@@ -1,10 +1,7 @@
 import React from "react";
+import { PullBlock } from "roamjs-components/types";
 
-export type Block = {
-  title?: string;
-  string?: string;
-  uid: string;
-};
+export type Block = PullBlock;
 
 export type IConnector = "OR" | "AND";
 

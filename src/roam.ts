@@ -4,8 +4,8 @@ type RefsPullBlock = PullBlock & {
   ":block/_refs": { id: number }[];
   ":block/_children": RefsPullBlock[];
   relatedRefs: number[];
-  ":block/refInstances"?: PullBlock[]
-}
+  ":block/refInstances"?: PullBlock[];
+};
 
 type ReversePullBlock = {
   ":block/uid": string;
@@ -64,21 +64,20 @@ let CACHE_BLOCKS_BY_ID: Map<number, RefsPullBlock> = new Map();
 let CACHE_PAGES_BY_ID: Map<number, PullBlock> = new Map();
 let CACHE_USERS: Map<string, User> = new Map();
 let CACHE_BLOCK_REFERENCES: Map<string, string> = new Map();
-export const getAllUsers = () => {
 
+export const getAllData = () => {
+  return [...ALLBLOCKS.values()];
+};
+export const getAllUsers = () => {
   return [...CACHE_USERS.values()];
 };
 
 export const getAllPages = () => {
-
   return [...CACHE_PAGES.values()];
 };
 export const getAllBlocks = () => {
-
   return [...CACHE_BLOCKS.values()];
 };
-
-
 
 function blockEnhance(
   block: RefsPullBlock,
@@ -139,12 +138,16 @@ const PullStr = `:block/string
 `;
 
 export const isUnderTag = (tags: number[], item: RefsPullBlock) => {
-  const relatedRefs = item[":block/refs"]?.map(item => item[":db/id"]) || [];
+  const relatedRefs = item[":block/refs"]?.map((item) => item[":db/id"]) || [];
 
   item[":block/parents"]?.forEach((p) => {
-    relatedRefs.push(...CACHE_BLOCKS_BY_ID.get(p[":db/id"])?.[":block/refs"]?.map(ref => ref[":db/id"]) || [])
-  })
-  const result = tags.some(tag => relatedRefs.some(ref => +ref === +tag))
+    relatedRefs.push(
+      ...(CACHE_BLOCKS_BY_ID.get(p[":db/id"])?.[":block/refs"]?.map(
+        (ref) => ref[":db/id"]
+      ) || [])
+    );
+  });
+  const result = tags.some((tag) => relatedRefs.some((ref) => +ref === +tag));
   if (result) {
     // console.log(relatedRefs, ' ----- ', tags, {...item},
     //   item[":block/parents"]?.map((p) => {
@@ -153,7 +156,7 @@ export const isUnderTag = (tags: number[], item: RefsPullBlock) => {
     // )
   }
   return result;
-}
+};
 
 export const initCache = (config: { blockRefToString: boolean }) => {
   CACHE_BLOCKS.clear();
@@ -162,6 +165,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   CACHE_BLOCKS_BY_ID.clear();
   CACHE_BLOCK_REFERENCES.clear();
   CACHE_PAGES_BY_ID.clear();
+  ALLBLOCKS.clear();
   //
 
   // 页面在前, refs 需要指向
@@ -181,6 +185,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
       page: item[":node/title"],
       isBlock: false,
     };
+    ALLBLOCKS.set(item[":block/uid"], item);
     CACHE_BLOCKS_BY_ID.set(item[":db/id"], item);
     CACHE_PAGES.set(b.block[":block/uid"], b);
     CACHE_PAGES_BY_ID.set(item[":db/id"], item);
@@ -198,6 +203,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     `
     ) as unknown as []
   ).forEach((item) => {
+    ALLBLOCKS.set(item[0][":block/uid"], item[0]);
     blockEnhance(item[0], item[1], config);
   });
 
@@ -241,6 +247,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     ) as unknown as []
   ).forEach((item) => {
     blockEnhance(item[0], item[1], config);
+    ALLBLOCKS.set(item[":block/uid"], item);
   });
 
   (
@@ -261,6 +268,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     .map((item) => {
       CACHE_BLOCKS_BY_ID.set(item[":db/id"], item);
       CACHE_PAGES_BY_ID.set(item[":db/id"], item);
+      ALLBLOCKS.set(item[":block/uid"], item);
 
       return {
         block: item,
@@ -291,49 +299,6 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     CACHE_USERS.set(user[":db/id"], user);
   });
   console.timeEnd("renew");
-};
-
-export const renewCache = () => {
-  ALLBLOCKS.clear();
-
-  BLOCKS = (
-    window.roamAlphaAPI.data.fast.q(
-      `
-    [
-            :find (pull ?e [*]) ?e2
-            :where                
-                [?e :block/page ?p]
-                [?p :block/uid ?e2]
-        ]
-    `
-    ) as unknown as []
-  ).map((item) => ({
-    ...(item[0] as PullBlock),
-    page: item[1],
-  }));
-  PAGES = window.roamAlphaAPI.data.fast.q(
-    `
-    [
-            :find [(pull ?e [*]) ...]
-            :where                
-                [?e :node/title]
-        ]
-    `
-  ) as unknown as PullBlock[];
-  const userIds = window.roamAlphaAPI.data.fast.q(
-    `
-    [
-          :find [(pull ?cu [*])...]
-          :where
-           [?b :block/uid]
-           [?b :create/user ?cu]
-        ]
-    `
-  ) as unknown as User[];
-  USERS = userIds.filter((user) => user[":user/display-name"]);
-  [...BLOCKS, ...PAGES].forEach((block) => {
-    ALLBLOCKS.set(block[":block/uid"], block);
-  });
 };
 
 export const getMe = () => {
@@ -466,7 +431,7 @@ export function findLowestParentFromBlocks(blocks: { uid: string }[]) {
     })
     .map((item) => {
       let result: ReversePullBlock[] = [item];
-      console.log(item, ' - item')
+      console.log(item, " - item");
       let ary = item?.[":block/_children"];
       while (ary && ary.length) {
         const block = ary[0];
@@ -541,14 +506,19 @@ function getRefStringByUid(uid: string) {
   return block ? block[":block/string"] : "";
 }
 
-function replaceRefsIdToObj(args: { ":db/id": number; }[]) {
+function replaceRefsIdToObj(args: { ":db/id": number }[]) {
   const r = args.map((item) => {
     const page = CACHE_PAGES_BY_ID.get(item[":db/id"]);
-    if (!page) debugger
-    return page
-  })
-  console.log(CACHE_PAGES_BY_ID.entries(), 'CACHE_PAGES_BY_ID', args, ' = r ', r);
+    if (!page) debugger;
+    return page;
+  });
+  console.log(
+    CACHE_PAGES_BY_ID.entries(),
+    "CACHE_PAGES_BY_ID",
+    args,
+    " = r ",
+    r
+  );
 
   return r;
 }
-

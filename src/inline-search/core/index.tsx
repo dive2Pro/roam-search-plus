@@ -210,9 +210,9 @@ class FilterGroup {
       return uniqueArray(result);
     }
 
-    function uniqueArray<T extends { uid: string }>(objs: T[]) {
+    function uniqueArray<T extends Block>(objs: T[]) {
       // 根据对象的 uid 进行去重
-      return Array.from(new Map(objs.map((obj) => [obj.uid, obj])).values());
+      return Array.from(new Map(objs.map((obj) => [obj[":block/uid"], obj])).values());
     }
   }
 
@@ -230,6 +230,10 @@ class FilterGroup {
 
 // ---------------- Operator end ------------
 
+export function useSearchInlineModel() {
+  const model = useState(() => new SearchInlineModel())[0];
+  return model;
+}
 class SearchInlineModel {
   group = new FilterGroup(this);
   constructor() {
@@ -243,33 +247,14 @@ class SearchInlineModel {
     this.group.changeParent(newGroup);
     this.group = newGroup;
   }
-
+  getData: () => Block[] = () => {
+    return [] 
+  }
   search() {
     if (!this.group) {
       return;
     }
-    const result = this.group.filterData([
-      {
-        title: "中国",
-        uid: "1",
-      },
-      {
-        title: "没理解",
-        uid: "2",
-      },
-      {
-        title: "太深",
-        uid: "3",
-      },
-      {
-        title: "英国",
-        uid: "4",
-      },
-      {
-        string: "天赛有几飞了",
-        uid: "5",
-      },
-    ]);
+    const result = this.group.filterData(this.getData());
     console.log(result, " = result ");
   }
 
@@ -311,14 +296,15 @@ class SearchInlineModel {
 
 // ------------------- React Start ---------------
 
-export const SearchInline = observer(() => {
-  const model = useState(() => new SearchInlineModel())[0];
-  useEffect(() => {
-    model.hydrate();
-    layoutChangeEvent.dispatch();
-  }, []);
-  return <SearchGroup group={model.group} onSearch={() => model.search()} />;
-});
+export const SearchInline = observer(
+  ({ model }: { model: SearchInlineModel }) => {
+    useEffect(() => {
+      model.hydrate();
+      layoutChangeEvent.dispatch();
+    }, []);
+    return <SearchGroup group={model.group} onSearch={() => model.search()} />;
+  }
+);              
 
 const SearchGroup = observer(
   ({ group, onSearch }: { group: FilterGroup; onSearch: () => void }) => {
@@ -411,14 +397,14 @@ const SearchFilters = observer(
         const div = ref.current;
         const first = div?.firstElementChild;
         const last = div?.lastElementChild;
-        console.log(div, first, last, " ---- ", el, div);
+        // console.log(div, first, last, " ---- ", el, div);
         if (first == null || last == null || first === last) {
           // remove
           return;
         }
         const firstRect = first.getBoundingClientRect();
         const lastRect = last.getBoundingClientRect();
-        console.log(firstRect, first, last, lastRect, " = first");
+        // console.log(firstRect, first, last, lastRect, " = first");
         const rectSize = {
           top: (first as HTMLElement).offsetLeft + firstRect.height / 2 + 2,
           bottom:
@@ -546,4 +532,3 @@ const SearchFilters = observer(
     );
   }
 );
-

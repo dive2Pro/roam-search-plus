@@ -9,8 +9,6 @@
 }
 
 .inner-group {
-  border: 1px solid gainsboro;
-  border-radius: 8px;
   z-index: 1;
   position: relative;
   padding-right: 15px;
@@ -23,6 +21,9 @@
   background-color: white;
   min-width: 450px;
   position: relative;
+  overflow: visible;
+  border: 1px solid gainsboro;
+  border-radius: 8px;
 }
 
 .search-group-toggle {
@@ -79,6 +80,11 @@
   background-color: #ffe6eb;
 }
 
+
+.search-highlight .search-group {
+  background-color: #ffe6eb;
+}
+
 .search-highlight .inner-group {
   background-color: #ffe6eb;
 }
@@ -106,4 +112,14 @@
 
 .search-popover {
     overflow: auto;
+}
+
+.inline-search-el {
+  padding: 2px 0 2px 40px;
+}
+
+.search-inline-div {
+  width: fit-content;
+  overflow: auto;
+  max-width: 100%;
 }

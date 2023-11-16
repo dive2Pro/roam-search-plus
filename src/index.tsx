@@ -153,7 +153,7 @@ export default {
     initSettings(extensionAPI);
     initListener(extensionAPI);
     initExtention(extensionAPI);
-    initStore(extensionAPI);
+    initStore();
     initInlineSearch(extensionAPI);
     window.roamAlphaAPI.platform.isMobile
       ? initToolbarIcon()

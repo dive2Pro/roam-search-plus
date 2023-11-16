@@ -1455,7 +1455,7 @@ windowUi.open.onChange((next) => {
   }
 });
 
-export const initStore = (extensionAPI: RoamExtensionAPI) => {
+export const initStore = () => {
   const tabConfig = Tab.read();
   if (tabConfig) {
     Tabs = tabConfig;
@@ -1467,7 +1467,7 @@ export const initStore = (extensionAPI: RoamExtensionAPI) => {
 };
 
 // @ts-ignore
-window._store = store;
+// window._store = store;
 function deleteListItemByUid(id: string) {
   deleteFromCacheByUid(id);
   store.actions.searchAgain();

@@ -158,7 +158,7 @@ class SentencesContainsOperator implements IOperator<string> {
   }
 
   filterMethod = (block: Block, key: keyof Block) => {
-    return !!block[key] && block[key].includes(this.value);
+    return !!block[key] && (block[key] + "").includes(this.value);
   };
 
   value = "";
@@ -192,7 +192,7 @@ export class StringFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {
-      return this.activeOperator.filterMethod(block, "string");
+      return this.activeOperator.filterMethod(block, ":block/string");
     });
   };
 
@@ -221,7 +221,7 @@ export class TitleFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {
-      return this.activeOperator.filterMethod(block, "title");
+      return this.activeOperator.filterMethod(block, ":node/title");
     });
   };
 
