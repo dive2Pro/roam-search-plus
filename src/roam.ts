@@ -119,7 +119,8 @@ function blockEnhance(
   CACHE_BLOCKS.set(b.block[":block/uid"], b);
 }
 
-const PullStr = `:block/string 
+const PullStr = `
+      :block/string 
       :node/title 
       :block/uid 
       :block/order 
@@ -131,6 +132,7 @@ const PullStr = `:block/string
       :block/props
       :block/parents
       :block/_refs
+      :block/children
       :block/refs
       :create/time
       :create/user

@@ -128,6 +128,10 @@ class FilterGroup {
     }
   }
 
+  isValidGroup(): boolean {
+    return this.filters.some((filter) => filter.delegate) || this.groups.some((group) => group.isValidGroup())
+  }
+
   removeCondition(i: number) {
     this.filters.splice(i, 1);
     this.model.search();
@@ -185,34 +189,57 @@ class FilterGroup {
 
   filterData(_source: Block[]): Block[] {
     console.log(_source, " = sou");
+    // if (this.filters.length === 1 && this.groups.length === 0) {
+    //   return this.filters[0].delegate
+    //     ? this.filters[0].delegate.filterData(_source)
+    //     : _source;
+    // } else if (this.filters.length === 0 && this.groups.length === 1) {
+    //   return this.groups[0].filterData(_source);
+    // }
     if (this.connector === "AND") {
       let source = _source;
       console.log(source, " = ");
       this.filters.forEach((filter) => {
         if (filter.delegate) {
-          source = filter.delegate.filterData(source);
+          const result = filter.delegate.filterData(source);
+          source = result;
         }
       });
-      this.groups.forEach((group) => {
-        source = group.filterData(source);
-      });
+      this.groups
+        .filter((group) => {
+          // return group.filters.length > 0 || group.groups.length > 0;
+          return group.isValidGroup()
+        })
+        .forEach((group) => {
+          source = group.filterData(source);
+        });
       return source;
     } else {
       const filterResult = this.filters.reduce((p, filter) => {
         if (filter.delegate) {
-          return [...p, ...filter.delegate!.filterData(_source)];
+          return [...p, ...filter.delegate.filterData(_source)];
         }
         return p;
       }, [] as Block[]);
-      const result = this.groups.reduce((p, group) => {
-        return [...p, ...group.filterData(_source)];
-      }, filterResult);
+      const result = this.groups
+        .filter((group) => {
+          // return group.filters.length > 0 || group.groups.length > 0;
+          return group.isValidGroup();
+
+        })
+        .reduce((p, group) => {
+          const result = group.filterData(_source);
+
+          return [...p, ...result];
+        }, filterResult);
       return uniqueArray(result);
     }
 
     function uniqueArray<T extends Block>(objs: T[]) {
       // 根据对象的 uid 进行去重
-      return Array.from(new Map(objs.map((obj) => [obj[":block/uid"], obj])).values());
+      return Array.from(
+        new Map(objs.map((obj) => [obj[":block/uid"], obj])).values()
+      );
     }
   }
 
@@ -234,10 +261,14 @@ export function useSearchInlineModel() {
   const model = useState(() => new SearchInlineModel())[0];
   return model;
 }
-class SearchInlineModel {
+export class SearchInlineModel {
   group = new FilterGroup(this);
+  _updateTime = Date.now();
+  result: Block[] = [];
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable(this, {
+      result: false,
+    });
   }
 
   groupCurrentConditions() {
@@ -248,14 +279,20 @@ class SearchInlineModel {
     this.group = newGroup;
   }
   getData: () => Block[] = () => {
-    return [] 
+    return [];
+  };
+
+  get searchResult() {
+    const r = this._updateTime + 1; // 用于触发更新
+    return this.result;
   }
+
   search() {
-    if (!this.group) {
-      return;
-    }
+    // set to field
     const result = this.group.filterData(this.getData());
-    console.log(result, " = result ");
+    this._updateTime = Date.now();
+    this.result = [...result.map((item) => ({ ...item }))];
+    console.log(this.result, " = result ");
   }
 
   hydrate() {
@@ -304,7 +341,7 @@ export const SearchInline = observer(
     }, []);
     return <SearchGroup group={model.group} onSearch={() => model.search()} />;
   }
-);              
+);
 
 const SearchGroup = observer(
   ({ group, onSearch }: { group: FilterGroup; onSearch: () => void }) => {

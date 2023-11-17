@@ -24,6 +24,7 @@
   overflow: visible;
   border: 1px solid gainsboro;
   border-radius: 8px;
+  width: fit-content;
 }
 
 .search-group-toggle {

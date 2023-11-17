@@ -13,7 +13,7 @@ class EqualsToOperator implements IOperator<DateRange> {
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k];
+    const b = block[k] as number; 
     if (!this.value) {
       return false;
     }
@@ -49,8 +49,8 @@ class DoesNotEqualsToOperator implements IOperator<DateRange> {
       return false;
     }
     return (
-      dayjs(this.value[0]).isBefore(dayjs(b)) ||
-      dayjs(this.value[1]).isAfter(dayjs(b))
+      dayjs(this.value[0]).isBefore(dayjs(b as number)) ||
+      dayjs(this.value[1]).isAfter(dayjs(b as number))
     );
   };
 
@@ -129,7 +129,7 @@ class NotLessThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(this.value[0]).isAfter(dayjs(b));
+    return dayjs(this.value[0]).isAfter(dayjs(b as number));
   };
 
   value: DateRange = undefined;
@@ -156,7 +156,7 @@ class LessThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(this.value[0]).isBefore(dayjs(b));
+    return dayjs(this.value[0]).isBefore(dayjs(b as number));
   };
 
   value: DateRange = undefined;
@@ -183,7 +183,7 @@ class NotGreaterThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(this.value[0]).isBefore(dayjs(b));
+    return dayjs(this.value[0]).isBefore(dayjs(b as number));
   };
 
   value: DateRange = undefined;
@@ -211,7 +211,7 @@ class GreaterThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(this.value[1]).isAfter(dayjs(b));
+    return dayjs(this.value[1]).isAfter(dayjs(b as number));
   };
 
   value: DateRange = undefined;
@@ -247,7 +247,7 @@ export class EditDateFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {
-      return this.activeOperator.filterMethod(block, "string");
+      return this.activeOperator.filterMethod(block, ":edit/time");
     });
   };
 
@@ -276,7 +276,7 @@ export class CreatedDateFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {
-      return this.activeOperator.filterMethod(block, "title");
+      return this.activeOperator.filterMethod(block, ":node/title");
     });
   };
 

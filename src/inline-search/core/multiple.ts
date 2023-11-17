@@ -25,7 +25,7 @@ export class RefFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {
-      return this.activeOperator.filterMethod(block, "string");
+      return this.activeOperator.filterMethod(block, ":block/string");
     });
   };
 
