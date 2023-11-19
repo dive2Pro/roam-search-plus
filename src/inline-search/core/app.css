@@ -27,6 +27,10 @@
   width: fit-content;
 }
 
+.search-group button {
+  text-wrap: nowrap;
+}
+
 .search-group-toggle {
   position: absolute;
   left: 10px;
@@ -53,6 +57,11 @@
   position: relative;
   background-color: white;
   padding-left: 10px;
+}
+
+.search-filter > *{
+  display: block;
+  width: max-content;
 }
 .search-filters > div {
   margin-bottom: 8px;
@@ -123,4 +132,22 @@
   width: fit-content;
   overflow: auto;
   max-width: 100%;
+}
+
+.inline-search-result-container {
+}
+
+.inline-search-result{
+  display: flex;
+
+}
+
+
+.inline-search-result-nav {
+  flex: 0 0 12rem;
+  
+}
+.inline-search-result-render {
+  padding-left: 26px;
+  flex: 1
 }

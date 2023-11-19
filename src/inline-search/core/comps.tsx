@@ -1,4 +1,4 @@
-import { HTMLSelect, InputGroup, Tooltip } from "@blueprintjs/core";
+import { HTMLSelect, InputGroup, Menu, Tooltip } from "@blueprintjs/core";
 import React, { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 
@@ -10,6 +10,7 @@ import {
   Suggest,
 } from "@blueprintjs/select";
 import { DateInput, DateRangeInput } from "@blueprintjs/datetime";
+import { Virtuoso } from "react-virtuoso";
 
 export const Empty = () => <></>;
 
@@ -39,7 +40,7 @@ export const FieldsSelect = (props: {
       items={props.items}
       inputProps={{
         placeholder: "Select Condition",
-        autoFocus: false
+        autoFocus: false,
       }}
       itemsEqual={function (a, b) {
         return a.name === b.name;
@@ -51,7 +52,6 @@ export const FieldsSelect = (props: {
         return item.name.indexOf(query) >= 0;
       }}
       selectedItem={props.selectedItem}
-      
       itemRenderer={function (
         item,
         { modifiers, handleClick }: IItemRendererProps
@@ -73,7 +73,7 @@ export const FieldsSelect = (props: {
         );
       }}
       onItemSelect={function (item, evnet) {
-        evnet.stopPropagation()
+        evnet.stopPropagation();
         props.onSelect(item.name);
       }}
     />
@@ -243,27 +243,61 @@ export function MultiSelectField<
   onChange: (value: T[]) => void;
   onBlur: () => void;
 }) {
+  //  return (
+  //         // <Menu style={{ height: 300}}>
+  //           <Virtuoso
+  //             style={{
+  //               height: 300,
+  //               width: 300,
+  //             }}
+  //             totalCount={itemListProps.filteredItems.length}
+  //             data={itemListProps.filteredItems}
+  //             itemContent={(index, data) => {
+  //               return itemListProps.renderItem(data, index);
+  //             }}
+  //           />
+  //         // </Menu>
+  //       );
   return (
     <MultiSelect
+      
       tagRenderer={function (item: T) {
-        return item.label;
+        return item?.label;
       }}
       items={props.items || []}
       selectedItems={props.value}
+      itemListRenderer={(itemListProps) => {
+        const noResults = <MenuItem disabled={true} text="No results." />;
+        if (itemListProps.items.length <= 0) {
+          return <Menu>{noResults}</Menu>;
+        }
+
+        return (
+          <Menu style={{ height: 300}}>
+            <Virtuoso
+              style={{
+                // height: 300,
+                width: 300,
+              }}
+              totalCount={itemListProps.filteredItems.length}
+              data={itemListProps.filteredItems}
+              itemContent={(index, data) => {
+                return itemListProps.renderItem(data, index);
+              }}
+            />
+          </Menu>
+        );
+      }}
       itemRenderer={function (item: T, { modifiers, handleClick }) {
         return (
           <MenuItem
             {...{
-              // active: modifiers.active,
               disabled: modifiers.disabled,
               icon: props.value.find((v) => v.uid === item.uid)
                 ? "small-tick"
                 : "blank",
               key: item.label,
-              // label: film.year.toString(),
               onClick: handleClick,
-              // onFocus: handleFocus,
-              // ref,
               text: item.label,
             }}
             text={item.label}
@@ -274,11 +308,14 @@ export function MultiSelectField<
         onRemove: (_: unknown, index: number) => {
           props.onChange([props.value[index]]);
         },
+        
       }}
+
       onItemSelect={function (item: T, event) {
         // TODO
         event.stopPropagation();
         props.onChange([item]);
+        props.onBlur()
       }}
     />
   );
@@ -366,4 +403,3 @@ export function RecentDates(props: {
     </div>
   );
 }
-

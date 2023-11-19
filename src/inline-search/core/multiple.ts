@@ -1,6 +1,22 @@
 import { makeAutoObservable } from "mobx";
 import { Block, IFilterField, IOperator } from "./type";
 import { Empty, MultiSelectField } from "./comps";
+import { getAllPages } from "../../roam";
+
+function getAllItems() {
+  return getAllPages()
+    .filter((page) => !page.isBlock)
+    .map((page) => {
+      const r = {
+        uid: page.block[":block/uid"],
+        label: page.block[":node/title"],
+        id: page.block[":db/id"],
+      };
+
+      // console.log(r, ' =r')
+      return r;
+    });
+}
 
 export class RefFilter implements IFilterField {
   label: string = "ref";
@@ -25,7 +41,7 @@ export class RefFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {
-      return this.activeOperator.filterMethod(block, ":block/string");
+      return this.activeOperator.filterMethod(block, ":block/refs");
     });
   };
 
@@ -36,8 +52,9 @@ export class RefFilter implements IFilterField {
   }
 }
 
-class ContainsAnyOfOperator<T extends { label: string; uid: string }>
-  implements IOperator<T[]>
+class ContainsAnyOfOperator<
+  T extends { label: string; uid: string; id: number }
+> implements IOperator<T[]>
 {
   label = "contains any of";
 
@@ -46,19 +63,19 @@ class ContainsAnyOfOperator<T extends { label: string; uid: string }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    // TODO:
-    return true;
+    const b = block[k] as { ":db/id": number }[] | undefined;
+    // console.log(this.value.map( v=> ({})), ' --- ', b && b.map(item => ({...item})) , k)
+    if (!this.value.length) {
+      return true;
+    }
+    return b
+      ? this.value.some((v) => b.some((item) => item[":db/id"] === v.id))
+      : false;
   };
 
   get items() {
     // 获取所有的
-    return [
-      { label: "q-w", uid: "qc1" },
-      { label: "q-c", uid: "qc2" },
-      { label: "囧订饭塞饭", uid: "qc3" },
-      { label: "东寺街扽赛凡 三定凡事开发", uid: "qc4" },
-    ];
+    return getAllItems();
   }
   value: T[] = [];
 
@@ -71,6 +88,7 @@ class ContainsAnyOfOperator<T extends { label: string; uid: string }>
     } else {
       newArr.splice(index, 1);
     }
+    console.log(newArr, " ---- ");
     this.value = newArr;
   };
 
@@ -81,7 +99,7 @@ class ContainsAnyOfOperator<T extends { label: string; uid: string }>
   Input = MultiSelectField;
 }
 
-class ExcludesOperator<T extends { label: string; uid: string }>
+class ExcludesOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
   label = "excludes";
@@ -98,12 +116,7 @@ class ExcludesOperator<T extends { label: string; uid: string }>
 
   get items() {
     // 获取所有的
-    return [
-      { label: "q-w", uid: "qc1" },
-      { label: "q-c", uid: "qc2" },
-      { label: "囧订饭塞饭", uid: "qc3" },
-      { label: "东寺街扽赛凡 三定凡事开发", uid: "qc4" },
-    ];
+    return getAllItems();
   }
 
   value: T[] = [];
@@ -127,7 +140,7 @@ class ExcludesOperator<T extends { label: string; uid: string }>
   Input = MultiSelectField;
 }
 
-class ContainsOperator<T extends { label: string; uid: string }>
+class ContainsOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
   label = "contains";
@@ -144,12 +157,7 @@ class ContainsOperator<T extends { label: string; uid: string }>
 
   get items() {
     // 获取所有的
-    return [
-      { label: "q-w", uid: "qc1" },
-      { label: "q-c", uid: "qc2" },
-      { label: "囧订饭塞饭", uid: "qc3" },
-      { label: "东寺街扽赛凡 三定凡事开发", uid: "qc4" },
-    ];
+    return getAllItems();
   }
 
   value: T[] = [];
@@ -173,8 +181,9 @@ class ContainsOperator<T extends { label: string; uid: string }>
   Input = MultiSelectField;
 }
 
-class DoesNotContainsOperator<T extends { label: string; uid: string }>
-  implements IOperator<T[]>
+class DoesNotContainsOperator<
+  T extends { label: string; uid: string; id: number }
+> implements IOperator<T[]>
 {
   label = "does not contains";
 
@@ -190,12 +199,7 @@ class DoesNotContainsOperator<T extends { label: string; uid: string }>
 
   get items() {
     // 获取所有的
-    return [
-      { label: "q-w", uid: "qc1" },
-      { label: "q-c", uid: "qc2" },
-      { label: "囧订饭塞饭", uid: "qc3" },
-      { label: "东寺街扽赛凡 三定凡事开发", uid: "qc4" },
-    ];
+    return getAllItems();
   }
 
   value: T[] = [];
@@ -219,7 +223,7 @@ class DoesNotContainsOperator<T extends { label: string; uid: string }>
   Input = MultiSelectField;
 }
 
-class EqualsToOperator<T extends { label: string; uid: string }>
+class EqualsToOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
   label = "equals to";
@@ -236,12 +240,7 @@ class EqualsToOperator<T extends { label: string; uid: string }>
 
   get items() {
     // 获取所有的
-    return [
-      { label: "q-w", uid: "qc1" },
-      { label: "q-c", uid: "qc2" },
-      { label: "囧订饭塞饭", uid: "qc3" },
-      { label: "东寺街扽赛凡 三定凡事开发", uid: "qc4" },
-    ];
+    return getAllItems();
   }
 
   value: T[] = [];
@@ -265,8 +264,9 @@ class EqualsToOperator<T extends { label: string; uid: string }>
   Input = MultiSelectField;
 }
 
-class DoesNotEqualsToOperator<T extends { label: string; uid: string }>
-  implements IOperator<T[]>
+class DoesNotEqualsToOperator<
+  T extends { label: string; uid: string; id: number }
+> implements IOperator<T[]>
 {
   label = "does not equals to";
 
@@ -282,12 +282,7 @@ class DoesNotEqualsToOperator<T extends { label: string; uid: string }>
 
   get items() {
     // 获取所有的
-    return [
-      { label: "q-w", uid: "qc1" },
-      { label: "q-c", uid: "qc2" },
-      { label: "囧订饭塞饭", uid: "qc3" },
-      { label: "东寺街扽赛凡 三定凡事开发", uid: "qc4" },
-    ];
+    return getAllItems();
   }
 
   value: T[] = [];
@@ -311,7 +306,7 @@ class DoesNotEqualsToOperator<T extends { label: string; uid: string }>
   Input = MultiSelectField;
 }
 
-class IsEmptyOperator<T extends { label: string; uid: string }>
+class IsEmptyOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
   label = "is empty";
@@ -328,12 +323,7 @@ class IsEmptyOperator<T extends { label: string; uid: string }>
 
   get items() {
     // 获取所有的
-    return [
-      { label: "q-w", uid: "qc1" },
-      { label: "q-c", uid: "qc2" },
-      { label: "囧订饭塞饭", uid: "qc3" },
-      { label: "东寺街扽赛凡 三定凡事开发", uid: "qc4" },
-    ];
+    return getAllItems();
   }
 
   value: T[] = [];
@@ -346,7 +336,7 @@ class IsEmptyOperator<T extends { label: string; uid: string }>
   Input = Empty;
 }
 
-class IsNotEmptyOperator<T extends { label: string; uid: string }>
+class IsNotEmptyOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
   label = "is not empty";
@@ -363,12 +353,7 @@ class IsNotEmptyOperator<T extends { label: string; uid: string }>
 
   get items() {
     // 获取所有的
-    return [
-      { label: "q-w", uid: "qc1" },
-      { label: "q-c", uid: "qc2" },
-      { label: "囧订饭塞饭", uid: "qc3" },
-      { label: "东寺街扽赛凡 三定凡事开发", uid: "qc4" },
-    ];
+    return getAllItems();
   }
 
   value: T[] = [];

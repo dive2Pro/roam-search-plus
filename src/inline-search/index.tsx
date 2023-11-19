@@ -1,13 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { SearchInline, SearchInlineModel, useSearchInlineModel } from "./core";
 import { observer } from "mobx-react-lite";
-import { Button, Classes, Popover, Toast, Toaster } from "@blueprintjs/core";
+import {
+  Button,
+  Classes,
+  Drawer,
+  Popover,
+  Toast,
+  Toaster,
+} from "@blueprintjs/core";
 import { DIALOG_CLOSE_BUTTON } from "@blueprintjs/core/lib/esm/common/classes";
 import { store } from "../store";
 import { isGraphLoaded } from "../loaded";
 import { getAllBlocks, getAllData, getAllPages } from "../roam";
 import { delay } from "../delay";
+import { Block } from "./core/type";
+import { Virtuoso } from "react-virtuoso";
 
 export function renderNode(node: HTMLElement) {
   const block = node.closest("[id^='block-input']");
@@ -93,7 +102,7 @@ function App(props: { id: string; onUnmount: () => void }) {
           setOpen(!open);
         }}
       >
-        Filter2
+        Filter
       </Button>
       {/* </Popover> */}
       {open ? (
@@ -111,5 +120,71 @@ function App(props: { id: string; onUnmount: () => void }) {
 }
 
 const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
-  return <div>{model.searchResult.length}</div>;
+  const [index, setIndex] = useState(-1);
+  useEffect(() => {
+    setIndex(0);
+  }, [model.searchResult]);
+
+  if (model.searchResult.length === 0) {
+    return <div>No Results</div>;
+  }
+
+  return (
+    <section className="inline-search-result-container">
+      <div></div>
+      <div className="inline-search-result">
+        <Virtuoso
+          className="inline-search-result-nav"
+          totalCount={model.searchResult.length}
+          data={model.searchResult}
+          style={{
+            minHeight: 500,
+          }}
+          itemContent={(index, data) => {
+            return <RenderStr data={data} onClick={() => setIndex(index)} />;
+          }}
+        ></Virtuoso>
+        <div className="inline-search-result-render">
+          <RenderView
+            key={model.searchResult[index][":block/uid"]}
+            data={model.searchResult[index]}
+          />
+        </div>
+      </div>
+    </section>
+  );
 });
+
+function RenderStr({ data, onClick }: { data: Block; onClick: () => void }) {
+  return (
+    <Button
+      minimal
+      onClick={() => {
+        onClick();
+      }}
+    >
+      {data[":block/string"] || data[":node/title"]}
+    </Button>
+  );
+}
+
+function RenderView({ data }: { data: Block }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let unmounted = false;
+    setTimeout(() => {
+      if(unmounted) {
+        return
+      }
+      window.roamAlphaAPI.ui.components.renderBlock({
+        uid: data[":block/uid"],
+        el: ref.current,
+        // @ts-ignore
+        "zoom-path?": true,
+        open: false,
+      });
+    }, 200);
+    return () => unmounted = true;
+  }, [data[":block/uid"]]);
+  return <div ref={ref}></div>;
+}

@@ -11,6 +11,9 @@ class DoesNotContainsOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
+    if(!this.value) {
+      return true
+    }
     return b ? !b.includes(this.value) : false;
   };
 
@@ -36,7 +39,7 @@ class EqualsToOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    return b ? !b.includes(this.value) : false;
+    return b ? b === (this.value) : false;
   };
 
   value = "";
@@ -61,7 +64,7 @@ class DoesNotEqualsToOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    return b ? !b.includes(this.value) : false;
+    return b ? b !== (this.value) : false;
   };
 
   value = "";
