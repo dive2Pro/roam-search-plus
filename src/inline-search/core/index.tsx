@@ -25,7 +25,7 @@ import { CreatedDateFilter } from "./date";
 let id = 0;
 // ------------------------------
 class FilterPlaceholder {
-  constructor() {
+  constructor(public model: SearchInlineModel) {
     makeAutoObservable(this);
   }
   id = id++;
@@ -49,7 +49,7 @@ class FilterPlaceholder {
     },
     {
       name: "ref",
-      gen: () => new RefFilter(),
+      gen: () => new RefFilter(this.model),
     },
     {
       name: "Created time",
@@ -144,7 +144,7 @@ class FilterGroup {
 
   hydrate(json: GroupsType) {
     this.filters = json.filters.map((filter) => {
-      const instance = new FilterPlaceholder();
+      const instance = new FilterPlaceholder(this.model);
       instance.hydrate(filter);
       return instance;
     });
@@ -162,7 +162,7 @@ class FilterGroup {
   }
 
   addFilterCondition(filter?: FilterPlaceholder) {
-    this.filters.push(filter || new FilterPlaceholder());
+    this.filters.push(filter || new FilterPlaceholder(this.model));
   }
 
   addFilterConditionGroup(group?: FilterGroup) {

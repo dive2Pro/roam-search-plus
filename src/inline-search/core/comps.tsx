@@ -260,7 +260,6 @@ export function MultiSelectField<
   //       );
   return (
     <MultiSelect
-      
       tagRenderer={function (item: T) {
         return item?.label;
       }}
@@ -293,7 +292,7 @@ export function MultiSelectField<
           <MenuItem
             {...{
               disabled: modifiers.disabled,
-              icon: props.value.find((v) => v.uid === item.uid)
+              icon: props.value.find((v) => v?.uid === item?.uid)
                 ? "small-tick"
                 : "blank",
               key: item.label,
@@ -304,11 +303,16 @@ export function MultiSelectField<
           ></MenuItem>
         );
       }}
+      popoverProps={{
+        position: 'bottom'
+      }}
       tagInputProps={{
         onRemove: (_: unknown, index: number) => {
           props.onChange([props.value[index]]);
         },
-        
+        inputProps: {
+          // onBlur: props.onBlur
+        }
       }}
 
       onItemSelect={function (item: T, event) {

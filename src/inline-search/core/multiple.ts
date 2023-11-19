@@ -2,6 +2,7 @@ import { makeAutoObservable } from "mobx";
 import { Block, IFilterField, IOperator } from "./type";
 import { Empty, MultiSelectField } from "./comps";
 import { getAllPages } from "../../roam";
+import { SearchInlineModel } from ".";
 
 function getAllItems() {
   return getAllPages()
@@ -32,9 +33,8 @@ export class RefFilter implements IFilterField {
     new IsNotEmptyOperator(),
   ];
 
-  constructor() {
+  constructor(public model: SearchInlineModel) {
     makeAutoObservable(this);
-    // TODO 获取数据
   }
 
   activeOperator = this.operators[0];
@@ -47,8 +47,10 @@ export class RefFilter implements IFilterField {
 
   onSelect(operator: string) {
     const oldOperator = this.activeOperator;
+    // console.log(oldOperator.value, ' === value ===')
     this.activeOperator = this.operators.find((ope) => ope.label === operator)!;
-    this.activeOperator.onChange(oldOperator.value);
+    this.activeOperator.value = oldOperator.value;
+    this.model.search()
   }
 }
 
@@ -64,7 +66,6 @@ class ContainsAnyOfOperator<
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as { ":db/id": number }[] | undefined;
-    // console.log(this.value.map( v=> ({})), ' --- ', b && b.map(item => ({...item})) , k)
     if (!this.value.length) {
       return true;
     }
@@ -80,11 +81,10 @@ class ContainsAnyOfOperator<
   value: T[] = [];
 
   onChange = ([v]: T[]) => {
-    // this.value = v;
     const newArr = [...this.value];
     const index = this.value.findIndex((item) => item.uid === v.uid);
     if (index === -1) {
-      newArr.push(v);
+      v && newArr.push(v);
     } else {
       newArr.splice(index, 1);
     }
@@ -109,9 +109,13 @@ class ExcludesOperator<T extends { label: string; uid: string; id: number }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    // TODO:
-    return true;
+    const b = block[k] as { ":db/id": number }[] | undefined;
+    if (!this.value.length) {
+      return true;
+    }
+    return b
+      ? b.every((item) => !this.value.some((v) => item[":db/id"] === v.id))
+      : false;
   };
 
   get items() {
@@ -126,7 +130,7 @@ class ExcludesOperator<T extends { label: string; uid: string; id: number }>
     const newArr = [...this.value];
     const index = this.value.findIndex((item) => item.uid === v.uid);
     if (index === -1) {
-      newArr.push(v);
+      v && newArr.push(v);
     } else {
       newArr.splice(index, 1);
     }
@@ -150,9 +154,13 @@ class ContainsOperator<T extends { label: string; uid: string; id: number }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    // TODO:
-    return true;
+    const b = block[k] as { ":db/id": number }[] | undefined;
+    if (!this.value.length) {
+      return true;
+    }
+    return b
+      ? this.value.every((v) => b.some((item) => item[":db/id"] === v.id))
+      : false;
   };
 
   get items() {
@@ -167,7 +175,7 @@ class ContainsOperator<T extends { label: string; uid: string; id: number }>
     const newArr = [...this.value];
     const index = this.value.findIndex((item) => item.uid === v.uid);
     if (index === -1) {
-      newArr.push(v);
+      v && newArr.push(v);
     } else {
       newArr.splice(index, 1);
     }
@@ -192,9 +200,13 @@ class DoesNotContainsOperator<
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    // TODO:
-    return true;
+    const b = block[k] as { ":db/id": number }[] | undefined;
+    if (!this.value.length) {
+      return true;
+    }
+    return b
+      ? this.value.every((v) => !b.some((item) => item[":db/id"] === v.id))
+      : false;
   };
 
   get items() {
@@ -209,7 +221,7 @@ class DoesNotContainsOperator<
     const newArr = [...this.value];
     const index = this.value.findIndex((item) => item.uid === v.uid);
     if (index === -1) {
-      newArr.push(v);
+      v && newArr.push(v);
     } else {
       newArr.splice(index, 1);
     }
@@ -233,9 +245,14 @@ class EqualsToOperator<T extends { label: string; uid: string; id: number }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    // TODO:
-    return true;
+    const b = block[k] as { ":db/id": number }[] | undefined;
+    if (!this.value.length) {
+      return true;
+    }
+    return b
+      ? this.value.length === b.length &&
+          b.every((item) => this.value.some((v) => item[":db/id"] === v.id))
+      : false;
   };
 
   get items() {
@@ -250,7 +267,7 @@ class EqualsToOperator<T extends { label: string; uid: string; id: number }>
     const newArr = [...this.value];
     const index = this.value.findIndex((item) => item.uid === v.uid);
     if (index === -1) {
-      newArr.push(v);
+      v && newArr.push(v);
     } else {
       newArr.splice(index, 1);
     }
@@ -275,9 +292,13 @@ class DoesNotEqualsToOperator<
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    // TODO:
-    return true;
+    const b = block[k] as { ":db/id": number }[] | undefined;
+    if (!this.value.length) {
+      return true;
+    }
+    return b
+      ? this.value.every((v) => !b.some((item) => item[":db/id"] === v.id))
+      : false;
   };
 
   get items() {
@@ -292,7 +313,7 @@ class DoesNotEqualsToOperator<
     const newArr = [...this.value];
     const index = this.value.findIndex((item) => item.uid === v.uid);
     if (index === -1) {
-      newArr.push(v);
+      v && newArr.push(v);
     } else {
       newArr.splice(index, 1);
     }
@@ -317,8 +338,7 @@ class IsEmptyOperator<T extends { label: string; uid: string; id: number }>
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    // TODO:
-    return true;
+    return !b || b.length === 0;
   };
 
   get items() {
@@ -347,8 +367,7 @@ class IsNotEmptyOperator<T extends { label: string; uid: string; id: number }>
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    // TODO:
-    return true;
+    return b && b.length > 0;
   };
 
   get items() {
