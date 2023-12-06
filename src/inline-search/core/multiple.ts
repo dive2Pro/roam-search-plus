@@ -12,18 +12,23 @@ function getAllItems() {
         uid: page.block[":block/uid"],
         label: page.block[":node/title"],
         id: page.block[":db/id"],
+        editTime: page.block[':edit/time'],
+        createTime: page.block[":create/time"]
       };
 
       // console.log(r, ' =r')
       return r;
+    }).sort((a, b) => {
+      return b.editTime - a.editTime
     });
 }
 
 export class RefFilter implements IFilterField {
-  label: string = "ref";
+  label: string = "Page ref";
 
   operators: IOperator<any>[] = [
     new ContainsAnyOfOperator(),
+    new UnderAnyOfOperator(),
     new ExcludesOperator(),
     new ContainsOperator(),
     new DoesNotContainsOperator(),
@@ -52,6 +57,51 @@ export class RefFilter implements IFilterField {
     this.activeOperator.value = oldOperator.value;
     this.model.search()
   }
+}
+
+
+class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
+  implements IOperator<T[]>
+{
+  label = "under any of";
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  filterMethod = (block: Block, k: keyof Block) => {
+    const b = block[k] as { ":db/id": number }[] | undefined;
+    if (!this.value.length) {
+      return true;
+    }
+    const pages = block[":block/parents"] || [];
+    // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
+    return this.value.some((v) => pages.some(p => p[":db/id"] === v.id))
+  };
+
+  get items() {
+    // 获取所有的
+    return getAllItems();
+  }
+  value: T[] = [];
+
+  onChange = ([v]: T[]) => {
+    const newArr = [...this.value];
+    const index = this.value.findIndex((item) => item.uid === v.uid);
+    if (index === -1) {
+      v && newArr.push(v);
+    } else {
+      newArr.splice(index, 1);
+    }
+    console.log(newArr, " ---- ");
+    this.value = newArr;
+  };
+
+  reset() {
+    this.value = [];
+  }
+
+  Input = MultiSelectField;
 }
 
 class ContainsAnyOfOperator<
