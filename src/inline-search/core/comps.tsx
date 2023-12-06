@@ -25,7 +25,7 @@ import {
   Select,
   Suggest,
 } from "@blueprintjs/select";
-import { DateInput, DateRangeInput } from "@blueprintjs/datetime";
+import { DateInput, DateRange, DateRangeInput } from "@blueprintjs/datetime";
 import { Virtuoso } from "react-virtuoso";
 import { PageIcon } from "./PageIcon";
 import { BlockIcon } from "./BlockIcon";
@@ -132,19 +132,17 @@ export const PageOrBlockSelect = (props: {
               {
                 label: "Page",
                 value: "page",
-                labelElement: <PageIcon />
+                labelElement: <PageIcon />,
               },
               {
                 label: "Block",
                 value: "block",
-                labelElement: <BlockIcon />
+                labelElement: <BlockIcon />,
               },
             ].map((item) => {
               return (
                 <MenuItem
-                  labelElement={
-                   item.labelElement
-                  }
+                  labelElement={item.labelElement}
                   text={item.label}
                   onClick={() => props.onSelect(item.value as "all")}
                 />
@@ -485,8 +483,9 @@ export function MultiSelectField<
 }
 
 export function DateRange(props: {
-  value?: [Date, Date];
-  onChange: (range: [Date, Date]) => void;
+  value?: [number, number];
+  onChange: (range: [number, number]) => void;
+  onBlur: () => void;
 }) {
   return (
     <DateRangeInput
@@ -500,10 +499,19 @@ export function DateRange(props: {
       }}
       onChange={(range) => {
         props.onChange(
-          range.map((item) => dayjs(item).toDate()) as [Date, Date]
+          [
+            dayjs(range[0]).startOf("day").valueOf(),
+            dayjs(range[1]).endOf("day").valueOf(),
+          ]
+          // range.map((item) => dayjs(item).toDate()) as [Date, Date]
         );
+        props.onBlur();
       }}
-      value={props.value}
+      value={
+        props.value
+          ? (props.value.map((v) => new Date(v)) as DateRange)
+          : undefined
+      }
     />
   );
 }

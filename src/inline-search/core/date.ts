@@ -2,8 +2,9 @@ import { makeAutoObservable } from "mobx";
 import { Empty, DateRange, TextInput } from "./comps";
 import type { Block, IFilterField, IOperator } from "./type";
 import dayjs from "dayjs";
+import { SearchInlineModel } from ".";
 
-type DateRange = [Date, Date] | undefined;
+type DateRange = [number, number] | undefined;
 
 class EqualsToOperator implements IOperator<DateRange> {
   label = "equals to";
@@ -13,19 +14,21 @@ class EqualsToOperator implements IOperator<DateRange> {
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as number; 
+    const b = block[k] as number;
     if (!this.value) {
       return false;
     }
+    // console.log(b, ' equals to ', this.value)
     return (
-      dayjs(this.value[0]).isAfter(dayjs(b)) &&
-      dayjs(this.value[1]).isBefore(dayjs(b))
+      dayjs(b).isAfter(dayjs(this.value[0])) &&
+      dayjs(b).isBefore(dayjs(this.value[1]))
     );
   };
 
   value: DateRange = undefined;
 
   onChange = (v: DateRange) => {
+    // console.log(v, ' - on change')
     this.value = v;
   };
 
@@ -118,18 +121,18 @@ class IsNotEmptyOperator implements IOperator<DateRange> {
 }
 
 class NotLessThanOperator implements IOperator<DateRange> {
-  label = "Not less than";
+  label = "not less than";
 
   constructor() {
     makeAutoObservable(this);
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] ;
+    const b = block[k] as number;
     if (!this.value) {
       return false;
     }
-    return dayjs(this.value[0]).isAfter(dayjs(b as number));
+    return dayjs(dayjs(b)).isAfter(this.value[0]);
   };
 
   value: DateRange = undefined;
@@ -151,12 +154,13 @@ class LessThanOperator implements IOperator<DateRange> {
   constructor() {
     makeAutoObservable(this);
   }
+
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k];
     if (!this.value) {
       return false;
     }
-    return dayjs(this.value[0]).isBefore(dayjs(b as number));
+    return dayjs(b as number).isBefore(dayjs(this.value[0]));
   };
 
   value: DateRange = undefined;
@@ -173,7 +177,7 @@ class LessThanOperator implements IOperator<DateRange> {
 }
 
 class NotGreaterThanOperator implements IOperator<DateRange> {
-  label = "Not grater than";
+  label = "not grater than";
 
   constructor() {
     makeAutoObservable(this);
@@ -183,7 +187,7 @@ class NotGreaterThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(this.value[0]).isBefore(dayjs(b as number));
+    return dayjs(b as number).isBefore(dayjs(this.value[0]));
   };
 
   value: DateRange = undefined;
@@ -200,7 +204,7 @@ class NotGreaterThanOperator implements IOperator<DateRange> {
 }
 
 class GreaterThanOperator implements IOperator<DateRange> {
-  label = "Greater than";
+  label = "greater than";
 
   constructor() {
     makeAutoObservable(this);
@@ -211,7 +215,7 @@ class GreaterThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(this.value[1]).isAfter(dayjs(b as number));
+    return dayjs(b as number).isAfter(dayjs(this.value[1]));
   };
 
   value: DateRange = undefined;
@@ -228,7 +232,7 @@ class GreaterThanOperator implements IOperator<DateRange> {
 }
 
 export class EditDateFilter implements IFilterField {
-  label: string = "edit-time";
+  label: string = "edit time";
   operators: IOperator<any>[] = [
     new EqualsToOperator(),
     new DoesNotEqualsToOperator(),
@@ -236,10 +240,8 @@ export class EditDateFilter implements IFilterField {
     new NotLessThanOperator(),
     new LessThanOperator(),
     new NotGreaterThanOperator(),
-    new IsEmptyOperator(),
-    new IsNotEmptyOperator(),
   ];
-  constructor() {
+  constructor(private model: SearchInlineModel) {
     makeAutoObservable(this);
   }
 
@@ -255,11 +257,12 @@ export class EditDateFilter implements IFilterField {
     const oldOperator = this.activeOperator;
     this.activeOperator = this.operators.find((ope) => ope.label === operator)!;
     this.activeOperator.onChange(oldOperator.value);
+    this.model.search();
   }
 }
 
 export class CreatedDateFilter implements IFilterField {
-  label: string = "Created time";
+  label: string = "created time";
   operators: IOperator<any>[] = [
     new EqualsToOperator(),
     new DoesNotEqualsToOperator(),
@@ -270,13 +273,13 @@ export class CreatedDateFilter implements IFilterField {
   ];
   activeOperator = this.operators[0];
 
-  constructor() {
+  constructor(private model: SearchInlineModel) {
     makeAutoObservable(this);
   }
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {
-      return this.activeOperator.filterMethod(block, ":node/title");
+      return this.activeOperator.filterMethod(block, ":create/time");
     });
   };
 
@@ -284,5 +287,6 @@ export class CreatedDateFilter implements IFilterField {
     const oldOperator = this.activeOperator;
     this.activeOperator = this.operators.find((ope) => ope.label === operator)!;
     this.activeOperator.onChange(oldOperator.value);
+    this.model.search();
   }
 }

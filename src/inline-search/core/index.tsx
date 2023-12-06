@@ -21,9 +21,8 @@ import {
   RemoveCondition,
   RemoveConditionGroup,
 } from "./comps";
-import { CreatedDateFilter } from "./date";
+import { CreatedDateFilter, EditDateFilter } from "./date";
 import { ContentFilter } from "./content";
-import { debounce } from "../../helper";
 import Fuse, { FuseResult } from "fuse.js";
 let id = 0;
 // ------------------------------
@@ -56,7 +55,11 @@ class FilterPlaceholder {
     },
     {
       name: "Created time",
-      gen: () => new CreatedDateFilter(),
+      gen: () => new CreatedDateFilter(this.model),
+    },
+    {
+      name: "Edit time",
+      gen: () => new EditDateFilter(this.model),
     },
   ];
 

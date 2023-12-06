@@ -132,8 +132,14 @@
   /* width: fit-content; */
   /* overflow: auto; */
   max-width: 100%;
+  width: 100%;
+  border: 1px solid gainsboro;
+  border-radius: 8px;
 }
 
+.search-inline-div > .search-group{
+  border: none;
+}
 .inline-search-result-container {
 }
 
