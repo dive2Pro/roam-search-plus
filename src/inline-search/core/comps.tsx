@@ -1,6 +1,15 @@
 import { HTMLSelect, InputGroup, Menu, Tooltip } from "@blueprintjs/core";
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import dayjs from "dayjs";
+import Fuse from "fuse.js";
+import type { FuseResult } from "fuse.js";
 
 import { Button, MenuItem, Popover } from "@blueprintjs/core";
 import {
@@ -14,6 +23,73 @@ import { Virtuoso } from "react-virtuoso";
 
 export const Empty = () => <></>;
 
+const RegexExamMenu = (props: {
+  index: number;
+  menus: { label: string; onClick: () => void }[];
+}) => (
+  <Popover
+    content={
+      <Menu>
+        {props.menus.map((menu) => {
+          return <MenuItem text={menu.label} onClick={() => menu.onClick()} />;
+        })}
+      </Menu>
+    }
+    placement="bottom-end"
+  >
+    <Button minimal={true} rightIcon="caret-down">
+      {props.index > -1 ? props.menus[props.index].label : "Custom"}
+    </Button>
+  </Popover>
+);
+
+export function RegexInput(props: {
+  onBlur: () => void;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const menus = [
+    {
+      label: "No code",
+      ...(() => {
+        const value = "^(?!```).+";
+        return {
+          value,
+          onClick: () => {
+            props.onChange(value);
+            props.onBlur();
+          },
+        };
+      })(),
+    },
+    {
+      label: "No image",
+      ...(() => {
+        const value = `^(?!\\!\\[\\]\\().+`;
+        return {
+          value,
+          onClick: () => {
+            props.onChange(value);
+            props.onBlur();
+          },
+        };
+      })()
+    },
+  ];
+
+  const index = menus.findIndex((item) => item.value === props.value);
+
+  return (
+    <InputGroup
+      value={props.value}
+      onChange={(e) => {
+        props.onChange((e.target as HTMLInputElement).value);
+      }}
+      onBlur={props.onBlur}
+      rightElement={<RegexExamMenu menus={menus} index={index} />}
+    />
+  );
+}
 export const TextInput = (props: {
   onBlur: () => void;
   value: string;
@@ -26,6 +102,34 @@ export const TextInput = (props: {
         props.onChange((e.target as HTMLInputElement).value);
       }}
       onBlur={props.onBlur}
+    />
+  );
+};
+
+export const PageOrBlockSelect = (props: {
+  onSelect: (type: "page" | "block" | "all") => void;
+  value: "page" | "block" | "all";
+}) => {
+  return (
+    <HTMLSelect
+      value={props.value}
+      onChange={(e) =>
+        props.onSelect(e.currentTarget.value as "page" | "block")
+      }
+      options={[
+        {
+          label: "All",
+          value: "all",
+        },
+        {
+          label: "Page",
+          value: "page",
+        },
+        {
+          label: "Block",
+          value: "block",
+        },
+      ]}
     />
   );
 };
@@ -243,28 +347,44 @@ export function MultiSelectField<
   onChange: (value: T[]) => void;
   onBlur: () => void;
 }) {
-  //  return (
-  //         // <Menu style={{ height: 300}}>
-  //           <Virtuoso
-  //             style={{
-  //               height: 300,
-  //               width: 300,
-  //             }}
-  //             totalCount={itemListProps.filteredItems.length}
-  //             data={itemListProps.filteredItems}
-  //             itemContent={(index, data) => {
-  //               return itemListProps.renderItem(data, index);
-  //             }}
-  //           />
-  //         // </Menu>
-  //       );
+  // const [height, setHeight] = useState(300);
+
+  const fuse = useMemo(() => {
+    const fuseOptions = {
+      // isCaseSensitive: false,
+      // includeScore: true,
+      // shouldSort: true,
+      includeMatches: true,
+      // findAllMatches: true,
+      // minMatchCharLength: 1,
+      // location: 0,
+      // threshold: 0.4,
+      // distance: 80,
+      // useExtendedSearch: false,
+      // ignoreLocation: false,
+      // ignoreFieldNorm: false,
+      // fieldNormWeight: 1,
+      keys: ["label"],
+    };
+
+    const fuse = new Fuse(props.items, fuseOptions);
+
+    return fuse;
+  }, [props.items]);
+
+  const [filtered, setFiltered] = useState<FuseResult<T>[]>(() =>
+    fuse.search(" ")
+  );
+  console.log(filtered, " --");
   return (
     <MultiSelect
-      tagRenderer={function (item: T) {
-        return item?.label;
+      tagRenderer={function (item: FuseResult<T>) {
+        return item.item.label;
       }}
-      items={props.items || []}
-      selectedItems={props.value}
+      items={filtered || []}
+      selectedItems={props.value.map((item) => ({
+        item,
+      }))}
       itemListRenderer={(itemListProps) => {
         const noResults = <MenuItem disabled={true} text="No results." />;
         if (itemListProps.items.length <= 0) {
@@ -272,11 +392,11 @@ export function MultiSelectField<
         }
 
         return (
-          <Menu style={{ height: 300}}>
+          <Menu>
             <Virtuoso
               style={{
-                // height: 300,
                 width: 300,
+                height: 300,
               }}
               totalCount={itemListProps.filteredItems.length}
               data={itemListProps.filteredItems}
@@ -287,39 +407,52 @@ export function MultiSelectField<
           </Menu>
         );
       }}
-      itemRenderer={function (item: T, { modifiers, handleClick }) {
+      itemRenderer={function (item: FuseResult<T>, { modifiers, handleClick }) {
         return (
           <MenuItem
             {...{
               disabled: modifiers.disabled,
-              icon: props.value.find((v) => v?.uid === item?.uid)
+              icon: props.value.find((v) => v?.uid === item?.item.uid)
                 ? "small-tick"
                 : "blank",
-              key: item.label,
+              key: item.item.label,
               onClick: handleClick,
-              text: item.label,
+              text: item.item.label,
             }}
-            text={item.label}
+            text={item.item.label}
           ></MenuItem>
         );
       }}
       popoverProps={{
-        position: 'bottom'
+        position: "top",
+        modifiers: {
+          flip: {
+            enabled: true,
+          },
+        },
+        placement: "bottom",
       }}
+      // itemPredicate={(query, item) => {
+      //   return item.label.indexOf(query) >= 0;
+      // }}
       tagInputProps={{
         onRemove: (_: unknown, index: number) => {
           props.onChange([props.value[index]]);
         },
         inputProps: {
-          // onBlur: props.onBlur
-        }
+          onInput: (event) => {
+            const v = event.currentTarget.value;
+            // console.log(event.currentTarget.value, " --- ", fuse.search(v));
+            setFiltered(fuse.search(v));
+          },
+        },
       }}
-
-      onItemSelect={function (item: T, event) {
+      className="inline-multi-select"
+      onItemSelect={function (item: FuseResult<T>, event) {
         // TODO
         event.stopPropagation();
-        props.onChange([item]);
-        props.onBlur()
+        props.onChange([item.item]);
+        props.onBlur();
       }}
     />
   );
