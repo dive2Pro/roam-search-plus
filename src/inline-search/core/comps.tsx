@@ -1,4 +1,11 @@
-import { HTMLSelect, InputGroup, Menu, Tooltip } from "@blueprintjs/core";
+import {
+  ControlGroup,
+  HTMLSelect,
+  Icon,
+  InputGroup,
+  Menu,
+  Tooltip,
+} from "@blueprintjs/core";
 import React, {
   useCallback,
   useEffect,
@@ -20,6 +27,8 @@ import {
 } from "@blueprintjs/select";
 import { DateInput, DateRangeInput } from "@blueprintjs/datetime";
 import { Virtuoso } from "react-virtuoso";
+import { PageIcon } from "./PageIcon";
+import { BlockIcon } from "./BlockIcon";
 
 export const Empty = () => <></>;
 
@@ -73,7 +82,7 @@ export function RegexInput(props: {
             props.onBlur();
           },
         };
-      })()
+      })(),
     },
   ];
 
@@ -111,26 +120,42 @@ export const PageOrBlockSelect = (props: {
   value: "page" | "block" | "all";
 }) => {
   return (
-    <HTMLSelect
-      value={props.value}
-      onChange={(e) =>
-        props.onSelect(e.currentTarget.value as "page" | "block")
-      }
-      options={[
-        {
-          label: "All",
-          value: "all",
-        },
-        {
-          label: "Page",
-          value: "page",
-        },
-        {
-          label: "Block",
-          value: "block",
-        },
-      ]}
-    />
+    <ControlGroup>
+      <Popover
+        content={
+          <Menu>
+            {[
+              {
+                label: "All",
+                value: "all",
+              },
+              {
+                label: "Page",
+                value: "page",
+                labelElement: <PageIcon />
+              },
+              {
+                label: "Block",
+                value: "block",
+                labelElement: <BlockIcon />
+              },
+            ].map((item) => {
+              return (
+                <MenuItem
+                  labelElement={
+                   item.labelElement
+                  }
+                  text={item.label}
+                  onClick={() => props.onSelect(item.value as "all")}
+                />
+              );
+            })}
+          </Menu>
+        }
+      >
+        <Button icon="filter" small text={props.value.toUpperCase()} />
+      </Popover>
+    </ControlGroup>
   );
 };
 
@@ -385,6 +410,7 @@ export function MultiSelectField<
       selectedItems={props.value.map((item) => ({
         item,
       }))}
+      resetOnSelect
       itemListRenderer={(itemListProps) => {
         const noResults = <MenuItem disabled={true} text="No results." />;
         if (itemListProps.items.length <= 0) {

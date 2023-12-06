@@ -1,6 +1,7 @@
 import { makeAutoObservable } from "mobx";
 import { Empty, TextInput } from "./comps";
 import type { Block, IFilterField, IOperator } from "./type";
+import { SearchInlineModel } from ".";
 
 class DoesNotContainsOperator implements IOperator<string> {
   label = "does not contains";
@@ -79,8 +80,30 @@ class DoesNotEqualsToOperator implements IOperator<string> {
 
   Input = TextInput;
 }
+class BlockIsEmptyOperator implements IOperator<string> {
+  label = "is empty";
 
-class IsEmptyOperator implements IOperator<string> {
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  filterMethod = (block: Block, _k: keyof Block) => {
+    return block[':block/string'] === "";
+  };
+
+  value = "";
+
+  onChange = (v: string) => {
+    this.value = v;
+  };
+
+  reset() {
+    this.value = "";
+  }
+
+  Input = Empty;
+}
+class TitleIsEmptyOperator implements IOperator<string> {
   label = "is empty";
 
   constructor() {
@@ -89,7 +112,7 @@ class IsEmptyOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    return b ? !b.includes(this.value) : false;
+    return block[':node/title'] === ''
   };
 
   value = "";
@@ -114,7 +137,7 @@ class IsNotEmptyOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    return b ? !b.includes(this.value) : false;
+    return !!b 
   };
 
   value = "";
@@ -184,10 +207,10 @@ export class StringFilter implements IFilterField {
     new ExistOperator(),
     new EqualsToOperator(),
     new DoesNotEqualsToOperator(),
-    new IsEmptyOperator(),
+    new BlockIsEmptyOperator(),
     new IsNotEmptyOperator(),
   ];
-  constructor() {
+  constructor(public model: SearchInlineModel) {
     makeAutoObservable(this);
   }
 
@@ -200,8 +223,11 @@ export class StringFilter implements IFilterField {
   };
 
   onSelect(operator: string) {
-    this.activeOperator.reset();
+    // this.activeOperator.reset();
+    const oldOperator = this.activeOperator
     this.activeOperator = this.operators.find((ope) => ope.label === operator)!;
+    this.activeOperator.value = oldOperator.value
+    this.model.search()
   }
 }
 
@@ -213,12 +239,12 @@ export class TitleFilter implements IFilterField {
     new ExistOperator(),
     new EqualsToOperator(),
     new DoesNotEqualsToOperator(),
-    new IsEmptyOperator(),
+    new TitleIsEmptyOperator(),
     new IsNotEmptyOperator(),
   ];
   activeOperator = this.operators[0];
 
-  constructor() {
+  constructor(private model: SearchInlineModel) {
     makeAutoObservable(this);
   }
 
@@ -229,7 +255,9 @@ export class TitleFilter implements IFilterField {
   };
 
   onSelect(operator: string) {
-    this.activeOperator.reset();
+    const oldOperator = this.activeOperator;
     this.activeOperator = this.operators.find((ope) => ope.label === operator)!;
+    this.activeOperator.value = oldOperator.value;
+    this.model.search();
   }
 }

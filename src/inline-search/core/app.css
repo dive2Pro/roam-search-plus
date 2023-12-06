@@ -129,8 +129,8 @@
 }
 
 .search-inline-div {
-  width: fit-content;
-  overflow: auto;
+  /* width: fit-content; */
+  /* overflow: auto; */
   max-width: 100%;
 }
 
@@ -150,4 +150,7 @@
 .inline-search-result-render {
   padding-left: 26px;
   flex: 1
+}
+.inline-multi-select {
+  max-width: 200px;
 }

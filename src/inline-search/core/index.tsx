@@ -7,7 +7,7 @@ import "./app.css";
 FocusStyleManager.onlyShowFocusOnTabs();
 
 import { useState } from "react";
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { Button, MenuItem, Popover } from "@blueprintjs/core";
 import "normalize.css";
@@ -22,10 +22,13 @@ import {
   RemoveConditionGroup,
 } from "./comps";
 import { CreatedDateFilter } from "./date";
+import { ContentFilter } from "./content";
+import { debounce } from "../../helper";
+import Fuse, { FuseResult } from "fuse.js";
 let id = 0;
 // ------------------------------
 class FilterPlaceholder {
-  constructor(public model: SearchInlineModel) {
+  constructor(private group: FilterGroup, public model: SearchInlineModel) {
     makeAutoObservable(this);
   }
   id = id++;
@@ -39,16 +42,16 @@ class FilterPlaceholder {
     return this.delegate;
   }
   filterOptions = [
+    // {
+    //   name: "Page title",
+    //   gen: () => new TitleFilter(this.model),
+    // },
     {
-      name: "title",
-      gen: () => new TitleFilter(),
+      name: "Content",
+      gen: () => new ContentFilter(this.model),
     },
     {
-      name: "string",
-      gen: () => new StringFilter(),
-    },
-    {
-      name: "ref",
+      name: "Page ref",
       gen: () => new RefFilter(this.model),
     },
     {
@@ -105,7 +108,7 @@ type GroupsType = {
 
 class FilterGroup {
   id = Date.now();
-
+  fieldType: "page" | "block" = "page";
   label: string = "group";
   creating = true;
   filters: FilterPlaceholder[] = [];
@@ -114,6 +117,10 @@ class FilterGroup {
 
   constructor(public model: SearchInlineModel, private parent?: FilterGroup) {
     makeAutoObservable(this);
+  }
+
+  onFieldTypeChange(type: "page" | "block") {
+    this.fieldType = type;
   }
 
   changeParent(parent: FilterGroup) {
@@ -129,7 +136,10 @@ class FilterGroup {
   }
 
   isValidGroup(): boolean {
-    return this.filters.some((filter) => filter.delegate) || this.groups.some((group) => group.isValidGroup())
+    return (
+      this.filters.some((filter) => filter.delegate) ||
+      this.groups.some((group) => group.isValidGroup())
+    );
   }
 
   removeCondition(i: number) {
@@ -144,7 +154,7 @@ class FilterGroup {
 
   hydrate(json: GroupsType) {
     this.filters = json.filters.map((filter) => {
-      const instance = new FilterPlaceholder(this.model);
+      const instance = new FilterPlaceholder(this, this.model);
       instance.hydrate(filter);
       return instance;
     });
@@ -162,7 +172,7 @@ class FilterGroup {
   }
 
   addFilterCondition(filter?: FilterPlaceholder) {
-    this.filters.push(filter || new FilterPlaceholder(this.model));
+    this.filters.push(filter || new FilterPlaceholder(this, this.model));
   }
 
   addFilterConditionGroup(group?: FilterGroup) {
@@ -208,7 +218,7 @@ class FilterGroup {
       this.groups
         .filter((group) => {
           // return group.filters.length > 0 || group.groups.length > 0;
-          return group.isValidGroup()
+          return group.isValidGroup();
         })
         .forEach((group) => {
           source = group.filterData(source);
@@ -225,7 +235,6 @@ class FilterGroup {
         .filter((group) => {
           // return group.filters.length > 0 || group.groups.length > 0;
           return group.isValidGroup();
-
         })
         .reduce((p, group) => {
           const result = group.filterData(_source);
@@ -257,17 +266,107 @@ class FilterGroup {
 
 // ---------------- Operator end ------------
 
-export function useSearchInlineModel() {
-  const model = useState(() => new SearchInlineModel())[0];
+export function useSearchInlineModel(cb: (v: {}) => void) {
+  const model = useState(() => new SearchInlineModel(cb))[0];
   return model;
+}
+
+const fuseOptions = {
+  // isCaseSensitive: false,
+  // includeScore: true,
+  // shouldSort: true,
+  includeMatches: true,
+  // findAllMatches: true,
+  // minMatchCharLength: 1,
+  // location: 0,
+  // threshold: 0.4,
+  // distance: 80,
+  // useExtendedSearch: false,
+  // ignoreLocation: false,
+  // ignoreFieldNorm: false,
+  // fieldNormWeight: 1,
+  keys: [":block/string", ":node/title"],
+};
+
+export class ResultFilterModel {
+  constructor(public model: SearchInlineModel) {
+    makeAutoObservable(this, { result: false });
+  }
+
+  type = "all";
+  query = "";
+  fuse: Fuse<Block> = new Fuse([], fuseOptions);
+
+  changeType = (v: string) => {
+    this.type = v;
+  };
+
+  changeQuery = (v: string) => {
+    this.query = v;
+  };
+
+  filter = (bs: Block[]) => {
+    switch (this.type) {
+      case "all":
+        return bs;
+      case "page":
+        return bs.filter((b) => !b[":block/parents"]);
+      case "block":
+        return bs.filter((b) => b[":block/parents"]);
+    }
+    return bs;
+  };
+
+  get result() {
+    return this.filter(this.model.searchResult);
+  }
+
+  registerListeners(cb: (data: FuseResult<Block>[]) => void) {
+    const dispose = reaction(
+      () => [this.query.trim(), this.result] as const,
+      ([query, result]) => {
+        console.log(query, " = query");
+        if (!query.trim()) {
+          cb(
+            this.result.map((item) => ({
+              item,
+              refIndex: 0,
+              matches: [],
+            }))
+          );
+          return;
+        }
+        this.fuse.setCollection(result);
+        cb(this.fuse.search(query));
+      },
+      {
+        name: "fuse",
+        delay: 500,
+        fireImmediately: true,
+      }
+    );
+    return dispose;
+  }
+
+  get hasFilter() {
+    return this.type !== "all" || this.query !== "";
+  }
+
+  reset() {
+    this.type = "all";
+    this.query = "";
+  }
 }
 export class SearchInlineModel {
   group = new FilterGroup(this);
   _updateTime = Date.now();
   result: Block[] = [];
-  constructor() {
+  filter = new ResultFilterModel(this);
+
+  constructor(private onUpdate: (v: {}) => void) {
     makeAutoObservable(this, {
       result: false,
+      searchResult: false,
     });
   }
 
@@ -278,12 +377,20 @@ export class SearchInlineModel {
     this.group.changeParent(newGroup);
     this.group = newGroup;
   }
+
+  /**
+   * 重置为获取 Cache 中的数据
+   */
   getData: () => Block[] = () => {
     return [];
   };
 
+  /**
+   * 被 SearchFilter 重置触发更新
+   */
+
   get searchResult() {
-    const r = this._updateTime + 1; // 用于触发更新
+    this._updateTime; // 用于触发更新
     return this.result;
   }
 
@@ -293,41 +400,16 @@ export class SearchInlineModel {
     this._updateTime = Date.now();
     this.result = [...result.map((item) => ({ ...item }))];
     console.log(this.result, " = result ");
+    this.save();
   }
 
-  hydrate() {
-    const json = {
-      filters: [
-        {
-          id: 1699955601103,
-          mounted: true,
-          delegate: { name: "title", operator: "contains", value: "" },
-        },
-      ],
-      groups: [
-        {
-          filters: [],
-          groups: [
-            {
-              filters: [
-                {
-                  id: 1699955609048,
-                  mounted: true,
-                  delegate: { name: "title", operator: "contains", value: "2" },
-                },
-              ],
-              groups: [{ filters: [], groups: [{ filters: [], groups: [] }] }],
-            },
-          ],
-        },
-      ],
-    } as any;
-
+  hydrate(json: any) {
+    console.log(`hydrate: `, json);
     this.group.hydrate(json);
   }
 
-  toJSON() {
-    console.log(JSON.stringify(this.group.toJSON()));
+  private save() {
+    this.onUpdate(JSON.stringify(this.group.toJSON()));
   }
 }
 
@@ -336,7 +418,7 @@ export class SearchInlineModel {
 export const SearchInline = observer(
   ({ model }: { model: SearchInlineModel }) => {
     useEffect(() => {
-      model.hydrate();
+      // model.hydrate();
       layoutChangeEvent.dispatch();
     }, []);
     return <SearchGroup group={model.group} onSearch={() => model.search()} />;
@@ -441,9 +523,9 @@ const SearchFilters = observer(
         }
         const firstRect = first.getBoundingClientRect();
         const lastRect = last.getBoundingClientRect();
-        // console.log(firstRect, first, last, lastRect, " = first");
+        console.log(firstRect, first, last, lastRect, " = first");
         const rectSize = {
-          top: (first as HTMLElement).offsetLeft + firstRect.height / 2 + 2,
+          top: (first as HTMLElement).offsetTop + firstRect.height / 2 + 2,
           bottom:
             lastRect.bottom -
             (firstRect.top + firstRect.height / 2) -
@@ -457,7 +539,7 @@ const SearchFilters = observer(
 
         el.style.position = "absolute";
         el.style.top = rectSize.top + "px";
-        el.style.height = rectSize.bottom + "px";
+        el.style.height = 5 + rectSize.bottom + "px";
         el.className = "search-rect";
       };
       const unsub = layoutChangeEvent.listen(createARoundDiv);
@@ -468,10 +550,7 @@ const SearchFilters = observer(
     }, []);
     const isShowToggle =
       props.group.filters.length + props.group.groups.length > 1;
-    useEffect(() => {
-      // 每次更新时， 触发保存 json， TODO 修改方法
-      props.group.model.toJSON();
-    });
+
     return (
       <div
         className="search-filters-container"
@@ -537,6 +616,7 @@ const SearchFilters = observer(
                 ) : (
                   <InputGroup disabled placeholder="Select Target Value" />
                 )}
+                <div style={{ flex: 1 }} />
                 <RemoveCondition
                   onClose={() => {
                     // TODO:
