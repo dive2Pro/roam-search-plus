@@ -125,7 +125,13 @@
 }
 
 .inline-search-el {
-  padding: 2px 0 2px 40px;
+  padding: 2px 0 2px 0px;
+  position: relative;
+  z-index: 2;
+  background: white;
+  margin-left: 40px;
+  padding-left: 0px;
+  top: -30px;
 }
 
 .search-inline-div {

@@ -89,9 +89,10 @@ class ContentIsEmptyOperator implements IOperator<string> {
     makeAutoObservable(this);
   }
 
-  filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    return block[':node/title'] === ''
+  filterMethod = (block: Block) => {
+    const b = block[':block/string'] as string;
+    
+    return b === "" && !!block[":block/parents"];
   };
 
   value = "";

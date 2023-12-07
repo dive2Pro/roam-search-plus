@@ -9,8 +9,10 @@ import {
 import { observer } from "mobx-react-lite";
 import {
   Button,
+  Callout,
   ControlGroup,
   Divider,
+  EditableText,
   Icon,
   InputGroup,
   Toaster,
@@ -26,21 +28,40 @@ import { PageIcon } from "./core/PageIcon";
 import { BlockIcon } from "./core/BlockIcon";
 import Fuse, { FuseResult } from "fuse.js";
 
-export function renderNode(node: HTMLElement) {
-  const block = node.closest("[id^='block-input']");
-  const id = node.closest("[id^='block-input']")?.id;
-  console.log(node, " - renderNode - ", id);
 
-  if (!id) {
-    return;
-  }
-  const parent = block.closest(".roam-block-container");
-  const el = document.createElement("div");
+export function unmountNode(node: HTMLElement) {
+  const parent = node.closest(".roam-block-container");
   parent.querySelectorAll(".inline-search-el").forEach((e) => {
     e.remove();
   });
+}
+export function renderNode(node: HTMLElement) {
+  const block = node.closest("[id^='block-input']");
+  const id = node.closest("[id^='block-input']")?.id;
+  if(!block) {
+    return
+  }
+  console.log(block, " - renderNode - ", id);
+  const parent = block.closest(".roam-block-container");
+  parent.querySelectorAll(".inline-search-el").forEach((e) => {
+    e.remove();
+  });
+  if (!document.querySelector(`#${block.id}`) || !id) {
+    return;
+  }
+  const el = document.createElement("div");
   el.className = `inline-search-el`;
   parent.appendChild(el);
+  function Pivot() {
+    useEffect(() => {
+      return () => {
+        console.log("remove");
+        el.remove();
+      };
+    }, []);
+    return <div>12</div>;
+  }
+  ReactDOM.render(<Pivot />, node);
   ReactDOM.render(<App id={id} onUnmount={() => el.remove()} />, el);
 }
 
@@ -100,30 +121,38 @@ function App(props: { id: string; onUnmount: () => void }) {
   };
   return (
     <div style={{}}>
-      <Button
-        loading={store.ui.isLoading()}
-        onPointerDown={(e) => {
-          console.log("CLICCKCKCK");
-          e.stopPropagation();
-          e.preventDefault();
-          setOpen(!open);
-        }}
-      >
-        Filter
-      </Button>
+      <div className="flex">
+        <EditableText />
+        <Button
+          loading={store.ui.isLoading()}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setOpen(!open);
+          }}
+          small
+          intent={open ? "primary" : "none"}
+        >
+          Filter
+        </Button>
+      </div>
       {/* </Popover> */}
       {true ? (
         <div
           className="search-inline-div"
           style={{
-            display: open ? "none" : "block",
+            display: !open ? "none" : "block",
             marginTop: 5,
           }}
         >
           <SearchInline model={searchModel} />
         </div>
       ) : null}
-      <div>
+      <div
+        style={{
+          padding: 5,
+        }}
+      >
         <SearchResult model={searchModel} />
       </div>
     </div>
@@ -134,7 +163,7 @@ function App(props: { id: string; onUnmount: () => void }) {
 
 const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
   if (model.searchResult.length === 0) {
-    return <div>No Results</div>;
+    return <Callout intent="warning" title="No Results"></Callout>;
   }
 
   return (
@@ -162,7 +191,11 @@ const SearchResultList = observer(({ model }: { model: ResultFilterModel }) => {
   }, [data]);
 
   if (data.length === 0) {
-    return <div>No Results</div>;
+    return (
+      <Callout intent="primary">
+        No items match your query/filter criteria.
+      </Callout>
+    );
   }
 
   return (
@@ -264,8 +297,11 @@ function RenderStr({
       onClick={() => {
         onClick();
       }}
+      style={{
+        alignItems: "flex-start",
+      }}
     >
-      {data[":block/string"] || data[":node/title"]}
+      {data[":block/string"] || data[":node/title"] || " "}
     </Button>
   );
 }

@@ -24,7 +24,7 @@ function getAllItems() {
 }
 
 export class RefFilter implements IFilterField {
-  label: string = "Page ref";
+  label: string = "page ref";
 
   operators: IOperator<any>[] = [
     new ContainsAnyOfOperator(),
@@ -70,7 +70,7 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as { ":db/id": number }[] | undefined;
+    // const b = block[k] as { ":db/id": number }[] | undefined;
     if (!this.value.length) {
       return true;
     }

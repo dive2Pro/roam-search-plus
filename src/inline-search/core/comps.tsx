@@ -59,6 +59,19 @@ export function RegexInput(props: {
 }) {
   const menus = [
     {
+      label: "Has block refs",
+      ...(() => {
+        const value = "^(?!```).+";
+        return {
+          value,
+          onClick: () => {
+            props.onChange(value);
+            props.onBlur();
+          },
+        };
+      })(),
+    },
+    {
       label: "No code",
       ...(() => {
         const value = "^(?!```).+";
