@@ -61,7 +61,7 @@ let CACHE_PAGES_BY_ID: Map<number, PullBlock> = new Map();
 let CACHE_USERS: Map<string, User> = new Map();
 
 // 所有的被 ref 的 block
-const CACHE_BLOCKS_REFS_BY_ID: Map<string, number[]> = new Map();
+const CACHE_BLOCKS_REFS_BY_ID: Map<number, PullBlock> = new Map();
 
 export const getAllData = () => {
   return [...ALLBLOCK_PAGES.values()];
@@ -190,6 +190,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     CACHE_PAGES_BY_ID.set(item[":db/id"], item);
   });
 
+  const refsSet = new Set<number>();
   (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -204,7 +205,15 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   ).forEach((item) => {
     ALLBLOCK_PAGES.set(item[0][":block/uid"], item[0]);
     blockEnhance(item[0], item[1], config);
-    
+    (item[0] as RefsPullBlock)[":block/refs"]?.forEach((ref) => {
+      // CACHE_BLOCKS_REFS_BY_ID.set(ref[":db/id"], ref);
+      refsSet.add(ref[":db/id"]);
+    });
+  });
+  [...refsSet.values()].forEach((id) => {
+    if (!isPageId(id)) {
+      CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
+    }
   });
 
   const userIds = window.roamAlphaAPI.data.fast.q(
@@ -229,6 +238,8 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
   // 找到今日修改过的所有 block 和 page, users
   // 将其插入到 allBlocks 中
   console.time("renew");
+  const refsSet = new Set<number>();
+
   (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -248,8 +259,16 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
   ).forEach((item) => {
     blockEnhance(item[0], item[1], config);
     ALLBLOCK_PAGES.set(item[0][":block/uid"], item[0]);
+    (item[0] as RefsPullBlock)[":block/refs"]?.forEach((ref) => {
+      // CACHE_BLOCKS_REFS_BY_ID.set(ref[":db/id"], ref);
+      refsSet.add(ref[":db/id"]);
+    });
   });
-
+  [...refsSet.values()].forEach((id) => {
+    if (!isPageId(id)) {
+      CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
+    }
+  });
   (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -517,5 +536,9 @@ function replaceRefsIdToObj(args: { ":db/id": number }[]) {
 }
 
 export function isPageId(id: number) {
-  return CACHE_PAGES_BY_ID.get(id) !== undefined
+  return CACHE_PAGES_BY_ID.get(id) !== undefined;
+}
+
+export function getAllBlockRefs() {
+  return [...CACHE_BLOCKS_REFS_BY_ID.values()]
 }

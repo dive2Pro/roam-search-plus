@@ -24,6 +24,7 @@ import {
 import { CreatedDateFilter, EditDateFilter } from "./date";
 import { ContentFilter } from "./content";
 import Fuse, { FuseResult } from "fuse.js";
+import { BlockRefFilter } from "./ref-block";
 let id = 0;
 // ------------------------------
 class FilterPlaceholder {
@@ -51,8 +52,12 @@ class FilterPlaceholder {
       gen: () => new ContentFilter(this.model),
     },
     {
-      name: "Page ref",
+      name: RefFilter.displayName,
       gen: () => new RefFilter(this.model),
+    },
+    {
+      name: BlockRefFilter.displayName,
+      gen: () => new BlockRefFilter(this.model),
     },
     {
       name: CreatedDateFilter.diaplayName,

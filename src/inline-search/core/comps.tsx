@@ -389,7 +389,7 @@ export function MultiSelectField<
   onBlur: () => void;
 }) {
   // const [height, setHeight] = useState(300);
-
+  console.log(props, ' = mul')
   const fuse = useMemo(() => {
     const fuseOptions = {
       // isCaseSensitive: false,
