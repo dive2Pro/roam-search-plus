@@ -13,7 +13,7 @@ import { Button, MenuItem, Popover } from "@blueprintjs/core";
 import "normalize.css";
 import { TitleFilter, StringFilter } from "./string";
 import type { IConnector, Block, IFilterField } from "./type";
-import { RefFilter } from "./multiple";
+import { RefFilter } from "./ref-page";
 import {
   FieldView,
   FieldsSelect,

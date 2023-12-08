@@ -60,6 +60,8 @@ let CACHE_BLOCKS_PAGES_BY_ID: Map<number, RefsPullBlock> = new Map();
 let CACHE_PAGES_BY_ID: Map<number, PullBlock> = new Map();
 let CACHE_USERS: Map<string, User> = new Map();
 
+// 所有的被 ref 的 block
+const CACHE_BLOCKS_REFS_BY_ID: Map<string, number[]> = new Map();
 
 export const getAllData = () => {
   return [...ALLBLOCK_PAGES.values()];
@@ -202,6 +204,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   ).forEach((item) => {
     ALLBLOCK_PAGES.set(item[0][":block/uid"], item[0]);
     blockEnhance(item[0], item[1], config);
+    
   });
 
   const userIds = window.roamAlphaAPI.data.fast.q(
