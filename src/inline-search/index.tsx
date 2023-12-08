@@ -107,7 +107,7 @@ function App(props: { id: string; onUnmount: () => void }) {
       console.log(blockProps, " ==== ");
     }, 200);
   });
-
+  const [title, setTitle] = useState("Inline search of ");
   useEffect(() => {
     async function load() {
       await delay(10);
@@ -132,7 +132,13 @@ function App(props: { id: string; onUnmount: () => void }) {
         const json = blockProps[":block/props"][":inline-search"];
         json && searchModel.hydrate(JSON.parse(json));
         setOpen(true);
+        // @ts-ignore
+        const title = blockProps[":block/props"][":inline-search-title"];
+        if (title) {
+          setTitle(title);
+        }
       }
+
       // console.log(getAllData(), " = all data ");
     }
     load();
@@ -144,7 +150,24 @@ function App(props: { id: string; onUnmount: () => void }) {
   return (
     <div style={{}}>
       <div className="flex">
-        <EditableText />
+        <div style={{ marginRight: 20 }}>
+          <EditableText
+            value={title}
+            onChange={(v) => setTitle(v)}
+            onConfirm={(v) => {
+              window.roamAlphaAPI.updateBlock({
+                block: {
+                  uid: props.id.substr(-9),
+                  // @ts-ignore
+                  props: {
+                    "inline-search-title": v,
+                  },
+                },
+              });
+            }}
+          />
+        </div>
+
         <Button
           loading={store.ui.isLoading()}
           onPointerDown={(e) => {
