@@ -181,9 +181,22 @@ function App(props: { id: string; onUnmount: () => void }) {
           }}
           small
           intent={open ? "primary" : "none"}
+          minimal
         >
           Filter
         </Button>
+
+        <Button
+          minimal
+          loading={store.ui.isLoading()}
+          onClick={() => {
+            store.actions.renewGraph().then(() => {
+              searchModel.search();
+            });
+          }}
+          small
+          icon="refresh"
+        ></Button>
       </div>
       {/* </Popover> */}
       {true ? (
@@ -350,7 +363,9 @@ function RenderStr({
         alignItems: "flex-start",
       }}
     >
-      <div className="clamp-3">{data[":block/string"] || data[":node/title"] || " "}</div>
+      <div className="clamp-3">
+        {data[":block/string"] || data[":node/title"] || " "}
+      </div>
     </Button>
   );
 }

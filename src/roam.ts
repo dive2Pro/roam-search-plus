@@ -46,11 +46,7 @@ const cleanCache = () => {
   cache.clear();
 };
 
-let ALLBLOCKS: Map<string, PullBlock> = new Map();
-let PAGES: PullBlock[] = [];
-type BlockWithPage = PullBlock & { page: string };
-let BLOCKS: BlockWithPage[] = [];
-let USERS: User[] = [];
+const ALLBLOCK_PAGES: Map<string, PullBlock> = new Map();
 
 export type CacheBlockType = {
   block: RefsPullBlock;
@@ -60,13 +56,13 @@ export type CacheBlockType = {
 
 let CACHE_PAGES: Map<string, CacheBlockType> = new Map();
 let CACHE_BLOCKS: Map<string, CacheBlockType> = new Map();
-let CACHE_BLOCKS_BY_ID: Map<number, RefsPullBlock> = new Map();
+let CACHE_BLOCKS_PAGES_BY_ID: Map<number, RefsPullBlock> = new Map();
 let CACHE_PAGES_BY_ID: Map<number, PullBlock> = new Map();
 let CACHE_USERS: Map<string, User> = new Map();
-let CACHE_BLOCK_REFERENCES: Map<string, string> = new Map();
+
 
 export const getAllData = () => {
-  return [...ALLBLOCKS.values()];
+  return [...ALLBLOCK_PAGES.values()];
 };
 export const getAllUsers = () => {
   return [...CACHE_USERS.values()];
@@ -88,7 +84,7 @@ function blockEnhance(
     return;
   }
 
-  CACHE_BLOCKS_BY_ID.set(block[":db/id"], block);
+  CACHE_BLOCKS_PAGES_BY_ID.set(block[":db/id"], block);
 
   if (config.blockRefToString) {
     const replacedString = replaceBlockReference(block[":block/string"]);
@@ -144,7 +140,7 @@ export const isUnderTag = (tags: number[], item: RefsPullBlock) => {
 
   item[":block/parents"]?.forEach((p) => {
     relatedRefs.push(
-      ...(CACHE_BLOCKS_BY_ID.get(p[":db/id"])?.[":block/refs"]?.map(
+      ...(CACHE_BLOCKS_PAGES_BY_ID.get(p[":db/id"])?.[":block/refs"]?.map(
         (ref) => ref[":db/id"]
       ) || [])
     );
@@ -164,10 +160,9 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   CACHE_BLOCKS.clear();
   CACHE_PAGES.clear();
   CACHE_USERS.clear();
-  CACHE_BLOCKS_BY_ID.clear();
-  CACHE_BLOCK_REFERENCES.clear();
+  CACHE_BLOCKS_PAGES_BY_ID.clear();
   CACHE_PAGES_BY_ID.clear();
-  ALLBLOCKS.clear();
+  ALLBLOCK_PAGES.clear();
   //
 
   // 页面在前, refs 需要指向
@@ -187,8 +182,8 @@ export const initCache = (config: { blockRefToString: boolean }) => {
       page: item[":node/title"],
       isBlock: false,
     };
-    ALLBLOCKS.set(item[":block/uid"], item);
-    CACHE_BLOCKS_BY_ID.set(item[":db/id"], item);
+    ALLBLOCK_PAGES.set(item[":block/uid"], item);
+    CACHE_BLOCKS_PAGES_BY_ID.set(item[":db/id"], item);
     CACHE_PAGES.set(b.block[":block/uid"], b);
     CACHE_PAGES_BY_ID.set(item[":db/id"], item);
   });
@@ -205,7 +200,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     `
     ) as unknown as []
   ).forEach((item) => {
-    ALLBLOCKS.set(item[0][":block/uid"], item[0]);
+    ALLBLOCK_PAGES.set(item[0][":block/uid"], item[0]);
     blockEnhance(item[0], item[1], config);
   });
 
@@ -249,7 +244,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     ) as unknown as []
   ).forEach((item) => {
     blockEnhance(item[0], item[1], config);
-    ALLBLOCKS.set(item[":block/uid"], item);
+    ALLBLOCK_PAGES.set(item[0][":block/uid"], item[0]);
   });
 
   (
@@ -268,9 +263,9 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     ) as unknown as RefsPullBlock[]
   )
     .map((item) => {
-      CACHE_BLOCKS_BY_ID.set(item[":db/id"], item);
+      CACHE_BLOCKS_PAGES_BY_ID.set(item[":db/id"], item);
       CACHE_PAGES_BY_ID.set(item[":db/id"], item);
-      ALLBLOCKS.set(item[":block/uid"], item);
+      ALLBLOCK_PAGES.set(item[":block/uid"], item);
 
       return {
         block: item,
@@ -514,13 +509,10 @@ function replaceRefsIdToObj(args: { ":db/id": number }[]) {
     if (!page) debugger;
     return page;
   });
-  console.log(
-    CACHE_PAGES_BY_ID.entries(),
-    "CACHE_PAGES_BY_ID",
-    args,
-    " = r ",
-    r
-  );
 
   return r;
+}
+
+export function isPageId(id: number) {
+  return CACHE_PAGES_BY_ID.get(id) !== undefined
 }

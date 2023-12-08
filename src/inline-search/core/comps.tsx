@@ -124,6 +124,11 @@ export const TextInput = (props: {
         props.onChange((e.target as HTMLInputElement).value);
       }}
       onBlur={props.onBlur}
+      onKeyPress={(event) => {
+        if(event.key === 'Enter') {
+          props.onBlur();
+        }
+      }}
     />
   );
 };
@@ -511,13 +516,11 @@ export function SelectDay(props: {
       }}
       onChange={(time) => {
         props.onChange(dayjs(time).startOf("day").valueOf());
-        props.onBlur();
+        setTimeout(() => {
+          props.onBlur();
+        }, 200);
       }}
-      value={
-        props.value
-          ? new Date(props.value)
-          : undefined
-      }
+      value={props.value ? new Date(props.value) : undefined}
     />
   );
 }

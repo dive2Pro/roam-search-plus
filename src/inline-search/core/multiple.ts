@@ -1,7 +1,7 @@
 import { makeAutoObservable } from "mobx";
 import { Block, IFilterField, IOperator } from "./type";
 import { Empty, MultiSelectField } from "./comps";
-import { getAllPages } from "../../roam";
+import { getAllPages, isPageByUid, isPageId } from "../../roam";
 import { SearchInlineModel } from ".";
 
 function getAllItems() {
@@ -47,6 +47,7 @@ export class RefFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {
+      // 这里的 refs 应该都要是 page refs
       return this.activeOperator.filterMethod(block, ":block/refs");
     });
   };
@@ -388,8 +389,8 @@ class IsEmptyOperator<T extends { label: string; uid: string; id: number }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    return !b || b.length === 0;
+    const b = block[k] as Block[':block/refs'];
+    return !b || b.filter((item) => isPageId(item[":db/id"])).length === 0;
   };
 
   get items() {
@@ -417,8 +418,8 @@ class IsNotEmptyOperator<T extends { label: string; uid: string; id: number }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as string;
-    return b && b.length > 0;
+    const b = block[k] as Block[':block/refs'];
+    return b && b.filter((item) => isPageId(item[":db/id"])).length > 0;
   };
 
   get items() {

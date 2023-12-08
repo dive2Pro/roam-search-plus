@@ -403,7 +403,7 @@ export class SearchInlineModel {
     const result = this.group.filterData(this.getData());
     this._updateTime = Date.now();
     this.result = [...result.map((item) => ({ ...item }))];
-    console.log(this, " = result ");
+    // console.log(this.result, " = result ");
     this.save();
   }
 
