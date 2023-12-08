@@ -24,6 +24,7 @@ function getAllItems() {
 }
 
 export class RefFilter implements IFilterField {
+  static displayName = "page ref";
   label: string = "page ref";
 
   operators: IOperator<any>[] = [
@@ -55,7 +56,7 @@ export class RefFilter implements IFilterField {
     // console.log(oldOperator.value, ' === value ===')
     this.activeOperator = this.operators.find((ope) => ope.label === operator)!;
     this.activeOperator.value = oldOperator.value;
-    this.model.search()
+    this.model.search();
   }
 }
 

@@ -205,6 +205,7 @@ class SentencesContainsOperator implements IOperator<string> {
 }
 
 export class ContentFilter implements IFilterField {
+  static diaplayName = "content";
   label: string = "content";
   operators: IOperator<any>[] = [
     new SentencesContainsOperator(),

@@ -26,8 +26,7 @@ import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { PageOrBlockSelect } from "./core/comps";
 import { PageIcon } from "./core/PageIcon";
 import { BlockIcon } from "./core/BlockIcon";
-import Fuse, { FuseResult } from "fuse.js";
-
+import { FuseResult } from "fuse.js";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
@@ -38,8 +37,8 @@ export function unmountNode(node: HTMLElement) {
 export function renderNode(node: HTMLElement) {
   const block = node.closest("[id^='block-input']");
   const id = node.closest("[id^='block-input']")?.id;
-  if(!block) {
-    return
+  if (!block) {
+    return;
   }
   console.log(block, " - renderNode - ", id);
   const parent = block.closest(".roam-block-container");
@@ -52,17 +51,40 @@ export function renderNode(node: HTMLElement) {
   const el = document.createElement("div");
   el.className = `inline-search-el`;
   parent.appendChild(el);
-  function Pivot() {
-    useEffect(() => {
-      return () => {
-        console.log("remove");
-        el.remove();
-      };
-    }, []);
-    return <div>12</div>;
+
+  const isUnder = !!node.closest(".inline-search-result");
+  ReactDOM.render(
+    <PreventAutoRenderFromSearchResult
+      id={id}
+      shouldRender={!isUnder}
+      onUnmount={() => el.remove()}
+    />,
+    el
+  );
+}
+
+function PreventAutoRenderFromSearchResult(props: {
+  id: string;
+  onUnmount: () => void;
+  shouldRender: boolean;
+}) {
+  const [shouldRender, setShouldRender] = useState(() => {
+    return props.shouldRender;
+  });
+
+  if (!shouldRender) {
+    return (
+      <div>
+        <Callout intent="danger" title="Pause the inline search">
+          <Button icon="unlock" onClick={() => setShouldRender(true)}>
+            Click to continue
+          </Button>
+        </Callout>
+      </div>
+    );
   }
-  ReactDOM.render(<Pivot />, node);
-  ReactDOM.render(<App id={id} onUnmount={() => el.remove()} />, el);
+
+  return <App {...props} />;
 }
 
 function App(props: { id: string; onUnmount: () => void }) {
@@ -108,8 +130,8 @@ function App(props: { id: string; onUnmount: () => void }) {
       if (blockProps && blockProps[":block/props"]) {
         // @ts-ignore
         const json = blockProps[":block/props"][":inline-search"];
-
         json && searchModel.hydrate(JSON.parse(json));
+        setOpen(true);
       }
       // console.log(getAllData(), " = all data ");
     }

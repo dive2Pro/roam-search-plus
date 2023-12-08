@@ -232,6 +232,7 @@ class GreaterThanOperator implements IOperator<DateRange> {
 }
 
 export class EditDateFilter implements IFilterField {
+  static diaplayName = "edit time";
   label: string = "edit time";
   operators: IOperator<any>[] = [
     new EqualsToOperator(),
@@ -262,6 +263,7 @@ export class EditDateFilter implements IFilterField {
 }
 
 export class CreatedDateFilter implements IFilterField {
+  static diaplayName = "created time";
   label: string = "created time";
   operators: IOperator<any>[] = [
     new EqualsToOperator(),

@@ -172,8 +172,8 @@ export const PageOrBlockSelect = (props: {
 
 export const FieldsSelect = (props: {
   onSelect: (name: string) => void;
-  items: { name: string }[];
-  selectedItem?: { name: string };
+  items: { name: string; }[];
+  selectedItem?: { name: string; };
 }) => {
   return (
     <Suggest
@@ -208,7 +208,7 @@ export const FieldsSelect = (props: {
               // ref,
               text: item.name,
             }}
-            text={item.name}
+            text={capitalizeFirstLetter(item.name)}
           ></MenuItem>
         );
       }}
@@ -586,4 +586,8 @@ export function RecentDates(props: {
       <DateInput />
     </div>
   );
+}
+
+function capitalizeFirstLetter(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }

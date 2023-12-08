@@ -34,6 +34,7 @@ class FilterPlaceholder {
   mounted = false;
 
   onSelect(name: string) {
+    console.log(`onSelect ${name}`);
     this.delegate = this.filterOptions
       .find((option) => option.name === name)!
       .gen();
@@ -46,7 +47,7 @@ class FilterPlaceholder {
     //   gen: () => new TitleFilter(this.model),
     // },
     {
-      name: "Content",
+      name: ContentFilter.diaplayName,
       gen: () => new ContentFilter(this.model),
     },
     {
@@ -54,11 +55,11 @@ class FilterPlaceholder {
       gen: () => new RefFilter(this.model),
     },
     {
-      name: "Created time",
+      name: CreatedDateFilter.diaplayName,
       gen: () => new CreatedDateFilter(this.model),
     },
     {
-      name: "Edit time",
+      name: EditDateFilter.diaplayName,
       gen: () => new EditDateFilter(this.model),
     },
   ];
@@ -402,13 +403,14 @@ export class SearchInlineModel {
     const result = this.group.filterData(this.getData());
     this._updateTime = Date.now();
     this.result = [...result.map((item) => ({ ...item }))];
-    console.log(this.result, " = result ");
+    console.log(this, " = result ");
     this.save();
   }
 
   hydrate(json: any) {
     console.log(`hydrate: `, json);
     this.group.hydrate(json);
+    this.search();
   }
 
   private save() {
