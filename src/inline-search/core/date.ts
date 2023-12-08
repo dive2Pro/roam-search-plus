@@ -1,10 +1,11 @@
 import { makeAutoObservable } from "mobx";
-import { Empty, DateRange, TextInput } from "./comps";
+import { Empty, DateRange, TextInput, SelectDay } from "./comps";
 import type { Block, IFilterField, IOperator } from "./type";
 import dayjs from "dayjs";
 import { SearchInlineModel } from ".";
 
 type DateRange = [number, number] | undefined;
+type SingleDay = number | undefined;
 
 class EqualsToOperator implements IOperator<DateRange> {
   label = "equals to";
@@ -70,57 +71,7 @@ class DoesNotEqualsToOperator implements IOperator<DateRange> {
   Input = DateRange;
 }
 
-class IsEmptyOperator implements IOperator<DateRange> {
-  label = "is empty";
-
-  constructor() {
-    makeAutoObservable(this);
-  }
-
-  filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k];
-    return !b;
-  };
-
-  value: DateRange = undefined;
-
-  onChange = () => {
-    this.value = undefined;
-  };
-
-  reset() {
-    this.value = undefined;
-  }
-
-  Input = Empty;
-}
-
-class IsNotEmptyOperator implements IOperator<DateRange> {
-  label = "is not empty";
-
-  constructor() {
-    makeAutoObservable(this);
-  }
-
-  filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as unknown as number;
-    return b > 0;
-  };
-
-  value: DateRange = undefined;
-
-  onChange = () => {
-    this.value = undefined;
-  };
-
-  reset() {
-    this.value = undefined;
-  }
-
-  Input = Empty;
-}
-
-class NotLessThanOperator implements IOperator<DateRange> {
+class NotLessThanOperator implements IOperator<SingleDay> {
   label = "not less than";
 
   constructor() {
@@ -132,12 +83,12 @@ class NotLessThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(dayjs(b)).isAfter(this.value[0]);
+    return dayjs(dayjs(b)).isAfter(this.value);
   };
 
-  value: DateRange = undefined;
+  value: SingleDay = undefined;
 
-  onChange = (v: DateRange) => {
+  onChange = (v: SingleDay) => {
     this.value = v;
   };
 
@@ -145,10 +96,10 @@ class NotLessThanOperator implements IOperator<DateRange> {
     this.value = undefined;
   }
 
-  Input = DateRange;
+  Input = SelectDay;
 }
 
-class LessThanOperator implements IOperator<DateRange> {
+class LessThanOperator implements IOperator<SingleDay> {
   label = "less than";
 
   constructor() {
@@ -160,12 +111,12 @@ class LessThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(b as number).isBefore(dayjs(this.value[0]));
+    return dayjs(b as number).isBefore(dayjs(this.value));
   };
 
-  value: DateRange = undefined;
+  value: SingleDay = undefined;
 
-  onChange = (v: DateRange) => {
+  onChange = (v: SingleDay) => {
     this.value = v;
   };
 
@@ -173,10 +124,10 @@ class LessThanOperator implements IOperator<DateRange> {
     this.value = undefined;
   }
 
-  Input = DateRange;
+  Input = SelectDay;
 }
 
-class NotGreaterThanOperator implements IOperator<DateRange> {
+class NotGreaterThanOperator implements IOperator<SingleDay> {
   label = "not grater than";
 
   constructor() {
@@ -187,12 +138,12 @@ class NotGreaterThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(b as number).isBefore(dayjs(this.value[0]));
+    return dayjs(b as number).isBefore(dayjs(this.value));
   };
 
-  value: DateRange = undefined;
+  value: SingleDay = undefined;
 
-  onChange = (v: DateRange) => {
+  onChange = (v: SingleDay) => {
     this.value = v;
   };
 
@@ -200,10 +151,10 @@ class NotGreaterThanOperator implements IOperator<DateRange> {
     this.value = undefined;
   }
 
-  Input = DateRange;
+  Input = SelectDay;
 }
 
-class GreaterThanOperator implements IOperator<DateRange> {
+class GreaterThanOperator implements IOperator<SingleDay> {
   label = "greater than";
 
   constructor() {
@@ -215,12 +166,12 @@ class GreaterThanOperator implements IOperator<DateRange> {
     if (!this.value) {
       return false;
     }
-    return dayjs(b as number).isAfter(dayjs(this.value[1]));
+    return dayjs(b as number).isAfter(dayjs(this.value));
   };
 
-  value: DateRange = undefined;
+  value: SingleDay = undefined;
 
-  onChange = (v: DateRange) => {
+  onChange = (v: SingleDay) => {
     this.value = v;
   };
 
@@ -228,7 +179,7 @@ class GreaterThanOperator implements IOperator<DateRange> {
     this.value = undefined;
   }
 
-  Input = DateRange;
+  Input = SelectDay;
 }
 
 export class EditDateFilter implements IFilterField {

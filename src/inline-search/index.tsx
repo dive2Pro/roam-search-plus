@@ -4,6 +4,7 @@ import {
   ResultFilterModel,
   SearchInline,
   SearchInlineModel,
+  layoutChangeEvent,
   useSearchInlineModel,
 } from "./core";
 import { observer } from "mobx-react-lite";
@@ -137,6 +138,9 @@ function App(props: { id: string; onUnmount: () => void }) {
         if (title) {
           setTitle(title);
         }
+        setTimeout(() => {
+          layoutChangeEvent.dispatch();
+        }, 200);
       }
 
       // console.log(getAllData(), " = all data ");
@@ -317,7 +321,7 @@ const ResultKeywordsFilter = observer((props: { model: ResultFilterModel }) => {
       onChange={(e) => {
         props.model.changeQuery(e.target.value);
       }}
-      rightElement={<Button minimal icon="arrow-right" onClick={() => {}} />}
+      // rightElement={<Button minimal icon="arrow-right" onClick={() => {}} />}
     />
   );
 });
@@ -346,7 +350,7 @@ function RenderStr({
         alignItems: "flex-start",
       }}
     >
-      {data[":block/string"] || data[":node/title"] || " "}
+      <div className="clamp-3">{data[":block/string"] || data[":node/title"] || " "}</div>
     </Button>
   );
 }

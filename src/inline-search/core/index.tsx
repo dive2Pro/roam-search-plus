@@ -423,7 +423,6 @@ export class SearchInlineModel {
 export const SearchInline = observer(
   ({ model }: { model: SearchInlineModel }) => {
     useEffect(() => {
-      // model.hydrate();
       layoutChangeEvent.dispatch();
     }, []);
     return <SearchGroup group={model.group} onSearch={() => model.search()} />;
@@ -490,7 +489,7 @@ const AndOrToggle = observer(({ group }: { group: FilterGroup }) => {
   );
 });
 
-const layoutChangeEvent = new (class {
+export const layoutChangeEvent = new (class {
   listeners: (() => void)[] = [];
 
   listen(cb: () => void) {
@@ -640,8 +639,6 @@ const SearchFilters = observer(
                 </div>
                 <RemoveConditionGroup
                   onClose={() => {
-                    // TODO:
-
                     props.group.removeConditionGroup(i);
                     layoutChangeEvent.dispatch();
                   }}

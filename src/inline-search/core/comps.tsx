@@ -61,7 +61,7 @@ export function RegexInput(props: {
     {
       label: "Has block refs",
       ...(() => {
-        const value = "^(?!```).+";
+        const value = "(\\(\\(.+\\)\\))";
         return {
           value,
           onClick: () => {
@@ -172,8 +172,8 @@ export const PageOrBlockSelect = (props: {
 
 export const FieldsSelect = (props: {
   onSelect: (name: string) => void;
-  items: { name: string; }[];
-  selectedItem?: { name: string; };
+  items: { name: string }[];
+  selectedItem?: { name: string };
 }) => {
   return (
     <Suggest
@@ -491,6 +491,33 @@ export function MultiSelectField<
         props.onChange([item.item]);
         props.onBlur();
       }}
+    />
+  );
+}
+
+export function SelectDay(props: {
+  value?: number;
+  onChange: (time: number) => void;
+  onBlur: () => void;
+}) {
+  return (
+    <DateInput
+      formatDate={(date) => {
+        return dayjs(date).format("YYYY-MM-DD");
+      }}
+      shortcuts
+      parseDate={(str) => {
+        return dayjs(str).toDate();
+      }}
+      onChange={(time) => {
+        props.onChange(dayjs(time).startOf("day").valueOf());
+        props.onBlur();
+      }}
+      value={
+        props.value
+          ? new Date(props.value)
+          : undefined
+      }
     />
   );
 }
