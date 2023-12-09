@@ -9,22 +9,10 @@ import {
   isPageId,
 } from "../../roam";
 import { SearchInlineModel } from ".";
+import { allBlockRefsItems } from "./allItems";
 
 function getAllItems() {
-  return getAllBlockRefs()
-    .map((block) => {
-      const r = {
-        uid: block[":block/uid"],
-        label: block[":block/string"],
-        id: block[":db/id"],
-        editTime: block[":edit/time"],
-        createTime: block[":create/time"],
-      };
-      return r;
-    })
-    .sort((a, b) => {
-      return b.editTime - a.editTime;
-    });
+  return allBlockRefsItems.items;
 }
 
 export class BlockRefFilter implements IFilterField {
@@ -32,8 +20,9 @@ export class BlockRefFilter implements IFilterField {
   label: string = "block ref";
 
   operators: IOperator<any>[] = [
-    new ContainsAnyOfOperator(),
     new UnderAnyOfOperator(),
+    new NotUnderAnyOfOperator(),
+    new ContainsAnyOfOperator(),
     new ExcludesOperator(),
     new ContainsOperator(),
     new DoesNotContainsOperator(),
@@ -69,6 +58,7 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
   label = "under any of";
+  title = "Hierarchical search";
 
   constructor() {
     makeAutoObservable(this);
@@ -101,11 +91,49 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
   Input = MultiSelectField;
 }
 
+class NotUnderAnyOfOperator<
+  T extends { label: string; uid: string; id: number }
+> implements IOperator<T[]>
+{
+  label = "not under any of";
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  filterMethod = (block: Block, k: keyof Block) => {
+    // const b = block[k] as { ":db/id": number }[] | undefined;
+    if (!this.value.length) {
+      return true;
+    }
+    const parents = getParentsRefsById(block[":db/id"]);
+    // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
+    return this.value.every((v) => !parents.some((p) => p === v.id));
+  };
+
+  get items() {
+    // 获取所有的
+    return getAllItems();
+  }
+  value: T[] = [];
+
+  onChange = (v: T[]) => {
+    this.value = v;
+  };
+
+  reset() {
+    this.value = [];
+  }
+
+  Input = MultiSelectField;
+}
+
 class ContainsAnyOfOperator<
   T extends { label: string; uid: string; id: number }
 > implements IOperator<T[]>
 {
   label = "contains any of";
+  title = "Inline search";
 
   constructor() {
     makeAutoObservable(this);

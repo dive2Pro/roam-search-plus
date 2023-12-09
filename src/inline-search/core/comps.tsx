@@ -8,6 +8,7 @@ import {
   Icon,
   InputGroup,
   Menu,
+  MenuDivider,
   Tooltip,
 } from "@blueprintjs/core";
 import React, {
@@ -233,8 +234,8 @@ export const FieldsSelect = (props: {
 export const OperatorsSelect = (props: {
   disabled: boolean;
   onSelect: (label: string) => void;
-  items?: { label: string }[];
-  activeItem?: { label: string };
+  items?: { label: string; title?: string }[];
+  activeItem?: { label: string; title?: string };
 }) => {
   // console.log(props.activeItem, " =active");
   return (
@@ -248,25 +249,28 @@ export const OperatorsSelect = (props: {
         return item.label.includes(query);
       }}
       activeItem={props.activeItem}
-      inputProps={{}}
+      // filterable={false}
       itemRenderer={function (
         item,
         { modifiers, handleClick }: IItemRendererProps
       ) {
         return (
-          <MenuItem
-            {...{
-              active: modifiers.active,
-              disabled: modifiers.disabled,
-              key: item.label,
-              // label: film.year.toString(),
-              onClick: handleClick,
-              // onFocus: handleFocus,
-              // ref,
-              text: item.label,
-            }}
-            text={item.label}
-          ></MenuItem>
+          <>
+            {item.title ? <MenuDivider title={item.title} /> : null}
+            <MenuItem
+              {...{
+                active: modifiers.active,
+                disabled: modifiers.disabled,
+                key: item.label,
+                // label: film.year.toString(),
+                onClick: handleClick,
+                // onFocus: handleFocus,
+                // ref,
+                text: item.label,
+              }}
+              text={item.label}
+            />
+          </>
         );
       }}
       onItemSelect={function (item, event) {
@@ -421,8 +425,8 @@ export function MultiSelectField<
               console.log("onSelect", value);
               props.onChange(value);
               setTimeout(() => {
-                props.onBlur()
-              }, 200)
+                props.onBlur();
+              }, 200);
             }}
           />
         }
@@ -432,9 +436,9 @@ export function MultiSelectField<
           value={props.value}
           onSelect={(v) => {
             props.onChange(v);
-             setTimeout(() => {
-               props.onBlur();
-             }, 200);
+            setTimeout(() => {
+              props.onBlur();
+            }, 200);
           }}
         />
       </Popover>
@@ -501,7 +505,7 @@ function MultiInput<T extends { label: string; uid: string }>(props: {
         // isOpen={lastPopoverOpen}
         canEscapeKeyClose
         // onInteraction={(nextOpenState) => {
-          // setLastPopoverOpen(nextOpenState);
+        // setLastPopoverOpen(nextOpenState);
         // }}
         content={
           <Menu>
@@ -545,12 +549,16 @@ function MultiInput<T extends { label: string; uid: string }>(props: {
   };
 
   const renderPlaceholder = () => {
-    if(firstPart.length || lastPart.length) {
+    if (firstPart.length || lastPart.length) {
       return null;
     }
 
-    return <div><span className="placeholder">Select target value</span></div>
-  }
+    return (
+      <div>
+        <span className="placeholder">Select target value</span>
+      </div>
+    );
+  };
   return (
     <div onClick={() => props.onOpen()} className="flex">
       {renderPlaceholder()}

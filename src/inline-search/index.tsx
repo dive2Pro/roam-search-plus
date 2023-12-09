@@ -28,6 +28,7 @@ import { PageOrBlockSelect } from "./core/comps";
 import { PageIcon } from "./core/PageIcon";
 import { BlockIcon } from "./core/BlockIcon";
 import { FuseResult } from "fuse.js";
+import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
@@ -192,6 +193,9 @@ function App(props: { id: string; onUnmount: () => void }) {
           onClick={() => {
             store.actions.renewGraph().then(() => {
               searchModel.search();
+              allBlockRefsItems.update();
+              allPageRefsItems.update();
+              // layoutChangeEvent.dispatch()
             });
           }}
           small

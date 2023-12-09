@@ -1,26 +1,17 @@
 import { makeAutoObservable } from "mobx";
 import { Block, IFilterField, IOperator } from "./type";
 import { Empty, MultiSelectField } from "./comps";
-import { RefsPullBlock, getAllPages, getParentsRefsById, isPageByUid, isPageId } from "../../roam";
+import {
+  RefsPullBlock,
+  getParentsRefsById,
+  isPageByUid,
+  isPageId,
+} from "../../roam";
 import { SearchInlineModel } from ".";
+import { allPageRefsItems } from "./allItems";
 
 function getAllItems() {
-  return getAllPages()
-    .filter((page) => !page.isBlock)
-    .map((page) => {
-      const r = {
-        uid: page.block[":block/uid"],
-        label: page.block[":node/title"],
-        id: page.block[":db/id"],
-        editTime: page.block[':edit/time'],
-        createTime: page.block[":create/time"]
-      };
-
-      // console.log(r, ' =r')
-      return r;
-    }).sort((a, b) => {
-      return b.editTime - a.editTime
-    });
+  return allPageRefsItems.items;
 }
 
 export class RefFilter implements IFilterField {
@@ -28,8 +19,9 @@ export class RefFilter implements IFilterField {
   label: string = "page ref";
 
   operators: IOperator<any>[] = [
-    new ContainsAnyOfOperator(),
     new UnderAnyOfOperator(),
+    new NotUnderAnyOfOperator(),
+    new ContainsAnyOfOperator(),
     new ExcludesOperator(),
     new ContainsOperator(),
     new DoesNotContainsOperator(),
@@ -55,17 +47,18 @@ export class RefFilter implements IFilterField {
   onSelect(operator: string) {
     const oldOperator = this.activeOperator;
     // console.log(oldOperator.value, ' === value ===')
+
     this.activeOperator = this.operators.find((ope) => ope.label === operator)!;
     this.activeOperator.value = oldOperator.value;
     this.model.search();
   }
 }
 
-
 class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
   label = "under any of";
+  title = "Hierarchical search";
 
   constructor() {
     makeAutoObservable(this);
@@ -76,9 +69,48 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
     if (!this.value.length) {
       return true;
     }
-     const parents = getParentsRefsById(block[":db/id"]);
-     // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
-     return this.value.some((v) => parents.some((p) => p === v.id));
+    const parents = getParentsRefsById(block[":db/id"]);
+    // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
+    return this.value.some((v) => parents.some((p) => p === v.id));
+  };
+
+  get items() {
+    // 获取所有的
+    return getAllItems();
+  }
+  value: T[] = [];
+
+  onChange = (v: T[]) => {
+    this.value = v;
+  };
+
+  reset() {
+    this.value = [];
+  }
+
+  Input = MultiSelectField;
+}
+
+class NotUnderAnyOfOperator<
+  T extends { label: string; uid: string; id: number }
+> implements IOperator<T[]>
+{
+  label = "not under any of";
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  filterMethod = (block: RefsPullBlock, k: keyof Block) => {
+    // const b = block[k] as { ":db/id": number }[] | undefined;
+    if (!this.value.length) {
+      return true;
+    }
+    const parents = getParentsRefsById(block[":db/id"]);
+    // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
+    return this.value.every(
+      (v) => parents.length && !parents.some((p) => p === v.id)
+    );
   };
 
   get items() {
@@ -103,7 +135,7 @@ class ContainsAnyOfOperator<
 > implements IOperator<T[]>
 {
   label = "contains any of";
-
+  title?: string = "Inline search";
   constructor() {
     makeAutoObservable(this);
   }
@@ -333,7 +365,7 @@ class IsEmptyOperator<T extends { label: string; uid: string; id: number }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as Block[':block/refs'];
+    const b = block[k] as Block[":block/refs"];
     return !b || b.filter((item) => isPageId(item[":db/id"])).length === 0;
   };
 
@@ -362,7 +394,7 @@ class IsNotEmptyOperator<T extends { label: string; uid: string; id: number }>
   }
 
   filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as Block[':block/refs'];
+    const b = block[k] as Block[":block/refs"];
     return b && b.filter((item) => isPageId(item[":db/id"])).length > 0;
   };
 

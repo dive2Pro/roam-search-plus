@@ -207,7 +207,7 @@ class FilterGroup {
   }
 
   filterData(_source: Block[]): Block[] {
-    console.log(_source, " = sou");
+    // console.log(_source, " = sou");
     // if (this.filters.length === 1 && this.groups.length === 0) {
     //   return this.filters[0].delegate
     //     ? this.filters[0].delegate.filterData(_source)
@@ -512,13 +512,17 @@ export const layoutChangeEvent = new (class {
   }
 })();
 
+function useForceUpdate() {
+  const [, setState] = useState(0);
+  return () => {
+    setState(Date.now());
+  };
+}
 const SearchFilters = observer(
   (props: { group: FilterGroup; onSearch: () => void }) => {
-    const max = props.group.filters.length + props.group.groups.length;
     const ref = useRef<HTMLDivElement>(null);
     const [state, setState] = useState({ top: 0, bottom: 0 });
-    const [id] = useState(Date.now());
-    console.log(props.group, " = group");
+    const forceUpdate = useForceUpdate();
     useEffect(() => {
       let el: HTMLDivElement;
       const createARoundDiv = () => {
@@ -559,7 +563,6 @@ const SearchFilters = observer(
     }, []);
     const isShowToggle =
       props.group.filters.length + props.group.groups.length > 1;
-
     return (
       <div
         className="search-filters-container"

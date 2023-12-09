@@ -207,15 +207,15 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     ) as unknown as []
   ).forEach((item) => {
     ALLBLOCK_PAGES.set(item[0][":block/uid"], item[0]);
+    const refs = [...(item[0][":block/refs"] || [])];
     blockEnhance(item[0], item[1], config);
-    (item[0] as RefsPullBlock)[":block/refs"]?.forEach((ref) => {
-      // CACHE_BLOCKS_REFS_BY_ID.set(ref[":db/id"], ref);
+    refs.forEach((ref) => {
       refsSet.add(ref[":db/id"]);
     });
   });
   [...refsSet.values()].forEach((id) => {
     if (!isPageId(id)) {
-      CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
+      // CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
     }
   });
   findBlockAllParentsRefs();
@@ -261,19 +261,16 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
       new Date().setHours(0, 0, 0, 0)
     ) as unknown as []
   ).forEach((item) => {
+    const refs = [...(item[0][":block/refs"] || [])].map((v) => v[":db/id"]);
+    // console.log(refs, ' --- refs ')
+    refs.forEach((ref) => {
+      // CACHE_BLOCKS_REFS_BY_ID.set(ref[":db/id"], ref);
+      refsSet.add(ref);
+    });
     blockEnhance(item[0], item[1], config);
     ALLBLOCK_PAGES.set(item[0][":block/uid"], item[0]);
-    (item[0] as RefsPullBlock)[":block/refs"]?.forEach((ref) => {
-      // CACHE_BLOCKS_REFS_BY_ID.set(ref[":db/id"], ref);
-      refsSet.add(ref[":db/id"]);
-    });
   });
-  [...refsSet.values()].forEach((id) => {
-    if (!isPageId(id)) {
-      CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
-    }
-  });
-  findBlockAllParentsRefs();
+
   (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -303,7 +300,14 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     .forEach((b) => {
       CACHE_PAGES.set(b.block[":block/uid"], b);
     });
-
+  console.log(refsSet, " =refsSet;");
+  [...refsSet.values()].forEach((id) => {
+    console.log(id, isPageId(id), ' ----')
+    if (!isPageId(id)) {
+      CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
+    }
+  });
+  findBlockAllParentsRefs();
   (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -553,14 +557,17 @@ function findBlockAllParentsRefs() {
     if (block.isBlock) {
       CACHE_PARENTS_REFS_BY_ID.set(
         block.block[":db/id"],
-        block.block[":block/parents"].reduce((p, c) => {
-          const result =
-            CACHE_BLOCKS_PAGES_BY_ID.get(c[":db/id"])?.[":block/refs"]?.map?.(
-              (ref) => ref[":db/id"]
-            ) || [];
-          // console.log(result, " = result");
-          return p.concat(result);
-        }, [block.block[":block/page"]?.[":db/id"] || -1] as number[])
+        block.block[":block/parents"].reduce(
+          (p, c) => {
+            const result =
+              CACHE_BLOCKS_PAGES_BY_ID.get(c[":db/id"])?.[":block/refs"]?.map?.(
+                (ref) => ref[":db/id"]
+              ) || [];
+            // console.log(result, " = result");
+            return p.concat(result);
+          },
+          [block.block[":block/page"]?.[":db/id"] || -1] as number[]
+        )
       );
     }
   });
