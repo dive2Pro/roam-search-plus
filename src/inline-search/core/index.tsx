@@ -475,9 +475,9 @@ export class ResultFilterModel {
     this.query = "";
   }
 
-  hydrate(json: { query: string; type: string }) {
-    this.query = json.query || "";
-    this.type = json.type || "all";
+  hydrate(json: { ":query": string; ":type": string }) {
+    this.query = json[":query"] || "";
+    this.type = json[":type"] || "all";
   }
 }
 export class SearchInlineModel {
