@@ -554,7 +554,7 @@ export function getAllBlockRefs() {
 
 function findBlockAllParentsRefs() {
   getAllBlocks().forEach((block) => {
-    if (block.isBlock) {
+    if (block.isBlock && block.block[":block/parents"]) {
       CACHE_PARENTS_REFS_BY_ID.set(
         block.block[":db/id"],
         block.block[":block/parents"].reduce(
