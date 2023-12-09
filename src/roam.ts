@@ -215,7 +215,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   });
   [...refsSet.values()].forEach((id) => {
     if (!isPageId(id)) {
-      // CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
+      CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
     }
   });
   findBlockAllParentsRefs();
