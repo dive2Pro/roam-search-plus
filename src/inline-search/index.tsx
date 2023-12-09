@@ -155,7 +155,7 @@ function App(props: { id: string; onUnmount: () => void }) {
   return (
     <div style={{}}>
       <div className="flex">
-        <div style={{ marginRight: 20 }}>
+        <div className="flex" style={{ marginRight: 20 }}>
           <EditableText
             value={title}
             onChange={(v) => setTitle(v)}
@@ -331,7 +331,7 @@ const SearchResultFilter = observer((props: { model: ResultFilterModel }) => {
 const ResultKeywordsFilter = observer((props: { model: ResultFilterModel }) => {
   return (
     <InputGroup
-      leftIcon="search"
+      leftIcon="filter"
       value={props.model.query}
       small
       placeholder="Filter by content"

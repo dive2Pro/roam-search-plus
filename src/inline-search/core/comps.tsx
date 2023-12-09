@@ -175,7 +175,7 @@ export const PageOrBlockSelect = (props: {
           </Menu>
         }
       >
-        <Button icon="filter" small text={props.value.toUpperCase()} />
+        <Button rightIcon="caret-down" small text={props.value.toUpperCase()} />
       </Popover>
     </ControlGroup>
   );
