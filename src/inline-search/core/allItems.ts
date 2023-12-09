@@ -10,6 +10,7 @@ class AllPagesItems {
     this.items = this.getData();
   }
   private getData() {
+    console.log(getAllPages(), ' = all pages')
     return getAllPages()
       .filter((page) => !page.isBlock)
       .map((page) => {
@@ -40,6 +41,7 @@ class AllBlocksItems {
   }
   private getData() {
     return getAllBlockRefs()
+      .filter(block => block?.[":block/uid"])
       .map((block) => {
         const r = {
           uid: block[":block/uid"],

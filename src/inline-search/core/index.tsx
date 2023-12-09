@@ -275,8 +275,115 @@ class FilterGroup {
 
 // ---------------- Operator end ------------
 
-export function useSearchInlineModel(cb: (v: {}) => void) {
-  const model = useState(() => new SearchInlineModel(cb))[0];
+export class InlineRoamBlockInfo {
+  title = "Inline search of ";
+
+  constructor(
+    private id: string,
+    private searchModelGetter: () => SearchInlineModel
+  ) {
+    makeAutoObservable(this);
+  }
+
+  get searchModel() {
+    return this.searchModelGetter();
+  }
+
+  hydrate() {
+    const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
+      ":block/uid",
+      this.id,
+    ]);
+    if (blockProps && blockProps[":block/props"]) {
+      const resultFilter =
+        // @ts-ignore
+        blockProps[":block/props"][":inline-search-result-filter"];
+      if (resultFilter) {
+        this.searchModel.filter.hydrate(resultFilter);
+      }
+
+      // @ts-ignore
+      const json = blockProps[":block/props"][":inline-search"];
+      if (json) {
+        this.searchModel.hydrate(JSON.parse(json));
+      }
+
+      // @ts-ignore
+      const title = blockProps[":block/props"][":inline-search-title"];
+      if (title) {
+        this.title = title;
+      }
+
+      setTimeout(() => {
+        layoutChangeEvent.dispatch();
+      }, 200);
+    }
+  }
+
+  private getInfo() {
+    const blockProps =
+      window.roamAlphaAPI.pull(`[:block/props]`, [":block/uid", this.id])[
+        ":block/props"
+      ] || {};
+    return Object.keys(blockProps).reduce((p, c) => {
+      p[c.substring(1)] = blockProps[c as keyof typeof blockProps];
+      return p;
+    }, {} as Record<string, unknown>);
+  }
+  saveFilterJson(json: {}) {
+    window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: this.id,
+        // @ts-ignore
+        props: {
+          ...this.getInfo(),
+          "inline-search": json,
+        },
+      },
+    });
+    // setTimeout(() => {
+    //   const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
+    //     ":block/uid",
+    //     this.id,
+    //   ]);
+    //   console.log(blockProps, " ==== ");
+    // }, 200);
+  }
+
+  saveResultFilter(json: { query: string; type: string }) {
+    window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: this.id,
+        // @ts-ignore
+        props: {
+          ...this.getInfo(),
+
+          "inline-search-result-filter": { query: json.query, type: json.type },
+        },
+      },
+    });
+  }
+
+  changeTitle(v: string): void {
+    this.title = v;
+  }
+
+  saveTitle(v: string) {
+    window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: this.id,
+        // @ts-ignore
+        props: {
+          ...this.getInfo(),
+          "inline-search-title": v,
+        },
+      },
+    });
+  }
+}
+
+export function useSearchInlineModel(inlineModel: InlineRoamBlockInfo) {
+  const model = useState(() => new SearchInlineModel(inlineModel))[0];
   return model;
 }
 
@@ -308,10 +415,12 @@ export class ResultFilterModel {
 
   changeType = (v: string) => {
     this.type = v;
+    this.model.blockInfo.saveResultFilter(this);
   };
 
   changeQuery = (v: string) => {
     this.query = v;
+    this.model.blockInfo.saveResultFilter(this);
   };
 
   filter = (bs: Block[]) => {
@@ -365,6 +474,11 @@ export class ResultFilterModel {
     this.type = "all";
     this.query = "";
   }
+
+  hydrate(json: { query: string; type: string }) {
+    this.query = json.query || "";
+    this.type = json.type || "all";
+  }
 }
 export class SearchInlineModel {
   group = new FilterGroup(this);
@@ -372,7 +486,7 @@ export class SearchInlineModel {
   result: Block[] = [];
   filter = new ResultFilterModel(this);
 
-  constructor(private onUpdate: (v: {}) => void) {
+  constructor(public blockInfo: InlineRoamBlockInfo) {
     makeAutoObservable(this, {
       result: false,
       searchResult: false,
@@ -419,7 +533,7 @@ export class SearchInlineModel {
   }
 
   private save() {
-    this.onUpdate(JSON.stringify(this.group.toJSON()));
+    this.blockInfo.saveFilterJson(JSON.stringify(this.group.toJSON()));
   }
 }
 

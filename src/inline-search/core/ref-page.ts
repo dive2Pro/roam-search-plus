@@ -11,6 +11,7 @@ import { SearchInlineModel } from ".";
 import { allPageRefsItems } from "./allItems";
 
 function getAllItems() {
+  console.log(allPageRefsItems.items, ' = items')
   return allPageRefsItems.items;
 }
 

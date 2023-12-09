@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import {
+  InlineRoamBlockInfo,
   ResultFilterModel,
   SearchInline,
   SearchInlineModel,
@@ -29,6 +30,7 @@ import { PageIcon } from "./core/PageIcon";
 import { BlockIcon } from "./core/BlockIcon";
 import { FuseResult } from "fuse.js";
 import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
+import { makeAutoObservable } from "mobx";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
@@ -89,27 +91,16 @@ function PreventAutoRenderFromSearchResult(props: {
   return <App {...props} />;
 }
 
-function App(props: { id: string; onUnmount: () => void }) {
-  const [open, setOpen] = useState(false);
-  const searchModel = useSearchInlineModel((json: {}) => {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: props.id.substr(-9),
-        // @ts-ignore
-        props: {
-          "inline-search": json,
-        },
-      },
-    });
-    setTimeout(() => {
-      const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
-        ":block/uid",
-        props.id.substr(-9),
-      ]);
-      console.log(blockProps, " ==== ");
-    }, 200);
-  });
-  const [title, setTitle] = useState("Inline search of ");
+
+const App = observer((props: { id: string; onUnmount: () => void }) => {
+  const [open, setOpen] = useState(true);
+  let searchModel: SearchInlineModel;
+  const inlineRoamBlock = useState(() => {
+    return new InlineRoamBlockInfo(props.id.substr(-9), () => searchModel);
+  })[0];
+
+  searchModel = useSearchInlineModel(inlineRoamBlock);
+
   useEffect(() => {
     async function load() {
       await delay(10);
@@ -123,27 +114,12 @@ function App(props: { id: string; onUnmount: () => void }) {
         });
         await delay(10);
         await store.actions.loadingGraph();
+        allBlockRefsItems.update();
+        allPageRefsItems.update();
         t.dismiss(toastId);
       }
-      const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
-        ":block/uid",
-        props.id.substr(-9),
-      ]);
-      if (blockProps && blockProps[":block/props"]) {
-        // @ts-ignore
-        const json = blockProps[":block/props"][":inline-search"];
-        json && searchModel.hydrate(JSON.parse(json));
-        setOpen(true);
-        // @ts-ignore
-        const title = blockProps[":block/props"][":inline-search-title"];
-        if (title) {
-          setTitle(title);
-        }
-        setTimeout(() => {
-          layoutChangeEvent.dispatch();
-        }, 200);
-      }
 
+      inlineRoamBlock.hydrate();
       // console.log(getAllData(), " = all data ");
     }
     load();
@@ -157,18 +133,10 @@ function App(props: { id: string; onUnmount: () => void }) {
       <div className="flex">
         <div className="flex" style={{ marginRight: 20 }}>
           <EditableText
-            value={title}
-            onChange={(v) => setTitle(v)}
+            value={inlineRoamBlock.title}
+            onChange={(v) => inlineRoamBlock.changeTitle(v)}
             onConfirm={(v) => {
-              window.roamAlphaAPI.updateBlock({
-                block: {
-                  uid: props.id.substr(-9),
-                  // @ts-ignore
-                  props: {
-                    "inline-search-title": v,
-                  },
-                },
-              });
+              inlineRoamBlock.saveTitle(v);
             }}
           />
         </div>
@@ -225,7 +193,7 @@ function App(props: { id: string; onUnmount: () => void }) {
 
     // </Popover>
   );
-}
+});
 
 const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
   if (model.searchResult.length === 0) {
