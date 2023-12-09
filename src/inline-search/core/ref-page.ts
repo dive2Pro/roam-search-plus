@@ -1,7 +1,7 @@
 import { makeAutoObservable } from "mobx";
 import { Block, IFilterField, IOperator } from "./type";
 import { Empty, MultiSelectField } from "./comps";
-import { getAllPages, isPageByUid, isPageId } from "../../roam";
+import { RefsPullBlock, getAllPages, getParentsRefsById, isPageByUid, isPageId } from "../../roam";
 import { SearchInlineModel } from ".";
 
 function getAllItems() {
@@ -71,14 +71,14 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
     makeAutoObservable(this);
   }
 
-  filterMethod = (block: Block, k: keyof Block) => {
+  filterMethod = (block: RefsPullBlock, k: keyof Block) => {
     // const b = block[k] as { ":db/id": number }[] | undefined;
     if (!this.value.length) {
       return true;
     }
-    const pages = block[":block/parents"] || [];
-    // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
-    return this.value.some((v) => pages.some(p => p[":db/id"] === v.id))
+     const parents = getParentsRefsById(block[":db/id"]);
+     // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
+     return this.value.some((v) => parents.some((p) => p === v.id));
   };
 
   get items() {
@@ -87,16 +87,8 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
   }
   value: T[] = [];
 
-  onChange = ([v]: T[]) => {
-    const newArr = [...this.value];
-    const index = this.value.findIndex((item) => item.uid === v.uid);
-    if (index === -1) {
-      v && newArr.push(v);
-    } else {
-      newArr.splice(index, 1);
-    }
-    console.log(newArr, " ---- ");
-    this.value = newArr;
+  onChange = (v: T[]) => {
+    this.value = v;
   };
 
   reset() {
@@ -132,16 +124,8 @@ class ContainsAnyOfOperator<
   }
   value: T[] = [];
 
-  onChange = ([v]: T[]) => {
-    const newArr = [...this.value];
-    const index = this.value.findIndex((item) => item.uid === v.uid);
-    if (index === -1) {
-      v && newArr.push(v);
-    } else {
-      newArr.splice(index, 1);
-    }
-    console.log(newArr, " ---- ");
-    this.value = newArr;
+  onChange = (v: T[]) => {
+    this.value = v;
   };
 
   reset() {
@@ -177,16 +161,8 @@ class ExcludesOperator<T extends { label: string; uid: string; id: number }>
 
   value: T[] = [];
 
-  onChange = ([v]: T[]) => {
-    // this.value = v;
-    const newArr = [...this.value];
-    const index = this.value.findIndex((item) => item.uid === v.uid);
-    if (index === -1) {
-      v && newArr.push(v);
-    } else {
-      newArr.splice(index, 1);
-    }
-    this.value = newArr;
+  onChange = (v: T[]) => {
+    this.value = v;
   };
 
   reset() {
@@ -222,16 +198,8 @@ class ContainsOperator<T extends { label: string; uid: string; id: number }>
 
   value: T[] = [];
 
-  onChange = ([v]: T[]) => {
-    // this.value = v;
-    const newArr = [...this.value];
-    const index = this.value.findIndex((item) => item.uid === v.uid);
-    if (index === -1) {
-      v && newArr.push(v);
-    } else {
-      newArr.splice(index, 1);
-    }
-    this.value = newArr;
+  onChange = (v: T[]) => {
+    this.value = v;
   };
 
   reset() {
@@ -268,16 +236,8 @@ class DoesNotContainsOperator<
 
   value: T[] = [];
 
-  onChange = ([v]: T[]) => {
-    // this.value = v;
-    const newArr = [...this.value];
-    const index = this.value.findIndex((item) => item.uid === v.uid);
-    if (index === -1) {
-      v && newArr.push(v);
-    } else {
-      newArr.splice(index, 1);
-    }
-    this.value = newArr;
+  onChange = (v: T[]) => {
+    this.value = v;
   };
 
   reset() {
@@ -314,16 +274,8 @@ class EqualsToOperator<T extends { label: string; uid: string; id: number }>
 
   value: T[] = [];
 
-  onChange = ([v]: T[]) => {
-    // this.value = v;
-    const newArr = [...this.value];
-    const index = this.value.findIndex((item) => item.uid === v.uid);
-    if (index === -1) {
-      v && newArr.push(v);
-    } else {
-      newArr.splice(index, 1);
-    }
-    this.value = newArr;
+  onChange = (v: T[]) => {
+    this.value = v;
   };
 
   reset() {
@@ -360,16 +312,8 @@ class DoesNotEqualsToOperator<
 
   value: T[] = [];
 
-  onChange = ([v]: T[]) => {
-    // this.value = v;
-    const newArr = [...this.value];
-    const index = this.value.findIndex((item) => item.uid === v.uid);
-    if (index === -1) {
-      v && newArr.push(v);
-    } else {
-      newArr.splice(index, 1);
-    }
-    this.value = newArr;
+  onChange = (v: T[]) => {
+    this.value = v;
   };
 
   reset() {
