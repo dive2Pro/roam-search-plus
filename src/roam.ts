@@ -1,6 +1,6 @@
 import { PullBlock } from "roamjs-components/types";
 
-type RefsPullBlock = PullBlock & {
+export type RefsPullBlock = PullBlock & {
   ":block/_refs": { id: number }[];
   ":block/_children": RefsPullBlock[];
   relatedRefs: number[];
@@ -62,6 +62,8 @@ let CACHE_USERS: Map<string, User> = new Map();
 
 // 所有的被 ref 的 block
 const CACHE_BLOCKS_REFS_BY_ID: Map<number, PullBlock> = new Map();
+// 所有 block parents 中包含的 refs 的 id
+const CACHE_PARENTS_REFS_BY_ID: Map<number, number[]> = new Map();
 
 export const getAllData = () => {
   return [...ALLBLOCK_PAGES.values()];
@@ -134,6 +136,7 @@ const PullStr = `
       :block/refs
       :create/time
       :create/user
+      :block/page
       :db/id
 `;
 
@@ -215,6 +218,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
       CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
     }
   });
+  findBlockAllParentsRefs();
 
   const userIds = window.roamAlphaAPI.data.fast.q(
     `
@@ -269,6 +273,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
       CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
     }
   });
+  findBlockAllParentsRefs();
   (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -540,5 +545,31 @@ export function isPageId(id: number) {
 }
 
 export function getAllBlockRefs() {
-  return [...CACHE_BLOCKS_REFS_BY_ID.values()]
+  return [...CACHE_BLOCKS_REFS_BY_ID.values()];
 }
+
+function findBlockAllParentsRefs() {
+  getAllBlocks().forEach((block) => {
+    if (block.isBlock) {
+      CACHE_PARENTS_REFS_BY_ID.set(
+        block.block[":db/id"],
+        block.block[":block/parents"].reduce((p, c) => {
+          const result =
+            CACHE_BLOCKS_PAGES_BY_ID.get(c[":db/id"])?.[":block/refs"]?.map?.(
+              (ref) => ref[":db/id"]
+            ) || [];
+          // console.log(result, " = result");
+          return p.concat(result);
+        }, [block.block[":block/page"]?.[":db/id"] || -1] as number[])
+      );
+    }
+  });
+}
+
+export function getParentsRefsById(id: number) {
+  return CACHE_PARENTS_REFS_BY_ID.get(id) || [];
+}
+
+window.getById = (id: number) => {
+  return { ...CACHE_PARENTS_REFS_BY_ID.get(id) };
+};

@@ -174,3 +174,11 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
 }
+
+.full-text {
+  white-space:initial;
+}
+
+.placeholder {
+  color: #666;
+}

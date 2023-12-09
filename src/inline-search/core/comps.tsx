@@ -1,5 +1,9 @@
 import {
+  Callout,
+  Card,
+  Classes,
   ControlGroup,
+  Divider,
   HTMLSelect,
   Icon,
   InputGroup,
@@ -26,9 +30,10 @@ import {
   Suggest,
 } from "@blueprintjs/select";
 import { DateInput, DateRange, DateRangeInput } from "@blueprintjs/datetime";
-import { Virtuoso } from "react-virtuoso";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { PageIcon } from "./PageIcon";
 import { BlockIcon } from "./BlockIcon";
+import { toJS } from "mobx";
 
 export const Empty = () => <></>;
 
@@ -125,7 +130,7 @@ export const TextInput = (props: {
       }}
       onBlur={props.onBlur}
       onKeyPress={(event) => {
-        if(event.key === 'Enter') {
+        if (event.key === "Enter") {
           props.onBlur();
         }
       }}
@@ -388,8 +393,308 @@ export function MultiSelectField<
   onChange: (value: T[]) => void;
   onBlur: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  console.log(props.value, " = props.value");
+  return (
+    <div
+      className="bp3-input"
+      style={{ alignItems: "center", display: "flex" }}
+    >
+      <Popover
+        interactionKind="click"
+        autoFocus={false}
+        canEscapeKeyClose={true}
+        minimal
+        onInteraction={(nextOpenState) => {
+          setOpen(nextOpenState);
+        }}
+        isOpen={open}
+        onClose={() => {
+          // setOpen(false);
+        }}
+        fill
+        content={
+          <CustomMultiSelect
+            items={props.items}
+            value={props.value}
+            onSelect={(value) => {
+              console.log("onSelect", value);
+              props.onChange(value);
+              setTimeout(() => {
+                props.onBlur()
+              }, 200)
+            }}
+          />
+        }
+      >
+        <MultiInput
+          onOpen={() => setOpen(!open)}
+          value={props.value}
+          onSelect={(v) => {
+            props.onChange(v);
+             setTimeout(() => {
+               props.onBlur();
+             }, 200);
+          }}
+        />
+      </Popover>
+    </div>
+  );
+}
+
+function MultiInput<T extends { label: string; uid: string }>(props: {
+  value: T[];
+  onOpen: () => void;
+  onSelect: (value: T[]) => void;
+}) {
+  const firstPart = props.value.slice(0, 2);
+  const lastPart = props.value.slice(2);
+  const [lastPopoverOpen, setLastPopoverOpen] = useState(false);
+  const renderFirstPart = () => {
+    if (firstPart.length <= 0) {
+      return null;
+    }
+    return (
+      <div className="flex" style={{ gap: 4 }}>
+        {firstPart.map((item) => (
+          <Button
+            small
+            outlined
+            rightIcon={
+              <Button
+                minimal
+                small
+                icon="small-cross"
+                onClickCapture={(e) => {
+                  e.preventDefault();
+                  props.onSelect(props.value.filter((i) => i.uid !== item.uid));
+                }}
+              />
+            }
+          >
+            <Popover
+              interactionKind="hover"
+              position="top"
+              hoverOpenDelay={500}
+              content={<Callout>{item.label}</Callout>}
+            >
+              <div
+                className="ellipsis"
+                style={{ maxWidth: 100, display: "block" }}
+              >
+                {item.label}
+              </div>
+            </Popover>
+          </Button>
+        ))}
+      </div>
+    );
+  };
+  const renderLastPart = () => {
+    if (lastPart.length <= 0) {
+      return null;
+    }
+    return (
+      <Popover
+        interactionKind="click"
+        popoverClassName="multi-popover"
+        // isOpen={lastPopoverOpen}
+        canEscapeKeyClose
+        // onInteraction={(nextOpenState) => {
+          // setLastPopoverOpen(nextOpenState);
+        // }}
+        content={
+          <Menu>
+            {lastPart.map((item) => (
+              <Button
+                icon={"small-tick"}
+                small
+                outlined
+                key={item.uid}
+                text={<div>{item.label}</div>}
+                rightIcon={
+                  <Button
+                    minimal
+                    small
+                    icon="small-cross"
+                    onClickCapture={(e) => {
+                      e.preventDefault();
+                      props.onSelect(
+                        props.value.filter((i) => i.uid !== item.uid)
+                      );
+                    }}
+                  />
+                }
+              />
+            ))}
+          </Menu>
+        }
+      >
+        <Button
+          minimal
+          small
+          onClickCapture={(e) => {
+            e.preventDefault();
+            setLastPopoverOpen(!lastPopoverOpen);
+          }}
+        >
+          +{lastPart.length}
+        </Button>
+      </Popover>
+    );
+  };
+
+  const renderPlaceholder = () => {
+    if(firstPart.length || lastPart.length) {
+      return null;
+    }
+
+    return <div><span className="placeholder">Select target value</span></div>
+  }
+  return (
+    <div onClick={() => props.onOpen()} className="flex">
+      {renderPlaceholder()}
+      {renderFirstPart()}
+      {renderLastPart()}
+    </div>
+  );
+}
+
+function CustomMultiSelect<T extends { uid: string; label: string }>(props: {
+  items: T[];
+  value: T[];
+  onSelect: (value: T[]) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const fuse = useMemo(() => {
+    const fuseOptions = {
+      // isCaseSensitive: false,
+      // includeScore: true,
+      // shouldSort: true,
+      includeMatches: true,
+      // findAllMatches: true,
+      // minMatchCharLength: 1,
+      // location: 0,
+      // threshold: 0.4,
+      // distance: 80,
+      // useExtendedSearch: false,
+      // ignoreLocation: false,
+      // ignoreFieldNorm: false,
+      // fieldNormWeight: 1,
+      keys: ["label"],
+    };
+
+    const fuse = new Fuse(props.items, fuseOptions);
+
+    return fuse;
+  }, [props.items]);
+  const scrollerRef = useRef<VirtuosoHandle>(null);
+  const [filtered, setFiltered] = useState<FuseResult<T>[]>(() =>
+    props.items.map((item) => ({ item, refIndex: 0 }))
+  );
+
+  return (
+    <div
+      style={{
+        padding: 10,
+      }}
+    >
+      <InputGroup
+        autoFocus
+        value={query}
+        onKeyDown={(e) => {
+          switch (e.key) {
+            case "ArrowUp":
+              e.preventDefault();
+              setActiveIndex((prevIndex) => {
+                const nextIndex =
+                  prevIndex - 1 < 0 ? filtered.length - 1 : prevIndex - 1;
+                scrollerRef.current.scrollToIndex({
+                  index: nextIndex,
+                  behavior: "smooth",
+                });
+                return nextIndex;
+              });
+              break;
+            case "ArrowDown":
+              e.preventDefault();
+              setActiveIndex((prevIndex) => {
+                const nextIndex =
+                  prevIndex + 1 >= filtered.length ? 0 : prevIndex + 1;
+                scrollerRef.current.scrollToIndex({
+                  index: nextIndex,
+                  behavior: "smooth",
+                });
+                return nextIndex;
+              });
+              break;
+          }
+        }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (!e.target.value) {
+            setFiltered(props.items.map((item) => ({ item, refIndex: 0 })));
+          } else {
+            setFiltered(fuse.search(e.target.value));
+          }
+          setActiveIndex(0);
+          scrollerRef.current.scrollToIndex({
+            index: 0,
+            behavior: "smooth",
+          });
+        }}
+      />
+      <Menu>
+        <Virtuoso
+          style={{
+            width: 300,
+            height: 300,
+          }}
+          totalCount={filtered.length}
+          data={filtered}
+          ref={scrollerRef}
+          itemContent={(index, data) => {
+            return (
+              <MenuItem
+                shouldDismissPopover={false}
+                icon={
+                  props.value.find((v) => v.uid === data.item.uid)
+                    ? "small-tick"
+                    : "blank"
+                }
+                active={index === activeIndex}
+                key={data.item.uid}
+                textClassName="full-text"
+                text={<div>{data.item.label}</div>}
+                onClick={() => {
+                  props.onSelect(
+                    props.value.find((v) => v.uid === data.item.uid)
+                      ? props.value.filter((v) => v.uid !== data.item.uid)
+                      : props.value.concat([data.item])
+                  );
+                  setActiveIndex(index);
+                }}
+              />
+            );
+          }}
+        />
+      </Menu>
+    </div>
+  );
+}
+
+export function MultiSelectField2<
+  T extends { label: string; uid: string }
+>(props: {
+  items?: T[];
+  value: T[];
+  onChange: (value: T[]) => void;
+  onBlur: () => void;
+}) {
   // const [height, setHeight] = useState(300);
-  console.log(props, ' = mul')
+  console.log(props, " = mul");
   const fuse = useMemo(() => {
     const fuseOptions = {
       // isCaseSensitive: false,
@@ -419,8 +724,15 @@ export function MultiSelectField<
   console.log(filtered, " --");
   return (
     <MultiSelect
+      fill
       tagRenderer={function (item: FuseResult<T>) {
-        return item.item.label;
+        return (
+          <Tooltip content={item.item.label} hoverOpenDelay={300}>
+            <span className="ellipsis" style={{ maxWidth: 120 }}>
+              {item.item.label}
+            </span>
+          </Tooltip>
+        );
       }}
       items={filtered || []}
       selectedItems={props.value.map((item) => ({
@@ -465,15 +777,7 @@ export function MultiSelectField<
           ></MenuItem>
         );
       }}
-      popoverProps={{
-        position: "top",
-        modifiers: {
-          flip: {
-            enabled: true,
-          },
-        },
-        placement: "bottom",
-      }}
+      popoverProps={{}}
       // itemPredicate={(query, item) => {
       //   return item.label.indexOf(query) >= 0;
       // }}
