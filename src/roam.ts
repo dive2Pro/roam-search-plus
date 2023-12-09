@@ -577,6 +577,6 @@ export function getParentsRefsById(id: number) {
   return CACHE_PARENTS_REFS_BY_ID.get(id) || [];
 }
 
-window.getById = (id: number) => {
+const getById = (id: number) => {
   return { ...CACHE_PARENTS_REFS_BY_ID.get(id) };
 };
