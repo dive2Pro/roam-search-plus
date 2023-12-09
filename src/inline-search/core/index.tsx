@@ -25,6 +25,7 @@ import { CreatedDateFilter, EditDateFilter } from "./date";
 import { ContentFilter } from "./content";
 import Fuse, { FuseResult } from "fuse.js";
 import { BlockRefFilter } from "./ref-block";
+import { debounce } from "../../helper";
 let id = 0;
 // ------------------------------
 class FilterPlaceholder {
@@ -217,7 +218,7 @@ class FilterGroup {
     // }
     if (this.connector === "AND") {
       let source = _source;
-      console.log(source, " = ");
+      // console.log(source, " = ");
       this.filters.forEach((filter) => {
         if (filter.delegate) {
           const result = filter.delegate.filterData(source);
@@ -295,12 +296,16 @@ export class InlineRoamBlockInfo {
       this.id,
     ]);
     if (blockProps && blockProps[":block/props"]) {
-      const resultFilter =
-        // @ts-ignore
-        blockProps[":block/props"][":inline-search-result-filter"];
-      if (resultFilter) {
-        this.searchModel.filter.hydrate(resultFilter);
-      }
+      this.searchModel.filter.hydrate({
+        "query":
+          // @ts-ignore
+          blockProps[":block/props"][":inline-search-result-filter-query"] ||
+          "",
+
+        "type":
+          // @ts-ignore
+          blockProps[":block/props"][":inline-search-result-filter-type"] || "all",
+      });
 
       // @ts-ignore
       const json = blockProps[":block/props"][":inline-search"];
@@ -322,7 +327,7 @@ export class InlineRoamBlockInfo {
 
   private getInfo() {
     const blockProps =
-      window.roamAlphaAPI.pull(`[:block/props]`, [":block/uid", this.id])[
+      window.roamAlphaAPI.pull(`[:block/props]`, [":block/uid", this.id])?.[
         ":block/props"
       ] || {};
     return Object.keys(blockProps).reduce((p, c) => {
@@ -350,7 +355,7 @@ export class InlineRoamBlockInfo {
     // }, 200);
   }
 
-  saveResultFilter(json: { query: string; type: string }) {
+  saveResultFilterQuery(query: string) {
     window.roamAlphaAPI.updateBlock({
       block: {
         uid: this.id,
@@ -358,7 +363,20 @@ export class InlineRoamBlockInfo {
         props: {
           ...this.getInfo(),
 
-          "inline-search-result-filter": { query: json.query, type: json.type },
+          "inline-search-result-filter-query": query,
+        },
+      },
+    });
+  }
+
+  saveResultFilterType(type: string) {
+    window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: this.id,
+        // @ts-ignore
+        props: {
+          ...this.getInfo(),
+          "inline-search-result-filter-type": type,
         },
       },
     });
@@ -415,12 +433,12 @@ export class ResultFilterModel {
 
   changeType = (v: string) => {
     this.type = v;
-    this.model.blockInfo.saveResultFilter(this);
+    this.model.blockInfo.saveResultFilterType(v);
   };
 
   changeQuery = (v: string) => {
     this.query = v;
-    this.model.blockInfo.saveResultFilter(this);
+    this.model.blockInfo.saveResultFilterQuery(v);
   };
 
   filter = (bs: Block[]) => {
@@ -475,9 +493,9 @@ export class ResultFilterModel {
     this.query = "";
   }
 
-  hydrate(json: { ":query": string; ":type": string }) {
-    this.query = json[":query"] || "";
-    this.type = json[":type"] || "all";
+  hydrate(json: { "query": string; "type": string }) {
+    this.query = json.query
+    this.type = json.type
   }
 }
 export class SearchInlineModel {
@@ -517,14 +535,14 @@ export class SearchInlineModel {
     return this.result;
   }
 
-  search() {
+  search = () => {
     // set to field
     const result = this.group.filterData(this.getData());
     this._updateTime = Date.now();
     this.result = [...result.map((item) => ({ ...item }))];
-    // console.log(this.result, " = result ");
+    console.log(this.result, " = result ");
     this.save();
-  }
+  };
 
   hydrate(json: any) {
     console.log(`hydrate: `, json);

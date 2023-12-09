@@ -34,7 +34,7 @@ import { makeAutoObservable } from "mobx";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
-  parent.querySelectorAll(".inline-search-el").forEach((e) => {
+  parent.querySelectorAll(":scope > .inline-search-el").forEach((e) => {
     e.remove();
   });
 }
