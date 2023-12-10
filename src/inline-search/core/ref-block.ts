@@ -23,11 +23,11 @@ export class BlockRefFilter implements IFilterField {
     new UnderAnyOfOperator(),
     new NotUnderAnyOfOperator(),
     new ContainsAnyOfOperator(),
-    new ExcludesOperator(),
     new ContainsOperator(),
-    new DoesNotContainsOperator(),
     new EqualsToOperator(),
-    new DoesNotEqualsToOperator(),
+    new DoesNotContainsOperator(),
+    // new ExcludesOperator(),
+    // new DoesNotEqualsToOperator(),
     new IsEmptyOperator(),
     new IsNotEmptyOperator(),
   ];
@@ -171,7 +171,7 @@ class ExcludesOperator<T extends { label: string; uid: string; id: number }>
 {
   label = "excludes";
 
-  constructor() {
+    constructor() {
     makeAutoObservable(this);
   }
 
