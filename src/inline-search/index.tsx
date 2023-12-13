@@ -20,6 +20,7 @@ import {
   Icon,
   InputGroup,
   Menu,
+  MenuDivider,
   MenuItem,
   Popover,
   TextArea,
@@ -36,10 +37,12 @@ import { PageIcon } from "./core/PageIcon";
 import { BlockIcon } from "./core/BlockIcon";
 import { FuseResult } from "fuse.js";
 import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
-import { makeAutoObservable } from "mobx";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
+  if(!parent) {
+    return;
+  }
   parent.querySelectorAll(":scope > .inline-search-el").forEach((e) => {
     e.remove();
   });
@@ -52,6 +55,10 @@ export function renderNode(node: HTMLElement) {
   }
   console.log(block, " - renderNode - ", id);
   const parent = block.closest(".roam-block-container");
+  if(!parent) {
+    return
+  }
+  
   parent.querySelectorAll(".inline-search-el").forEach((e) => {
     e.remove();
   });
@@ -173,7 +180,7 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
           small
           icon="refresh"
         ></Button>
-        <SearchSettings model={searchModel} />
+        <SearchSettings model={searchModel} onDelete={props.onUnmount} />
       </div>
       {/* </Popover> */}
       {true ? (
@@ -200,76 +207,86 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
   );
 });
 
-const SearchSettings = observer((props: { model: SearchInlineModel }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [value, setValue] = useState("");
-  return (
-    <>
-      <Popover
-        autoFocus={false}
-        content={
-          <Menu>
-            <MenuItem
-              onClick={() => {
-                const str = JSON.stringify(
-                  props.model.blockInfo.getBlockProps()
-                );
-                navigator.clipboard.writeText(str);
+const SearchSettings = observer(
+  (props: { model: SearchInlineModel; onDelete: () => void }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [value, setValue] = useState("");
+    return (
+      <>
+        <Popover
+          autoFocus={false}
+          content={
+            <Menu>
+              <MenuItem
+                onClick={() => {
+                  const str = JSON.stringify(
+                    props.model.blockInfo.getBlockProps()
+                  );
+                  navigator.clipboard.writeText(str);
+                }}
+                text="Copy settings"
+                icon="clipboard"
+              />
+              <MenuItem
+                onClick={() => {
+                  setIsOpen(true);
+                }}
+                text="Import settings"
+                icon="import"
+              />
+              <MenuDivider />
+              <MenuItem
+                text="Edit block"
+                icon="edit"
+                onClick={() => {
+                  props.onDelete()
+                }}
+              />
+            </Menu>
+          }
+        >
+          <Button icon="more" minimal small />
+        </Popover>
+        <Dialog
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          canEscapeKeyClose
+          title="Importting settings"
+        >
+          <div className={Classes.DIALOG_BODY}>
+            <TextArea
+              fill
+              onInput={(event) => {
+                setValue((event.target as HTMLTextAreaElement).value);
               }}
-              text="Copy settings"
-              icon="clipboard"
+              autoFocus
             />
-            <MenuItem
-              onClick={() => {
-                setIsOpen(true);
-              }}
-              text="Import settings"
-              icon="import"
-            />
-          </Menu>
-        }
-      >
-        <Button icon="more" minimal small />
-      </Popover>
-      <Dialog
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        canEscapeKeyClose
-        title="Importting settings"
-      >
-        <div className={Classes.DIALOG_BODY}>
-          <TextArea
-            fill
-            onInput={(event) => {
-              setValue((event.target as HTMLTextAreaElement).value);
-            }}
-            autoFocus
-          />
-        </div>
-        <div className={Classes.DIALOG_FOOTER}>
-          <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-            <Button
-              onClick={() => {
-                setIsOpen(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                props.model.blockInfo.hydrateByData(JSON.parse(value));
-                setIsOpen(false);
-              }}
-              intent="primary"
-            >
-              Confirm
-            </Button>
           </div>
-        </div>
-      </Dialog>
-    </>
-  );
-});
+          <div className={Classes.DIALOG_FOOTER}>
+            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+              <Button
+                onClick={() => {
+                  setIsOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  props.model.blockInfo.hydrateByData(JSON.parse(value));
+                  setIsOpen(false);
+                }}
+                intent="primary"
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+      </>
+    );
+  }
+);
 
 const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
   if (model.searchResult.length === 0) {
@@ -434,7 +451,8 @@ function RenderView({ data }: { data: Block }) {
         open: false,
       });
     }, 200);
-    return () => (unmounted = true);
+    return () => { unmounted = true
+    };
   }, [data[":block/uid"]]);
   return <div ref={ref}></div>;
 }

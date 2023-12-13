@@ -8,6 +8,7 @@ export type IConnector = "OR" | "AND";
 export interface IOperator<T> {
   label: string;
   title?: string;
+  rightIcon?: string;
   filterMethod: (block: Block, key: keyof Block) => boolean;
 
   value: T;

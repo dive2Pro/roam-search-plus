@@ -3,6 +3,8 @@ import { Empty, RegexInput, TextInput } from "./comps";
 import type { Block, IFilterField, IOperator } from "./type";
 import { SearchInlineModel } from ".";
 import { InputGroup } from "@blueprintjs/core";
+import { PullBlock } from "roamjs-components/types";
+import Fuse from "fuse.js";
 
 class DoesNotContainsOperator implements IOperator<string> {
   label = "does not contains";
@@ -204,10 +206,45 @@ class SentencesContainsOperator implements IOperator<string> {
   Input = TextInput;
 }
 
+
+class FuzzyOperator implements IOperator<string> {
+  fuse = new Fuse([] as PullBlock[], {
+    useExtendedSearch: true,
+    includeMatches: true,
+    keys: [":block/string", ":node/title"],
+  });
+  filter(blocks: PullBlock[]) {
+    this.fuse.setCollection(blocks);
+    return this.fuse.search(this.value).map(({ item }) => item);
+  }
+  label = "fuzzy";
+  rightIcon = "fuzzy"
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  filterMethod = (block: Block, key: keyof Block) => {
+    return !!block[key] && (block[key] + "").includes(this.value);
+  };
+
+  value = "";
+
+  onChange = (v: string) => {
+    this.value = v;
+  };
+
+  reset() {
+    this.value = "";
+  }
+  Input = TextInput;
+}
+
 export class ContentFilter implements IFilterField {
   static diaplayName = "content";
   label: string = "content";
   operators: IOperator<any>[] = [
+    new FuzzyOperator(),
     new SentencesContainsOperator(),
     new DoesNotContainsOperator(),
     new RegexOperator(),
@@ -223,6 +260,9 @@ export class ContentFilter implements IFilterField {
   }
 
   filterData = (blocks: Block[]) => {
+    if(this.activeOperator instanceof FuzzyOperator) {
+      return this.activeOperator.filter(blocks);
+    }
     return blocks.filter((block) => {
       return (
         this.activeOperator.filterMethod(block, ":node/title") ||

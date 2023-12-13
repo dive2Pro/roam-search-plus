@@ -11,7 +11,6 @@ import { makeAutoObservable, reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { Button, MenuItem, Popover } from "@blueprintjs/core";
 import "normalize.css";
-import { TitleFilter, StringFilter } from "./string";
 import type { IConnector, Block, IFilterField } from "./type";
 import { RefFilter } from "./ref-page";
 import {
@@ -25,7 +24,6 @@ import { CreatedDateFilter, EditDateFilter } from "./date";
 import { ContentFilter } from "./content";
 import Fuse, { FuseResult } from "fuse.js";
 import { BlockRefFilter } from "./ref-block";
-import { debounce } from "../../helper";
 let id = 0;
 // ------------------------------
 class FilterPlaceholder {
@@ -432,7 +430,7 @@ const fuseOptions = {
   // location: 0,
   // threshold: 0.4,
   // distance: 80,
-  // useExtendedSearch: false,
+  useExtendedSearch: true,
   // ignoreLocation: false,
   // ignoreFieldNorm: false,
   // fieldNormWeight: 1,

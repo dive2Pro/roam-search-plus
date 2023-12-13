@@ -234,8 +234,8 @@ export const FieldsSelect = (props: {
 export const OperatorsSelect = (props: {
   disabled: boolean;
   onSelect: (label: string) => void;
-  items?: { label: string; title?: string }[];
-  activeItem?: { label: string; title?: string };
+  items?: { label: string; title?: string; rightIcon?: string }[];
+  activeItem?: { label: string; title?: string; rightIcon?: string };
 }) => {
   // console.log(props.activeItem, " =active");
   return (
@@ -267,6 +267,21 @@ export const OperatorsSelect = (props: {
                 // onFocus: handleFocus,
                 // ref,
                 text: item.label,
+                labelElement:
+                  item.rightIcon === "fuzzy" ? (
+                    <Popover
+                      interactionKind="hover"
+                      content={
+                        <div className={Classes.CALLOUT}>
+                          More advanced search is <a href="https://www.fusejs.io/examples.html#extended-search">
+                            here
+                          </a>
+                        </div>
+                      }
+                    >
+                      <Icon icon="help" />
+                    </Popover>
+                  ) : null,
               }}
               text={item.label}
             />
@@ -587,7 +602,7 @@ function CustomMultiSelect<T extends { uid: string; label: string }>(props: {
       // location: 0,
       // threshold: 0.4,
       // distance: 80,
-      // useExtendedSearch: false,
+      useExtendedSearch: true,
       // ignoreLocation: false,
       // ignoreFieldNorm: false,
       // fieldNormWeight: 1,
