@@ -12,11 +12,17 @@ import { observer } from "mobx-react-lite";
 import {
   Button,
   Callout,
+  Classes,
   ControlGroup,
+  Dialog,
   Divider,
   EditableText,
   Icon,
   InputGroup,
+  Menu,
+  MenuItem,
+  Popover,
+  TextArea,
   Toaster,
 } from "@blueprintjs/core";
 import { store } from "../store";
@@ -90,8 +96,6 @@ function PreventAutoRenderFromSearchResult(props: {
 
   return <App {...props} />;
 }
-
-
 const App = observer((props: { id: string; onUnmount: () => void }) => {
   const [open, setOpen] = useState(true);
   let searchModel: SearchInlineModel;
@@ -169,6 +173,7 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
           small
           icon="refresh"
         ></Button>
+        <SearchSettings model={searchModel} />
       </div>
       {/* </Popover> */}
       {true ? (
@@ -192,6 +197,77 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
     </div>
 
     // </Popover>
+  );
+});
+
+const SearchSettings = observer((props: { model: SearchInlineModel }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [value, setValue] = useState("");
+  return (
+    <>
+      <Popover
+        autoFocus={false}
+        content={
+          <Menu>
+            <MenuItem
+              onClick={() => {
+                const str = JSON.stringify(
+                  props.model.blockInfo.getBlockProps()
+                );
+                navigator.clipboard.writeText(str);
+              }}
+              text="Copy settings"
+              icon="clipboard"
+            />
+            <MenuItem
+              onClick={() => {
+                setIsOpen(true);
+              }}
+              text="Import settings"
+              icon="import"
+            />
+          </Menu>
+        }
+      >
+        <Button icon="more" minimal small />
+      </Popover>
+      <Dialog
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        canEscapeKeyClose
+        title="Importting settings"
+      >
+        <div className={Classes.DIALOG_BODY}>
+          <TextArea
+            fill
+            onInput={(event) => {
+              setValue((event.target as HTMLTextAreaElement).value);
+            }}
+            autoFocus
+          />
+        </div>
+        <div className={Classes.DIALOG_FOOTER}>
+          <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+            <Button
+              onClick={() => {
+                setIsOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                props.model.blockInfo.hydrateByData(JSON.parse(value));
+                setIsOpen(false);
+              }}
+              intent="primary"
+            >
+              Confirm
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </>
   );
 });
 

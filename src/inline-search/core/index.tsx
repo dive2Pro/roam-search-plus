@@ -289,6 +289,47 @@ export class InlineRoamBlockInfo {
   get searchModel() {
     return this.searchModelGetter();
   }
+  private hydrateImpl(blockProps: {
+    query?: string;
+    type?: string;
+    json?: {};
+    title?: string;
+  }) {
+    this.searchModel.filter.hydrate({
+      query: blockProps.query,
+      type: blockProps.type || "all",
+    });
+
+    if (blockProps.json) {
+      this.searchModel.hydrate(blockProps.json);
+    }
+
+    if (blockProps.title) {
+      this.title = blockProps.title;
+    }
+
+    setTimeout(() => {
+      layoutChangeEvent.dispatch();
+    }, 200);
+  }
+  hydrateByData(blockProps: { ":block/props"?: Record<string, any>}) {
+    const json = blockProps[":block/props"][":inline-search"];
+    console.log(blockProps, ' = props')
+    this.hydrateImpl({
+      // @ts-ignore
+      title: blockProps[":block/props"][":inline-search-title"],
+      // @ts-ignore
+      json: json ? JSON.parse(json) : undefined,
+      query:
+        // @ts-ignore
+        blockProps[":block/props"][":inline-search-result-filter-query"] || "",
+
+      type:
+        // @ts-ignore
+        blockProps[":block/props"][":inline-search-result-filter-type"] ||
+        "all",
+    });
+  }
 
   hydrate() {
     const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
@@ -296,40 +337,16 @@ export class InlineRoamBlockInfo {
       this.id,
     ]);
     if (blockProps && blockProps[":block/props"]) {
-      this.searchModel.filter.hydrate({
-        "query":
-          // @ts-ignore
-          blockProps[":block/props"][":inline-search-result-filter-query"] ||
-          "",
-
-        "type":
-          // @ts-ignore
-          blockProps[":block/props"][":inline-search-result-filter-type"] || "all",
-      });
-
-      // @ts-ignore
-      const json = blockProps[":block/props"][":inline-search"];
-      if (json) {
-        this.searchModel.hydrate(JSON.parse(json));
-      }
-
-      // @ts-ignore
-      const title = blockProps[":block/props"][":inline-search-title"];
-      if (title) {
-        this.title = title;
-      }
-
-      setTimeout(() => {
-        layoutChangeEvent.dispatch();
-      }, 200);
+      this.hydrateByData(blockProps)
     }
   }
-
+  getBlockProps() {
+    return (
+      window.roamAlphaAPI.pull(`[:block/props]`, [":block/uid", this.id]) || {}
+    );
+  }
   private getInfo() {
-    const blockProps =
-      window.roamAlphaAPI.pull(`[:block/props]`, [":block/uid", this.id])?.[
-        ":block/props"
-      ] || {};
+    const blockProps = this.getBlockProps()[":block/props"] || {};
     return Object.keys(blockProps).reduce((p, c) => {
       p[c.substring(1)] = blockProps[c as keyof typeof blockProps];
       return p;
@@ -493,9 +510,9 @@ export class ResultFilterModel {
     this.query = "";
   }
 
-  hydrate(json: { "query": string; "type": string }) {
-    this.query = json.query
-    this.type = json.type
+  hydrate(json: { query: string; type: string }) {
+    this.query = json.query;
+    this.type = json.type;
   }
 }
 export class SearchInlineModel {
