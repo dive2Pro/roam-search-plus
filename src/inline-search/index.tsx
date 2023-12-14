@@ -140,8 +140,8 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
     return getAllData();
   };
   return (
-    <div style={{}}>
-      <div className="flex">
+    <div className="inline-search-container">
+      <div className="flex inline-search-head">
         <div className="flex" style={{ marginRight: 20 }}>
           <EditableText
             value={inlineRoamBlock.title}
@@ -185,7 +185,7 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
       {/* </Popover> */}
       {true ? (
         <div
-          className="search-inline-div"
+          className="inline-search-div"
           style={{
             display: !open ? "none" : "block",
             marginTop: 5,

@@ -594,6 +594,9 @@ const SearchGroup = observer(
               group.addFilterCondition();
               layoutChangeEvent.dispatch();
             }}
+            minimal
+            intent="primary"
+            small
           >
             Add filter condition
           </Button>

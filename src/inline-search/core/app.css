@@ -134,16 +134,28 @@
   top: -30px;
 }
 
-.search-inline-div {
+.inline-search-container {
+   border-radius: 8px;
+  box-shadow: 0 0 3px 0px #c5bfbf;
+}
+
+.inline-search-head {
+  padding: 6px 10px;
+}
+
+.inline-search-div {
   /* width: fit-content; */
   /* overflow: auto; */
   max-width: 100%;
   width: 100%;
-  border: 1px solid gainsboro;
-  border-radius: 8px;
+  border-top: 1px solid gainsboro;
+  border-bottom: 1px solid gainsboro;
+  padding: 10px 0 0;
+  /* border: 1px solid gainsboro; */
+  /* border-radius: 8px; */
 }
 
-.search-inline-div > .search-group{
+.inline-search-div > .search-group{
   border: none;
 }
 .inline-search-result-container {
