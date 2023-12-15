@@ -273,7 +273,8 @@ export const OperatorsSelect = (props: {
                       interactionKind="hover"
                       content={
                         <div className={Classes.CALLOUT}>
-                          More advanced search is <a href="https://www.fusejs.io/examples.html#extended-search">
+                          More advanced search is{" "}
+                          <a href="https://www.fusejs.io/examples.html#extended-search">
                             here
                           </a>
                         </div>
@@ -653,6 +654,15 @@ function CustomMultiSelect<T extends { uid: string; label: string }>(props: {
                 return nextIndex;
               });
               break;
+            case "Enter":
+              e.preventDefault();
+              const data = filtered[activeIndex];
+              // props.onSelect(filtered[activeIndex].item.);
+              props.onSelect(
+                props.value.find((v) => v.uid === data.item.uid)
+                  ? props.value.filter((v) => v.uid !== data.item.uid)
+                  : props.value.concat([data.item])
+              );
           }
         }}
         onChange={(e) => {
