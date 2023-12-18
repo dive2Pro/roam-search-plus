@@ -414,7 +414,7 @@ export function MultiSelectField<
   onBlur: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  console.log(props.value, " = props.value");
+  console.log(props, " = props.value");
   return (
     <div
       className="bp3-input"

@@ -40,7 +40,7 @@ import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
-  if(!parent) {
+  if (!parent) {
     return;
   }
   parent.querySelectorAll(":scope > .inline-search-el").forEach((e) => {
@@ -55,10 +55,10 @@ export function renderNode(node: HTMLElement) {
   }
   console.log(block, " - renderNode - ", id);
   const parent = block.closest(".roam-block-container");
-  if(!parent) {
-    return
+  if (!parent) {
+    return;
   }
-  
+
   parent.querySelectorAll(".inline-search-el").forEach((e) => {
     e.remove();
   });
@@ -125,10 +125,11 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
         });
         await delay(10);
         await store.actions.loadingGraph();
-        allBlockRefsItems.update();
-        allPageRefsItems.update();
         t.dismiss(toastId);
       }
+
+      allBlockRefsItems.update();
+      allPageRefsItems.update();
 
       inlineRoamBlock.hydrate();
       // console.log(getAllData(), " = all data ");
@@ -239,7 +240,7 @@ const SearchSettings = observer(
                 text="Edit block"
                 icon="edit"
                 onClick={() => {
-                  props.onDelete()
+                  props.onDelete();
                 }}
               />
             </Menu>
@@ -451,7 +452,8 @@ function RenderView({ data }: { data: Block }) {
         open: false,
       });
     }, 200);
-    return () => { unmounted = true
+    return () => {
+      unmounted = true;
     };
   }, [data[":block/uid"]]);
   return <div ref={ref}></div>;
