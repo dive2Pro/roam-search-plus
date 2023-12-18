@@ -213,7 +213,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   ).forEach((item) => {
     const refs = [...(item[0][":block/refs"] || [])];
     const block = blockEnhance(item[0], item[1], config);
-    console.log(block, ' ------ block');
+    // console.log(block, ' ------ block');
     ALLBLOCK_PAGES.set(item[0][":block/uid"], block);
 
     refs.forEach((ref) => {
@@ -584,6 +584,6 @@ export function getParentsRefsById(id: number) {
   return CACHE_PARENTS_REFS_BY_ID.get(id) || [];
 }
 
-const getById = (id: number) => {
-  return { ...CACHE_PARENTS_REFS_BY_ID.get(id) };
+export const getInfoById = (id: number) => {
+  return { ...CACHE_BLOCKS_PAGES_BY_ID.get(id) };
 };

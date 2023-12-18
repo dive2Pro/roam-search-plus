@@ -7,7 +7,7 @@ import "./app.css";
 FocusStyleManager.onlyShowFocusOnTabs();
 
 import { useState } from "react";
-import { makeAutoObservable, reaction } from "mobx";
+import { makeAutoObservable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { Button, MenuItem, Popover } from "@blueprintjs/core";
 import "normalize.css";
@@ -24,6 +24,7 @@ import { CreatedDateFilter, EditDateFilter } from "./date";
 import { ContentFilter } from "./content";
 import Fuse, { FuseResult } from "fuse.js";
 import { BlockRefFilter } from "./ref-block";
+import { delay } from "../../delay";
 let id = 0;
 // ------------------------------
 class FilterPlaceholder {
@@ -206,14 +207,6 @@ class FilterGroup {
   }
 
   filterData(_source: Block[]): Block[] {
-    // console.log(_source, " = sou");
-    // if (this.filters.length === 1 && this.groups.length === 0) {
-    //   return this.filters[0].delegate
-    //     ? this.filters[0].delegate.filterData(_source)
-    //     : _source;
-    // } else if (this.filters.length === 0 && this.groups.length === 1) {
-    //   return this.groups[0].filterData(_source);
-    // }
     if (this.connector === "AND") {
       let source = _source;
       // console.log(source, " = ");
@@ -310,9 +303,9 @@ export class InlineRoamBlockInfo {
       layoutChangeEvent.dispatch();
     }, 200);
   }
-  hydrateByData(blockProps: { ":block/props"?: Record<string, any>}) {
+  hydrateByData(blockProps: { ":block/props"?: Record<string, any> }) {
     const json = blockProps[":block/props"][":inline-search"];
-    console.log(blockProps, ' = props')
+    console.log(blockProps, " = props");
     this.hydrateImpl({
       // @ts-ignore
       title: blockProps[":block/props"][":inline-search-title"],
@@ -335,7 +328,7 @@ export class InlineRoamBlockInfo {
       this.id,
     ]);
     if (blockProps && blockProps[":block/props"]) {
-      this.hydrateByData(blockProps)
+      this.hydrateByData(blockProps);
     }
   }
   getBlockProps() {
@@ -519,6 +512,8 @@ export class SearchInlineModel {
   result: Block[] = [];
   filter = new ResultFilterModel(this);
 
+  isLoading = false;
+
   constructor(public blockInfo: InlineRoamBlockInfo) {
     makeAutoObservable(this, {
       result: false,
@@ -550,13 +545,23 @@ export class SearchInlineModel {
     return this.result;
   }
 
-  search = () => {
+  private searchKeyIndex = 0;
+  search = async () => {
     // set to field
+    this.isLoading = true;
+    await delay(10);
+    const index = ++this.searchKeyIndex;
     const result = this.group.filterData(this.getData());
-    this._updateTime = Date.now();
-    this.result = [...result.map((item) => ({ ...item }))];
-    console.log(this.result, " = result ");
-    this.save();
+    if (index !== this.searchKeyIndex) {
+      return;
+    }
+    runInAction(() => {
+      this._updateTime = Date.now();
+      this.result = [...result.map((item) => ({ ...item }))];
+      console.log(this.result, " = result ");
+      this.save();
+      this.isLoading = false;
+    });
   };
 
   hydrate(json: any) {

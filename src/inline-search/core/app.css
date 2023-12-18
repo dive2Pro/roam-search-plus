@@ -159,6 +159,7 @@
   border: none;
 }
 .inline-search-result-container {
+  position: relative;
 }
 
 .inline-search-result{

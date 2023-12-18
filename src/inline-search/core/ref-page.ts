@@ -1,17 +1,14 @@
 import { makeAutoObservable } from "mobx";
 import { Block, IFilterField, IOperator } from "./type";
 import { Empty, MultiSelectField } from "./comps";
-import {
-  RefsPullBlock,
-  getParentsRefsById,
-  isPageByUid,
-  isPageId,
-} from "../../roam";
+import { RefsPullBlock, getInfoById, getParentsRefsById, isPageId } from "../../roam";
 import { SearchInlineModel } from ".";
 import { allPageRefsItems } from "./allItems";
 
+const DailyNotesItem = { label: "Daily Notes", uid: "daily notes", icon: "calendar" };
+
 function getAllItems() {
-  console.log(allPageRefsItems.items, ' = items')
+  console.log(allPageRefsItems.items, " = items");
   return allPageRefsItems.items;
 }
 
@@ -92,11 +89,23 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
   Input = MultiSelectField;
 }
 
+function isValidDate(dateString: string) {
+  const regex = /^\d{4}-\d{2}-\d{2}$/;
+
+  if(!regex.test(dateString)) return false;
+
+  const date = new Date(dateString);
+  const dateNum = date.getTime();
+
+  return !isNaN(dateNum);
+}
+
 class NotUnderAnyOfOperator<
   T extends { label: string; uid: string; id: number }
 > implements IOperator<T[]>
 {
   label = "not under any of";
+  dailyNotesSelected = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -107,20 +116,34 @@ class NotUnderAnyOfOperator<
     if (!this.value.length) {
       return true;
     }
+    
     const parents = getParentsRefsById(block[":db/id"]);
     // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
-    return this.value.every(
-      (v) => parents.length && !parents.some((p) => p === v.id)
+   
+    if (this.dailyNotesSelected) {
+      const page = block[":block/page"] ? getInfoById(block[':block/page'][":db/id"]) : undefined
+      if(page) {
+        if (isValidDate(page[":node/title"] || "")) {
+          return false;
+        }
+      }
+    }
+    return !parents ? true :  this.value.every(
+      (v) => !parents.some((p) => p === v.id)
     );
   };
 
   get items() {
-    // 获取所有的
-    return getAllItems();
+    // 添加过滤掉 daylies notes 的选项
+
+    return [DailyNotesItem, ...getAllItems()];
   }
   value: T[] = [];
 
   onChange = (v: T[]) => {
+    this.dailyNotesSelected = !!v.find(
+      (item) => item.uid === DailyNotesItem.uid
+    );
     this.value = v;
   };
 

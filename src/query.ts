@@ -151,7 +151,7 @@ export const Query = (config: QueryConfig) => {
             validateMap.set(item.page, []);
           }
           if (r) {
-            console.log({ ...item.block }, ' ===', keyword)
+            // console.log({ ...item.block }, ' ===', keyword)
             validateMap.get(item.page)[index] = r;
             result = r;
           }

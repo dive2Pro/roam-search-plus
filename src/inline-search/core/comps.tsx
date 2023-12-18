@@ -6,6 +6,7 @@ import {
   Divider,
   HTMLSelect,
   Icon,
+  IconName,
   InputGroup,
   Menu,
   MenuDivider,
@@ -584,7 +585,7 @@ function MultiInput<T extends { label: string; uid: string }>(props: {
   );
 }
 
-function CustomMultiSelect<T extends { uid: string; label: string }>(props: {
+function CustomMultiSelect<T extends { uid: string; label: string; icon?: IconName }>(props: {
   items: T[];
   value: T[];
   onSelect: (value: T[]) => void;
@@ -622,11 +623,12 @@ function CustomMultiSelect<T extends { uid: string; label: string }>(props: {
   return (
     <div
       style={{
-        padding: 10,
+        padding: 4,
       }}
     >
       <InputGroup
         autoFocus
+        leftIcon="search"
         value={query}
         onKeyDown={(e) => {
           switch (e.key) {
@@ -679,7 +681,9 @@ function CustomMultiSelect<T extends { uid: string; label: string }>(props: {
           });
         }}
       />
-      <Menu>
+      <Menu style={{
+        padding: '2px 0'
+      }}>
         <Virtuoso
           style={{
             width: 300,
@@ -699,6 +703,7 @@ function CustomMultiSelect<T extends { uid: string; label: string }>(props: {
                 }
                 active={index === activeIndex}
                 key={data.item.uid}
+                labelElement={data.item.icon ? <Icon icon={data.item.icon} /> : null }
                 textClassName="full-text"
                 text={<div>{data.item.label}</div>}
                 onClick={() => {

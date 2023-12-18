@@ -295,9 +295,19 @@ const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
   }
 
   return (
-    <section className="inline-search-result-container">
+    <section className={`inline-search-result-container`} >
       <SearchResultFilter model={model.filter} />
       <SearchResultList model={model.filter} />
+      <Button loading minimal style={{
+        pointerEvents: 'none',
+        opacity: model.isLoading ? 1:0,
+        position: 'absolute',
+        left:0,
+        top: 0,
+        right:0 ,
+        bottom: 0
+      }}
+      />
     </section>
   );
 });
@@ -327,7 +337,11 @@ const SearchResultList = observer(({ model }: { model: ResultFilterModel }) => {
   }
 
   return (
-    <div className="inline-search-result">
+    <div
+      className={`inline-search-result ${
+        model.model.isLoading ? Classes.SKELETON : ""
+      }`}
+    >
       <Virtuoso
         className="inline-search-result-nav"
         totalCount={data.length}
@@ -360,6 +374,7 @@ const SearchResultList = observer(({ model }: { model: ResultFilterModel }) => {
 const SearchResultFilter = observer((props: { model: ResultFilterModel }) => {
   return (
     <ControlGroup
+      className={` ${props.model.model.isLoading ? Classes.SKELETON : ""}`}
       style={{
         padding: 5,
       }}
