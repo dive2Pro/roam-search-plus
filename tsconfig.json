@@ -26,6 +26,6 @@
     "node_modules"
   ],
   "files": [
-    "node_modules/roamjs-components/types/index.d.ts", "./src/components/RoamPageFilter.tsx", "./src/components/RoamTagFilterHeader.tsx"
+    "node_modules/roamjs-components/types/index.d.ts", "./src/components/RoamPageFilter.tsx", "./src/components/RoamTagFilterHeader.tsx", "src/inline-search/result/SearchResultSideMenuView.tsx", "./src/inline-search/result/SearchResultFilter.tsx"
   ]
 }
