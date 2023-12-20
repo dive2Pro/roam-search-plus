@@ -4,6 +4,7 @@ import { delay } from "../../delay";
 import { getAllData } from "../../roam";
 import { FilterGroup } from ".";
 
+
 export class SearchInlineFilterModel {
   group = new FilterGroup(this);
   _updateTime = Date.now();
@@ -19,7 +20,7 @@ export class SearchInlineFilterModel {
   }
 
   get tabModel() {
-    return this.tabModelGetter();
+    return this.tabModelGetter()
   }
 
   groupCurrentConditions() {

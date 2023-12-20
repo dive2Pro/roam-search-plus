@@ -2,6 +2,7 @@ import React from "react";
 import { type PullBlock } from "roamjs-components/types";
 import { type SearchInlineFilterModel } from "./SearchInlineFilterModel";
 import { type ResultFilterModel } from "./ResultFilterModel";
+import { IconName } from "@blueprintjs/core";
 export type Block = PullBlock;
 
 export type IConnector = "OR" | "AND";
@@ -38,6 +39,7 @@ export interface IFilterField {
 export interface ITabModel {
   data: TabInfo;
 
+  icon: IconName;
   saveLabel: () => void;
   changeLabel: (label: string) => void;
 

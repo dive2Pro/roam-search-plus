@@ -11,26 +11,21 @@ import {
   Classes,
   Dialog,
   Divider,
-  EditableText,
   InputGroup,
   Menu,
   MenuDivider,
   MenuItem,
   Popover,
-  Tab,
-  Tabs,
   TextArea,
   Toaster,
 } from "@blueprintjs/core";
 import { store } from "../store";
 import { isGraphLoaded } from "../loaded";
-import { getAllData } from "../roam";
 import { delay } from "../delay";
 import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
 import { SearchResultSideMenuView } from "./result/SearchResultSideMenuView";
 import { SearchResultFilter } from "./result/SearchResultFilter";
 import { makeAutoObservable } from "mobx";
-import { PullBlock } from "roamjs-components/types";
 import { ITabModel, TabInfo } from "./core/type";
 
 export function unmountNode(node: HTMLElement) {
@@ -167,48 +162,58 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
           <ButtonGroup>
             {searchModel.tabs.map((tab) => {
               const activing = tab === searchModel.activeTab;
-              return (
-                <Button
-                  intent={activing ? "primary" : "none"}
-                  id={tab.data.id}
-                  text={tab.data.label}
-                  rightIcon={
-                    activing ? (
-                      <Popover
-                        content={
-                          <div
-                            style={{
-                              padding: 5,
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            <div style={{ marginBottom: 5 }}>
-                              <InputGroup
-                                value={tab.data.label}
-                                onChange={(v) =>
-                                  tab.changeLabel(v.target.value)
-                                }
-                                onBlur={() => {
-                                  tab.saveLabel();
-                                }}
-                              />
-                            </div>
-
-                            <Button
-                              minimal
-                              alignText="left"
-                              small
-                              text="Delete View"
-                              icon="delete"
+              if (activing) {
+                return (
+                  <ButtonGroup minimal>
+                    <Button
+                      intent={"primary"}
+                      id={tab.data.id}
+                      text={tab.data.label}
+                      icon={tab.icon}
+                    />
+                    <Popover
+                      content={
+                        <div
+                          style={{
+                            padding: 5,
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
+                          <div style={{ marginBottom: 5 }}>
+                            <InputGroup
+                              value={tab.data.label}
+                              onInput={(e) => {}}
+                              onChangeCapture={(e) => {
+                                e.stopPropagation();
+                                tab.changeLabel((e.target as any).value);
+                              }}
+                              onBlur={() => {
+                                tab.saveLabel();
+                              }}
                             />
                           </div>
-                        }
-                      >
-                        <Button minimal small icon={<MoreIcon />} />
-                      </Popover>
-                    ) : null
-                  }
+
+                          <Button
+                            minimal
+                            alignText="left"
+                            small
+                            text="Delete View"
+                            icon="delete"
+                          />
+                        </div>
+                      }
+                    >
+                      <Button icon={<MoreIcon />} />
+                    </Popover>
+                  </ButtonGroup>
+                );
+              }
+              return (
+                <Button
+                  id={tab.data.id}
+                  text={tab.data.label}
+                  icon={tab.icon}
                   minimal
                 />
               );
@@ -385,6 +390,8 @@ const SearchResult = observer(({ model }: { model: ITabModel }) => {
 type ViewType = typeof SearchResultSideMenuView;
 
 class SideMenuTab implements ITabModel {
+  icon = "panel-stats" as const;
+
   data: TabInfo = {
     id: Date.now() + "-SideMenu",
     query: "",
@@ -412,6 +419,9 @@ class SideMenuTab implements ITabModel {
   }
   hydrate(tabInfo: TabInfo) {
     this.data = tabInfo;
+    if (tabInfo.json) {
+      this.searchFilterModel.hydrate(JSON.parse(tabInfo.json));
+    }
   }
 
   get label() {
@@ -457,7 +467,9 @@ export class InlineRoamBlockInfo {
     makeAutoObservable(this);
   }
 
-  hydrateByData(blockProps: { ":block/props"?: Record<string, any> }) {}
+  hydrateByData(blockProps: { ":block/props"?: Record<string, any> }) {
+    // TODO:
+  }
 
   hydrate() {
     const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
