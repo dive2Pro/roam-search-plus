@@ -2,7 +2,7 @@ import { makeAutoObservable } from "mobx";
 import { Block, IFilterField, IOperator } from "./type";
 import { Empty, MultiSelectField } from "./comps";
 import { RefsPullBlock, getInfoById, getParentsRefsById, isPageId } from "../../roam";
-import { SearchInlineModel } from ".";
+import { SearchInlineFilterModel } from "./SearchInlineFilterModel";
 import { allPageRefsItems } from "./allItems";
 
 const DailyNotesItem = { label: "Daily Notes", uid: "daily notes", icon: "calendar" };
@@ -29,7 +29,7 @@ export class RefFilter implements IFilterField {
     new IsNotEmptyOperator(),
   ];
 
-  constructor(public model: SearchInlineModel) {
+  constructor(public model: SearchInlineFilterModel) {
     makeAutoObservable(this);
   }
 

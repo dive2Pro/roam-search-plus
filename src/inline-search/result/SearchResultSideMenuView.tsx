@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ResultFilterModel } from "../core";
+import { ResultFilterModel } from "../core/ResultFilterModel";
 import { observer } from "mobx-react-lite";
 import {
   Button,
@@ -37,7 +37,7 @@ export const SearchResultSideMenuView = observer(({ model }: { model: ResultFilt
 
   return (
     <div
-      className={`inline-search-result ${model.model.isLoading ? Classes.SKELETON : ""}`}
+      className={`inline-search-result `}
     >
       <Virtuoso
         className="inline-search-result-nav"

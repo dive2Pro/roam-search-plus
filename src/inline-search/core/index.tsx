@@ -7,7 +7,7 @@ import "./app.css";
 FocusStyleManager.onlyShowFocusOnTabs();
 
 import { useState } from "react";
-import { makeAutoObservable, reaction, runInAction } from "mobx";
+import { makeAutoObservable } from "mobx";
 import { observer } from "mobx-react-lite";
 import { Button, MenuItem, Popover } from "@blueprintjs/core";
 import "normalize.css";
@@ -22,13 +22,14 @@ import {
 } from "./comps";
 import { CreatedDateFilter, EditDateFilter } from "./date";
 import { ContentFilter } from "./content";
-import Fuse, { FuseResult } from "fuse.js";
 import { BlockRefFilter } from "./ref-block";
-import { delay } from "../../delay";
+import { SearchResultSideMenuView } from "../result/SearchResultSideMenuView";
+import { PullBlock } from "roamjs-components/types";
+import { SearchInlineFilterModel } from "./SearchInlineFilterModel";
 let id = 0;
 // ------------------------------
 class FilterPlaceholder {
-  constructor(private group: FilterGroup, public model: SearchInlineModel) {
+  constructor(private group: FilterGroup, public model: SearchInlineFilterModel) {
     makeAutoObservable(this);
   }
   id = id++;
@@ -115,7 +116,7 @@ type GroupsType = {
   groups: GroupsType[];
 };
 
-class FilterGroup {
+export class FilterGroup {
   id = Date.now();
   fieldType: "page" | "block" = "page";
   label: string = "group";
@@ -124,7 +125,7 @@ class FilterGroup {
   groups: FilterGroup[] = [];
   connector: IConnector = "AND";
 
-  constructor(public model: SearchInlineModel, private parent?: FilterGroup) {
+  constructor(public model: SearchInlineFilterModel, private parent?: FilterGroup) {
     makeAutoObservable(this);
   }
 
@@ -267,153 +268,9 @@ class FilterGroup {
 
 // ---------------- Operator end ------------
 
-export class InlineRoamBlockInfo {
-  title = "Inline search of ";
 
-  constructor(
-    private id: string,
-    private searchModelGetter: () => SearchInlineModel
-  ) {
-    makeAutoObservable(this);
-  }
 
-  get searchModel() {
-    return this.searchModelGetter();
-  }
-  private hydrateImpl(blockProps: {
-    query?: string;
-    type?: string;
-    json?: {};
-    title?: string;
-  }) {
-    this.searchModel.filter.hydrate({
-      query: blockProps.query,
-      type: blockProps.type || "all",
-    });
-
-    if (blockProps.json) {
-      this.searchModel.hydrate(blockProps.json);
-    }
-
-    if (blockProps.title) {
-      this.title = blockProps.title;
-    }
-
-    setTimeout(() => {
-      layoutChangeEvent.dispatch();
-    }, 200);
-  }
-  hydrateByData(blockProps: { ":block/props"?: Record<string, any> }) {
-    const json = blockProps[":block/props"][":inline-search"];
-    console.log(blockProps, " = props");
-    this.hydrateImpl({
-      // @ts-ignore
-      title: blockProps[":block/props"][":inline-search-title"],
-      // @ts-ignore
-      json: json ? JSON.parse(json) : undefined,
-      query:
-        // @ts-ignore
-        blockProps[":block/props"][":inline-search-result-filter-query"] || "",
-
-      type:
-        // @ts-ignore
-        blockProps[":block/props"][":inline-search-result-filter-type"] ||
-        "all",
-    });
-  }
-
-  hydrate() {
-    const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
-      ":block/uid",
-      this.id,
-    ]);
-    if (blockProps && blockProps[":block/props"]) {
-      this.hydrateByData(blockProps);
-    }
-  }
-  getBlockProps() {
-    return (
-      window.roamAlphaAPI.pull(`[:block/props]`, [":block/uid", this.id]) || {}
-    );
-  }
-  private getInfo() {
-    const blockProps = this.getBlockProps()[":block/props"] || {};
-    return Object.keys(blockProps).reduce((p, c) => {
-      p[c.substring(1)] = blockProps[c as keyof typeof blockProps];
-      return p;
-    }, {} as Record<string, unknown>);
-  }
-  saveFilterJson(json: {}) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-          "inline-search": json,
-        },
-      },
-    });
-    // setTimeout(() => {
-    //   const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
-    //     ":block/uid",
-    //     this.id,
-    //   ]);
-    //   console.log(blockProps, " ==== ");
-    // }, 200);
-  }
-
-  saveResultFilterQuery(query: string) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-
-          "inline-search-result-filter-query": query,
-        },
-      },
-    });
-  }
-
-  saveResultFilterType(type: string) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-          "inline-search-result-filter-type": type,
-        },
-      },
-    });
-  }
-
-  changeTitle(v: string): void {
-    this.title = v;
-  }
-
-  saveTitle(v: string) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-          "inline-search-title": v,
-        },
-      },
-    });
-  }
-}
-
-export function useSearchInlineModel(inlineModel: InlineRoamBlockInfo) {
-  const model = useState(() => new SearchInlineModel(inlineModel))[0];
-  return model;
-}
-
-const fuseOptions = {
+export const fuseOptions = {
   // isCaseSensitive: false,
   // includeScore: true,
   // shouldSort: true,
@@ -430,155 +287,10 @@ const fuseOptions = {
   keys: [":block/string", ":node/title"],
 };
 
-export class ResultFilterModel {
-  constructor(public model: SearchInlineModel) {
-    makeAutoObservable(this, { result: false });
-  }
-
-  type = "all";
-  query = "";
-  fuse: Fuse<Block> = new Fuse([], fuseOptions);
-
-  changeType = (v: string) => {
-    this.type = v;
-    this.model.blockInfo.saveResultFilterType(v);
-  };
-
-  changeQuery = (v: string) => {
-    this.query = v;
-    this.model.blockInfo.saveResultFilterQuery(v);
-  };
-
-  filter = (bs: Block[]) => {
-    switch (this.type) {
-      case "all":
-        return bs;
-      case "page":
-        return bs.filter((b) => !b[":block/parents"]);
-      case "block":
-        return bs.filter((b) => b[":block/parents"]);
-    }
-    return bs;
-  };
-
-  get result() {
-    return this.filter(this.model.searchResult);
-  }
-
-  registerListeners(cb: (data: FuseResult<Block>[]) => void) {
-    const dispose = reaction(
-      () => [this.query.trim(), this.result] as const,
-      ([query, result]) => {
-        console.log(query, " = query");
-        if (!query.trim()) {
-          cb(
-            this.result.map((item) => ({
-              item,
-              refIndex: 0,
-              matches: [],
-            }))
-          );
-          return;
-        }
-        this.fuse.setCollection(result);
-        cb(this.fuse.search(query));
-      },
-      {
-        name: "fuse",
-        delay: 500,
-        fireImmediately: true,
-      }
-    );
-    return dispose;
-  }
-
-  get hasFilter() {
-    return this.type !== "all" || this.query !== "";
-  }
-
-  reset() {
-    this.type = "all";
-    this.query = "";
-  }
-
-  hydrate(json: { query: string; type: string }) {
-    this.query = json.query;
-    this.type = json.type;
-  }
-}
-export class SearchInlineModel {
-  group = new FilterGroup(this);
-  _updateTime = Date.now();
-  result: Block[] = [];
-  filter = new ResultFilterModel(this);
-
-  isLoading = false;
-
-  constructor(public blockInfo: InlineRoamBlockInfo) {
-    makeAutoObservable(this, {
-      result: false,
-      searchResult: false,
-    });
-  }
-
-  groupCurrentConditions() {
-    const newGroup = new FilterGroup(this);
-    newGroup.addFilterCondition();
-    newGroup.addFilterConditionGroup(this.group);
-    this.group.changeParent(newGroup);
-    this.group = newGroup;
-  }
-
-  /**
-   * 重置为获取 Cache 中的数据
-   */
-  getData: () => Block[] = () => {
-    return [];
-  };
-
-  /**
-   * 被 SearchFilter 重置触发更新
-   */
-
-  get searchResult() {
-    this._updateTime; // 用于触发更新
-    return this.result;
-  }
-
-  private searchKeyIndex = 0;
-  search = async () => {
-    // set to field
-    this.isLoading = true;
-    await delay(10);
-    const index = ++this.searchKeyIndex;
-    const result = this.group.filterData(this.getData());
-    if (index !== this.searchKeyIndex) {
-      return;
-    }
-    runInAction(() => {
-      this._updateTime = Date.now();
-      this.result = [...result.map((item) => ({ ...item }))];
-      console.log(this.result, " = result ");
-      this.save();
-      this.isLoading = false;
-    });
-  };
-
-  hydrate(json: any) {
-    console.log(`hydrate: `, json);
-    this.group.hydrate(json);
-    this.search();
-  }
-
-  private save() {
-    this.blockInfo.saveFilterJson(JSON.stringify(this.group.toJSON()));
-  }
-}
-
 // ------------------- React Start ---------------
 
 export const SearchInline = observer(
-  ({ model }: { model: SearchInlineModel }) => {
+  ({ model }: { model: SearchInlineFilterModel }) => {
     useEffect(() => {
       layoutChangeEvent.dispatch();
     }, []);

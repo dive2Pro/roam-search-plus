@@ -1,22 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
-import {
-  InlineRoamBlockInfo,
-  SearchInline,
-  SearchInlineModel,
-  useSearchInlineModel,
-} from "./core";
+import { SearchInline } from "./core";
+import { ResultFilterModel } from "./core/ResultFilterModel";
+import { SearchInlineFilterModel } from "./core/SearchInlineFilterModel";
 import { observer } from "mobx-react-lite";
 import {
   Button,
+  ButtonGroup,
   Callout,
   Classes,
   Dialog,
+  Divider,
   EditableText,
+  InputGroup,
   Menu,
   MenuDivider,
   MenuItem,
   Popover,
+  Tab,
+  Tabs,
   TextArea,
   Toaster,
 } from "@blueprintjs/core";
@@ -27,6 +29,9 @@ import { delay } from "../delay";
 import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
 import { SearchResultSideMenuView } from "./result/SearchResultSideMenuView";
 import { SearchResultFilter } from "./result/SearchResultFilter";
+import { makeAutoObservable } from "mobx";
+import { PullBlock } from "roamjs-components/types";
+import { ITabModel, TabInfo } from "./core/type";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
@@ -93,14 +98,31 @@ function PreventAutoRenderFromSearchResult(props: {
 
   return <App {...props} />;
 }
-const App = observer((props: { id: string; onUnmount: () => void }) => {
-  const [open, setOpen] = useState(true);
-  let searchModel: SearchInlineModel;
-  const inlineRoamBlock = useState(() => {
-    return new InlineRoamBlockInfo(props.id.substr(-9), () => searchModel);
-  })[0];
 
-  searchModel = useSearchInlineModel(inlineRoamBlock);
+const MoreIcon = () => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#6b7280"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <circle cx="12" cy="12" r="1"></circle>
+      <circle cx="12" cy="5" r="1"></circle>
+      <circle cx="12" cy="19" r="1"></circle>
+    </svg>
+  );
+};
+const App = observer((props: { id: string; onUnmount: () => void }) => {
+  const searchModel = useState(() => {
+    return new SearchInlineModel(props.id.substr(-9));
+  })[0];
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -121,30 +143,113 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
       allBlockRefsItems.update();
       allPageRefsItems.update();
 
-      inlineRoamBlock.hydrate();
+      searchModel.init();
       // console.log(getAllData(), " = all data ");
     }
     load();
     return props.onUnmount;
   }, [props.onUnmount]);
-  searchModel.getData = () => {
-    return getAllData();
-  };
+  console.log(searchModel.activeTab, " ---- ");
   return (
-    <div className="inline-search-container">
-      <div className="flex inline-search-head">
-        <div className="flex" style={{ marginRight: 20 }}>
-          <EditableText
-            value={inlineRoamBlock.title}
-            onChange={(v) => inlineRoamBlock.changeTitle(v)}
-            onConfirm={(v) => {
-              inlineRoamBlock.saveTitle(v);
-            }}
-          />
-        </div>
+    <div>
+      <div
+        className="flex"
+        style={{
+          alignItems: "center",
+        }}
+      >
+        <div
+          className="flex-1 flex"
+          style={{
+            alignItems: "center",
+          }}
+        >
+          <ButtonGroup>
+            {searchModel.tabs.map((tab) => {
+              const activing = tab === searchModel.activeTab;
+              return (
+                <Button
+                  intent={activing ? "primary" : "none"}
+                  id={tab.data.id}
+                  text={tab.data.label}
+                  rightIcon={
+                    activing ? (
+                      <Popover
+                        content={
+                          <div
+                            style={{
+                              padding: 5,
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                          >
+                            <div style={{ marginBottom: 5 }}>
+                              <InputGroup
+                                value={tab.data.label}
+                                onChange={(v) =>
+                                  tab.changeLabel(v.target.value)
+                                }
+                                onBlur={() => {
+                                  tab.saveLabel();
+                                }}
+                              />
+                            </div>
 
+                            <Button
+                              minimal
+                              alignText="left"
+                              small
+                              text="Delete View"
+                              icon="delete"
+                            />
+                          </div>
+                        }
+                      >
+                        <Button minimal small icon={<MoreIcon />} />
+                      </Popover>
+                    ) : null
+                  }
+                  minimal
+                />
+              );
+            })}
+          </ButtonGroup>
+          <Popover
+            content={
+              <Menu>
+                <MenuItem
+                  text="Side menu view"
+                  onClick={() => {
+                    searchModel.addTab({
+                      id: "side-menu-" + Date.now(),
+                      query: "",
+                      type: "all",
+                      json: "",
+                      label: "Side menu view",
+                      viewType: "side-menu",
+                    });
+                  }}
+                />
+              </Menu>
+            }
+          >
+            <Button icon="plus" minimal small></Button>
+          </Popover>
+          <Divider />
+        </div>
         <Button
-          loading={store.ui.isLoading()}
+          minimal
+          onClick={() => {
+            store.actions.renewGraph().then(() => {
+              searchModel.activeTab?.search();
+              allBlockRefsItems.update();
+              allPageRefsItems.update();
+            });
+          }}
+          small
+          icon="refresh"
+        ></Button>
+        <Button
           onPointerDown={(e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -156,45 +261,12 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
         >
           Filter
         </Button>
-
-        <Button
-          minimal
-          loading={store.ui.isLoading()}
-          onClick={() => {
-            store.actions.renewGraph().then(() => {
-              searchModel.search();
-              allBlockRefsItems.update();
-              allPageRefsItems.update();
-              // layoutChangeEvent.dispatch()
-            });
-          }}
-          small
-          icon="refresh"
-        ></Button>
         <SearchSettings model={searchModel} onDelete={props.onUnmount} />
       </div>
-      {/* </Popover> */}
-      {true ? (
-        <div
-          className="inline-search-div"
-          style={{
-            display: !open ? "none" : "block",
-            marginTop: 5,
-          }}
-        >
-          <SearchInline model={searchModel} />
-        </div>
+      {searchModel.activeTab ? (
+        <SearchInlineTabView open={open} model={searchModel.activeTab} />
       ) : null}
-      <div
-        style={{
-          padding: 5,
-        }}
-      >
-        <SearchResult model={searchModel} />
-      </div>
     </div>
-
-    // </Popover>
   );
 });
 
@@ -279,27 +351,246 @@ const SearchSettings = observer(
   }
 );
 
-const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
+const SearchResult = observer(({ model }: { model: ITabModel }) => {
+  const resultFilterModel = useMemo(
+    () => new ResultFilterModel(model),
+    [model]
+  );
+
   if (model.searchResult.length === 0) {
     return <Callout intent="warning" title="No Results"></Callout>;
   }
 
   return (
-    <section className={`inline-search-result-container`} >
-      <SearchResultFilter model={model.filter} />
-      <SearchResultSideMenuView model={model.filter} />
-      <Button loading minimal style={{
-        pointerEvents: 'none',
-        opacity: model.isLoading ? 1:0,
-        position: 'absolute',
-        left:0,
-        top: 0,
-        right:0 ,
-        bottom: 0
-      }}
+    <section className={`inline-search-result-container`}>
+      <SearchResultFilter model={resultFilterModel} />
+      <SearchResultSideMenuView model={resultFilterModel} />
+      <Button
+        loading
+        minimal
+        style={{
+          pointerEvents: "none",
+          opacity: 0,
+          position: "absolute",
+          left: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
+        }}
       />
     </section>
   );
 });
 
+type ViewType = typeof SearchResultSideMenuView;
 
+class SideMenuTab implements ITabModel {
+  data: TabInfo = {
+    id: Date.now() + "-SideMenu",
+    query: "",
+    type: "",
+    json: "",
+    label: "Side menu",
+    viewType: "side-menu",
+  };
+
+  id = Date.now() + "-SideMenu";
+
+  viewType = SearchResultSideMenuView;
+
+  constructor(
+    public model: SearchInlineModel,
+    public searchFilterModel: SearchInlineFilterModel
+  ) {
+    makeAutoObservable(this, {
+      model: false,
+    });
+    // this.resultFilterModel = new ResultFilterModel(this);
+  }
+  get searchResult() {
+    return this.searchFilterModel.searchResult;
+  }
+  hydrate(tabInfo: TabInfo) {
+    this.data = tabInfo;
+  }
+
+  get label() {
+    return this.data.label;
+  }
+
+  get query() {
+    return this.data.query;
+  }
+  get type() {
+    return this.data.type;
+  }
+
+  saveLabel = () => {
+    //
+    this.model.saveTab(this.data);
+  };
+  changeLabel = (label: string) => {
+    this.data.label = label;
+  };
+  saveFilterJson(json: {}): void {
+    this.data.json = JSON.stringify(json);
+    this.model.saveTab(this.data);
+  }
+  saveResultFilterQuery(query: string): void {
+    this.data.query = query;
+    this.model.saveTab(this.data);
+  }
+  saveResultFilterType(type: string): void {
+    this.data.type = type;
+    this.model.saveTab(this.data);
+  }
+
+  search() {
+    this.searchFilterModel.search();
+  }
+}
+
+export class InlineRoamBlockInfo {
+  title = "Inline search of ";
+
+  constructor(private model: SearchInlineModel) {
+    makeAutoObservable(this);
+  }
+
+  hydrateByData(blockProps: { ":block/props"?: Record<string, any> }) {}
+
+  hydrate() {
+    const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
+      ":block/uid",
+      this.model.id,
+    ]);
+    if (!blockProps || !blockProps[":block/props"]) {
+      // this.hydrateByData(blockProps);
+      return;
+    }
+    // @ts-ignore
+    const inlineSearchObj = blockProps[":block/props"][":inline-search"] || {};
+    Object.keys(inlineSearchObj).map((k) => {
+      const tabObj = inlineSearchObj[k] as TabInfo;
+      const obj = Object.keys(tabObj).reduce((p, c) => {
+        p[c.substring(1)] = tabObj[c as keyof typeof tabObj];
+        return p;
+      }, {} as Record<string, unknown>);
+      return this.model.addTab(obj as TabInfo);
+    });
+  }
+  getBlockProps() {
+    return (
+      window.roamAlphaAPI.pull(`[:block/props]`, [
+        ":block/uid",
+        this.model.id,
+      ]) || {}
+    );
+  }
+
+  private getInfo() {
+    const blockProps = this.getBlockProps()[":block/props"] || {};
+    return Object.keys(blockProps).reduce((p, c) => {
+      p[c.substring(1)] = blockProps[c as keyof typeof blockProps];
+      return p;
+    }, {} as Record<string, unknown>);
+  }
+
+  getInlineSearchInfo() {
+    const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
+      ":block/uid",
+      this.model.id,
+    ]);
+    if (!blockProps || !blockProps[":block/props"]) {
+      // this.hydrateByData(blockProps);
+      return;
+    }
+    // @ts-ignore
+    return blockProps[":block/props"][":inline-search"];
+  }
+
+  saveTab(data: TabInfo) {
+    const blockInfo = this.getInfo();
+    blockInfo["inline-search"] = blockInfo[":inline-search"] || {};
+    // @ts-ignore
+    blockInfo["inline-search"][data.id] = data;
+    window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: this.model.id,
+        // @ts-ignore
+        props: {
+          ...blockInfo,
+        },
+      },
+    });
+  }
+}
+
+class SearchInlineModel {
+  constructor(public id: string) {
+    makeAutoObservable(this);
+  }
+  tabs: ITabModel[] = [];
+  activeTab: ITabModel = null;
+
+  blockInfo = new InlineRoamBlockInfo(this);
+
+  init() {
+    this.blockInfo.hydrate();
+  }
+
+  addTab(tabObj: TabInfo) {
+    let tab: ITabModel;
+    switch (tabObj.viewType) {
+      case "side-menu": {
+        tab = new SideMenuTab(this, new SearchInlineFilterModel(() => tab));
+        tab.hydrate(tabObj);
+        break;
+      }
+    }
+
+    this.makeActiveTab(tab);
+    this.tabs.push(tab);
+    return tab;
+  }
+
+  makeActiveTab(tab: ITabModel) {
+    this.activeTab = tab;
+    tab.search();
+  }
+
+  saveTab(data: TabInfo) {
+    this.blockInfo.saveTab(data);
+  }
+}
+
+function SearchInlineTabView({
+  model,
+  open,
+}: {
+  open: boolean;
+  model: ITabModel;
+}) {
+  return (
+    <div className="inline-search-container">
+      {open ? (
+        <div
+          className="inline-search-div"
+          style={{
+            display: !open ? "none" : "block",
+            marginTop: 5,
+          }}
+        >
+          <SearchInline model={model.searchFilterModel} />
+        </div>
+      ) : null}
+      <div
+        style={{
+          padding: 5,
+        }}
+      >
+        <SearchResult model={model} />
+      </div>
+    </div>
+  );
+}

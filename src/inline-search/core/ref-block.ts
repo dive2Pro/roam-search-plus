@@ -8,7 +8,7 @@ import {
   isPageByUid,
   isPageId,
 } from "../../roam";
-import { SearchInlineModel } from ".";
+import { SearchInlineFilterModel } from "./SearchInlineFilterModel";
 import { allBlockRefsItems } from "./allItems";
 
 function getAllItems() {
@@ -32,7 +32,7 @@ export class BlockRefFilter implements IFilterField {
     new IsNotEmptyOperator(),
   ];
 
-  constructor(public model: SearchInlineModel) {
+  constructor(public model: SearchInlineFilterModel) {
     makeAutoObservable(this);
   }
 

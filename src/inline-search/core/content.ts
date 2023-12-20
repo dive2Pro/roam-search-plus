@@ -1,7 +1,7 @@
 import { makeAutoObservable } from "mobx";
 import { Empty, RegexInput, TextInput } from "./comps";
 import type { Block, IFilterField, IOperator } from "./type";
-import { SearchInlineModel } from ".";
+import { SearchInlineFilterModel } from "./SearchInlineFilterModel";
 import { InputGroup } from "@blueprintjs/core";
 import { PullBlock } from "roamjs-components/types";
 import Fuse from "fuse.js";
@@ -255,7 +255,7 @@ export class ContentFilter implements IFilterField {
   ];
   activeOperator = this.operators[0];
 
-  constructor(private model: SearchInlineModel) {
+  constructor(private model: SearchInlineFilterModel) {
     makeAutoObservable(this);
   }
 

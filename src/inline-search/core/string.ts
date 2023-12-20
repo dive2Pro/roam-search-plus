@@ -1,7 +1,7 @@
 import { makeAutoObservable } from "mobx";
 import { Empty, TextInput } from "./comps";
 import type { Block, IFilterField, IOperator } from "./type";
-import { SearchInlineModel } from ".";
+import { SearchInlineFilterModel } from "./SearchInlineFilterModel";
 
 class DoesNotContainsOperator implements IOperator<string> {
   label = "does not contains";
@@ -210,7 +210,7 @@ export class StringFilter implements IFilterField {
     new BlockIsEmptyOperator(),
     new IsNotEmptyOperator(),
   ];
-  constructor(public model: SearchInlineModel) {
+  constructor(public model: SearchInlineFilterModel) {
     makeAutoObservable(this);
   }
 
@@ -244,7 +244,7 @@ export class TitleFilter implements IFilterField {
   ];
   activeOperator = this.operators[0];
 
-  constructor(private model: SearchInlineModel) {
+  constructor(private model: SearchInlineFilterModel) {
     makeAutoObservable(this);
   }
 

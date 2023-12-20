@@ -2,7 +2,7 @@ import { makeAutoObservable } from "mobx";
 import { Empty, DateRange, TextInput, SelectDay } from "./comps";
 import type { Block, IFilterField, IOperator } from "./type";
 import dayjs from "dayjs";
-import { SearchInlineModel } from ".";
+import { SearchInlineFilterModel } from "./SearchInlineFilterModel";
 
 type DateRange = [number, number] | undefined;
 type SingleDay = number | undefined;
@@ -193,7 +193,7 @@ export class EditDateFilter implements IFilterField {
     new LessThanOperator(),
     new NotGreaterThanOperator(),
   ];
-  constructor(private model: SearchInlineModel) {
+  constructor(private model: SearchInlineFilterModel) {
     makeAutoObservable(this);
   }
 
@@ -226,7 +226,7 @@ export class CreatedDateFilter implements IFilterField {
   ];
   activeOperator = this.operators[0];
 
-  constructor(private model: SearchInlineModel) {
+  constructor(private model: SearchInlineFilterModel) {
     makeAutoObservable(this);
   }
 
