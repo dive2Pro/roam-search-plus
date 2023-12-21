@@ -27,6 +27,7 @@ import { SearchResultSideMenuView } from "./result/SearchResultSideMenuView";
 import { SearchResultFilter } from "./result/SearchResultFilter";
 import { makeAutoObservable } from "mobx";
 import { ITabModel, TabInfo } from "./core/type";
+import { SearchResultGridView } from "./result/SearchResultGridView";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
@@ -369,7 +370,7 @@ const SearchResult = observer(({ model }: { model: ITabModel }) => {
   return (
     <section className={`inline-search-result-container`}>
       <SearchResultFilter model={resultFilterModel} />
-      <SearchResultSideMenuView model={resultFilterModel} />
+      <SearchResultGridView model={resultFilterModel} />
       <Button
         loading
         minimal

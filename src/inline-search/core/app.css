@@ -195,3 +195,31 @@
 .placeholder {
   color: #666;
 }
+
+
+.inline-search-grid-container {
+  height: 550px;
+}
+
+.inline-search-grid-list {
+  display: flex;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.inline-search-grid-item-wrapper {
+  border: 1px solid var(gray);
+  width: 200px;
+  min-width: 200px;
+  height: 200px;
+  max-height: 200px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.inline-search-grid-item {
+  padding: 0.5rem;
+  display: flex;
+  align-content: stretch;
+  box-sizing: border-box;
+}

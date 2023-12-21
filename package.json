@@ -25,6 +25,7 @@
     "fuse.js": "^7.0.0",
     "mobx": "^6.11.0",
     "mobx-react-lite": "^4.0.5",
+    "react-beautiful-dnd": "^13.1.1",
     "react-virtuoso": "^3.1.5",
     "roamjs-components": "^0.72.9"
   },
