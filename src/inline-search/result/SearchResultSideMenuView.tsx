@@ -80,7 +80,16 @@ function RenderStr({
       intent={active ? "primary" : "none"}
       active={active}
       icon={data[":block/parents"] ? <BlockIcon /> : <PageIcon />}
-      onClick={() => {
+      onClick={(e) => {
+        if(e.shiftKey) {
+          window.roamAlphaAPI.ui.rightSidebar.addWindow({
+            window: {
+              "block-uid": data[':block/uid'],
+              type: 'block'
+            }
+          })
+          return;
+        }
         onClick();
       }}
       style={{

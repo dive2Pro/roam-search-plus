@@ -797,9 +797,7 @@ const SearchFilters = observer(
           {props.group.groups.map((g, i) => {
             return (
               <div key={g.id} className="inner-group flex">
-                <div style={{ flex: 1 }}>
-                  <SearchGroup group={g} onSearch={props.onSearch} />
-                </div>
+                <SearchGroup group={g} onSearch={props.onSearch} />
                 <RemoveConditionGroup
                   onClose={() => {
                     props.group.removeConditionGroup(i);

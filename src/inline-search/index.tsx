@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { PropsWithChildren, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import {
   InlineRoamBlockInfo,
@@ -174,16 +174,18 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
         <SearchSettings model={searchModel} onDelete={props.onUnmount} />
       </div>
       {/* </Popover> */}
-      {true ? (
-        <div
-          className="inline-search-div"
-          style={{
-            display: !open ? "none" : "block",
-            marginTop: 5,
-          }}
-        >
-          <SearchInline model={searchModel} />
-        </div>
+      {open ? (
+        <ScrollBaseOnMargin>
+          <div
+            className="inline-search-div"
+            style={{
+              display: !open ? "none" : "block",
+              marginTop: 5,
+            }}
+          >
+            <SearchInline model={searchModel} />
+          </div>
+        </ScrollBaseOnMargin>
       ) : null}
       <div
         style={{
@@ -285,21 +287,41 @@ const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
   }
 
   return (
-    <section className={`inline-search-result-container`} >
+    <section className={`inline-search-result-container`}>
       <SearchResultFilter model={model.filter} />
       <SearchResultSideMenuView model={model.filter} />
-      <Button loading minimal style={{
-        pointerEvents: 'none',
-        opacity: model.isLoading ? 1:0,
-        position: 'absolute',
-        left:0,
-        top: 0,
-        right:0 ,
-        bottom: 0
-      }}
+      <Button
+        loading
+        minimal
+        style={{
+          pointerEvents: "none",
+          opacity: model.isLoading ? 1 : 0,
+          position: "absolute",
+          left: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
+        }}
       />
     </section>
   );
 });
 
 
+function ScrollBaseOnMargin(props: PropsWithChildren<{}>) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [state, setState] = useState({ left: 0, right: 0})
+  useEffect(() => {
+    if (!ref.current) {
+      return;
+    }
+    const rect = ref.current.getBoundingClientRect();
+    const left = ref.current.clientLeft;
+    console.log(rect, left, " === ");
+    // TODO: 和 roam-article 或者 sidebar-window 找到最近的那一个。
+    // 将其的宽度，和获取到的数据进行比较，得到要 margin 的宽度
+  } , [])
+  return <div style={{
+    overflow: 'auto hidden'
+  }} ref={ref} {...props}></div>
+}
