@@ -1,13 +1,13 @@
 import React from "react";
 
-export function PageIcon() {
+export function PageIcon({ size = 24}: { size?: number }) {
   return (
     <svg
       fill="currentColor"
       viewBox="0 0 24 24"
       className="inline-block"
-      width={24}
-      height={24}
+      width={size}
+      height={size}
     >
       <path
         d="M19.2 1.20001H4.8C3.80589 1.20001 3 2.0059 3 3.00001V21C3 21.9941 3.80589 22.8 4.8 22.8H19.2C20.1941 22.8 21 21.9941 21 21V3.00001C21 2.0059 20.1941 1.20001 19.2 1.20001Z"

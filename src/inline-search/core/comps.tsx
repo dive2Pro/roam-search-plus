@@ -140,6 +140,51 @@ export const TextInput = (props: {
   );
 };
 
+export const ViewSelect = (props: {
+  onSelect: (type: string) => void;
+  value: string;
+}) => {
+  const menus = [
+    {
+      label: "Side menu",
+      value: "side-menu",
+      icon: "panel-stats" as const,
+    },
+    {
+      label: "Grid",
+      value: "grid",
+      icon: "grid-view" as const,
+    },
+  ];
+  const menu = menus.find((item) => item.value === props.value);
+  return (
+    <ControlGroup>
+      <Popover
+        content={
+          <Menu>
+            {menus.map((item) => {
+              return (
+                <MenuItem
+                  icon={item.icon}
+                  text={item.label}
+                  onClick={() => props.onSelect(item.value)}
+                />
+              );
+            })}
+          </Menu>
+        }
+      >
+        <Button
+          rightIcon="caret-down"
+          icon={menu.icon}
+          small
+          text={menu.label}
+        />
+      </Popover>
+    </ControlGroup>
+  );
+};
+
 export const PageOrBlockSelect = (props: {
   onSelect: (type: "page" | "block" | "all") => void;
   value: "page" | "block" | "all";
@@ -585,11 +630,9 @@ function MultiInput<T extends { label: string; uid: string }>(props: {
   );
 }
 
-function CustomMultiSelect<T extends { uid: string; label: string; icon?: IconName }>(props: {
-  items: T[];
-  value: T[];
-  onSelect: (value: T[]) => void;
-}) {
+function CustomMultiSelect<
+  T extends { uid: string; label: string; icon?: IconName }
+>(props: { items: T[]; value: T[]; onSelect: (value: T[]) => void }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -681,9 +724,11 @@ function CustomMultiSelect<T extends { uid: string; label: string; icon?: IconNa
           });
         }}
       />
-      <Menu style={{
-        padding: '2px 0'
-      }}>
+      <Menu
+        style={{
+          padding: "2px 0",
+        }}
+      >
         <Virtuoso
           style={{
             width: 300,
@@ -703,7 +748,9 @@ function CustomMultiSelect<T extends { uid: string; label: string; icon?: IconNa
                 }
                 active={index === activeIndex}
                 key={data.item.uid}
-                labelElement={data.item.icon ? <Icon icon={data.item.icon} /> : null }
+                labelElement={
+                  data.item.icon ? <Icon icon={data.item.icon} /> : null
+                }
                 textClassName="full-text"
                 text={<div>{data.item.label}</div>}
                 onClick={() => {

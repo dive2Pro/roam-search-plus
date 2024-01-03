@@ -27,6 +27,7 @@ import { delay } from "../delay";
 import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
 import { SearchResultSideMenuView } from "./result/SearchResultSideMenuView";
 import { SearchResultFilter } from "./result/SearchResultFilter";
+import { SearchResultGridView } from "./result/SearchResultGrid.View";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
@@ -289,7 +290,11 @@ const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
   return (
     <section className={`inline-search-result-container`}>
       <SearchResultFilter model={model.filter} />
-      <SearchResultSideMenuView model={model.filter} />
+      {model.filter.viewType === "grid" ? (
+        <SearchResultGridView model={model.filter} />
+      ) : (
+        <SearchResultSideMenuView model={model.filter} />
+      )}
       <Button
         loading
         minimal
@@ -307,10 +312,9 @@ const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
   );
 });
 
-
 function ScrollBaseOnMargin(props: PropsWithChildren<{}>) {
   const ref = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState({ left: 0, right: 0})
+  const [state, setState] = useState({ left: 0, right: 0 });
   useEffect(() => {
     if (!ref.current) {
       return;
@@ -320,8 +324,14 @@ function ScrollBaseOnMargin(props: PropsWithChildren<{}>) {
     console.log(rect, left, " === ");
     // TODO: 和 roam-article 或者 sidebar-window 找到最近的那一个。
     // 将其的宽度，和获取到的数据进行比较，得到要 margin 的宽度
-  } , [])
-  return <div style={{
-    overflow: 'auto hidden'
-  }} ref={ref} {...props}></div>
+  }, []);
+  return (
+    <div
+      style={{
+        overflow: "auto hidden",
+      }}
+      ref={ref}
+      {...props}
+    ></div>
+  );
 }

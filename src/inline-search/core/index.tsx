@@ -285,10 +285,12 @@ export class InlineRoamBlockInfo {
     type?: string;
     json?: {};
     title?: string;
+    viewType: string;
   }) {
     this.searchModel.filter.hydrate({
       query: blockProps.query,
       type: blockProps.type || "all",
+      viewType: blockProps.viewType,
     });
 
     if (blockProps.json) {
@@ -319,6 +321,10 @@ export class InlineRoamBlockInfo {
         // @ts-ignore
         blockProps[":block/props"][":inline-search-result-filter-type"] ||
         "all",
+      viewType:
+        // @ts-ignore
+        blockProps[":block/props"][":inline-search-result-filter-view-type"] ||
+        "side-menu",
     });
   }
 
@@ -363,6 +369,18 @@ export class InlineRoamBlockInfo {
     // }, 200);
   }
 
+  saveResultViewType(type: string) {
+    window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: this.id,
+        // @ts-ignore
+        props: {
+          ...this.getInfo(),
+          "inline-search-result-filter-view-type": type,
+        },
+      },
+    });
+  }
   saveResultFilterQuery(query: string) {
     window.roamAlphaAPI.updateBlock({
       block: {
@@ -436,8 +454,14 @@ export class ResultFilterModel {
   }
 
   type = "all";
+  viewType = "side-menu";
   query = "";
   fuse: Fuse<Block> = new Fuse([], fuseOptions);
+
+  changeViewType(type: string) {
+    this.viewType = type as "grid";
+    this.model.blockInfo.saveResultViewType(type);
+  }
 
   changeType = (v: string) => {
     this.type = v;
@@ -501,9 +525,10 @@ export class ResultFilterModel {
     this.query = "";
   }
 
-  hydrate(json: { query: string; type: string }) {
+  hydrate(json: { query: string; type: string; viewType: string }) {
     this.query = json.query;
     this.type = json.type;
+    this.viewType = json.viewType;
   }
 }
 export class SearchInlineModel {
