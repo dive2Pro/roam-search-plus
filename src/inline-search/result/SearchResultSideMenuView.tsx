@@ -1,72 +1,78 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ResultFilterModel } from "../core";
+import { FuseResultModel, ResultFilterModel } from "../core";
 import { observer } from "mobx-react-lite";
-import {
-  Button,
-  Callout,
-  Classes} from "@blueprintjs/core";
+import { Button, Callout, Classes } from "@blueprintjs/core";
 import { Block } from "../core/type";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { PageIcon } from "../core/PageIcon";
 import { BlockIcon } from "../core/BlockIcon";
-import { FuseResult } from "fuse.js";
 
-export const SearchResultSideMenuView = observer(({ model }: { model: ResultFilterModel; }) => {
-  const [index, setIndex] = useState(-1);
-  const [data, setData] = useState<FuseResult<Block>[]>([]);
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
+export const SearchResultSideMenuView = observer(
+  ({ model }: { model: ResultFilterModel }) => {
+    const [index, setIndex] = useState(-1);
+   const [resultModel, setData] = useState<FuseResultModel>();
+    const data = resultModel?.result || [];
 
-  useEffect(() => {
-    return model.registerListeners((data) => {
-      setData(data);
-    });
-  }, []);
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-  useEffect(() => {
-    setIndex(0);
-    virtuosoRef.current?.scrollToIndex?.(0);
-  }, [data]);
+    useEffect(() => {
+      return model.registerListeners((data) => {
+        setData(data);
+      });
+    }, []);
 
-  if (data.length === 0) {
+    useEffect(() => {
+      setIndex(0);
+      virtuosoRef.current?.scrollToIndex?.(0);
+    }, [data]);
+
+    if (data.length === 0) {
+      return (
+        <Callout intent="primary">
+          No items match your query/filter criteria.
+        </Callout>
+      );
+    }
+
     return (
-      <Callout intent="primary">
-        No items match your query/filter criteria.
-      </Callout>
+      <div
+        className={`inline-search-result ${
+          model.model.isLoading ? Classes.SKELETON : ""
+        }`}
+      >
+        <Virtuoso
+          className="inline-search-result-nav"
+          totalCount={data.length}
+          data={data}
+          style={{
+            minHeight: 500,
+          }}
+          itemContent={(_index, data) => {
+            return (
+              <RenderStr
+                active={index === _index}
+                data={data.item}
+                onClick={() => setIndex(_index)}
+              />
+            );
+          }}
+        ></Virtuoso>
+        <div className="inline-search-result-render">
+          {data[index] ? (
+            <RenderView
+              key={data[index].item[":block/uid"]}
+              data={data[index].item}
+            />
+          ) : null}
+        </div>
+      </div>
     );
   }
-
-  return (
-    <div
-      className={`inline-search-result ${model.model.isLoading ? Classes.SKELETON : ""}`}
-    >
-      <Virtuoso
-        className="inline-search-result-nav"
-        totalCount={data.length}
-        data={data}
-        style={{
-          minHeight: 500,
-        }}
-        itemContent={(_index, data) => {
-          return (
-            <RenderStr
-              active={index === _index}
-              data={data.item}
-              onClick={() => setIndex(_index)} />
-          );
-        }}
-      ></Virtuoso>
-      <div className="inline-search-result-render">
-        {data[index] ? (
-          <RenderView
-            key={data[index].item[":block/uid"]}
-            data={data[index].item} />
-        ) : null}
-      </div>
-    </div>
-  );
-});
+);
 function RenderStr({
-  data, onClick, active,
+  data,
+  onClick,
+  active,
 }: {
   active: boolean;
   data: Block;
@@ -81,13 +87,13 @@ function RenderStr({
       active={active}
       icon={data[":block/parents"] ? <BlockIcon /> : <PageIcon />}
       onClick={(e) => {
-        if(e.shiftKey) {
+        if (e.shiftKey) {
           window.roamAlphaAPI.ui.rightSidebar.addWindow({
             window: {
-              "block-uid": data[':block/uid'],
-              type: 'block'
-            }
-          })
+              "block-uid": data[":block/uid"],
+              type: "block",
+            },
+          });
           return;
         }
         onClick();
@@ -102,7 +108,7 @@ function RenderStr({
     </Button>
   );
 }
-function RenderView({ data }: { data: Block; }) {
+function RenderView({ data }: { data: Block }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let unmounted = false;

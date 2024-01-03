@@ -1,20 +1,22 @@
 import React, {
+  JSXElementConstructor,
   PropsWithChildren,
+  ReactComponentElement,
   forwardRef,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { ResultFilterModel } from "../core";
+import { FuseResultModel, ResultFilterModel } from "../core";
 import { observer } from "mobx-react-lite";
 import { Button, Callout, Card, Classes, Drawer } from "@blueprintjs/core";
 import { Block } from "../core/type";
 import { VirtuosoGrid, VirtuosoHandle } from "react-virtuoso";
 import { PageIcon } from "../core/PageIcon";
 import { BlockIcon } from "../core/BlockIcon";
-import { FuseResult } from "fuse.js";
 import "./result.css";
 import dayjs from "dayjs";
+import Markdown from "marked-react";
 
 const ItemWrapper = forwardRef<HTMLDivElement, any>((props, ref) => {
   return <div className="grid-item-wrapper" {...props} ref={ref} />;
@@ -27,9 +29,9 @@ const ListContainer = forwardRef<HTMLDivElement, any>((props, ref) => {
 export const SearchResultGridView = observer(
   ({ model }: { model: ResultFilterModel }) => {
     const [index, setIndex] = useState(-1);
-    const [data, setData] = useState<FuseResult<Block>[]>([]);
+    const [resultModel, setData] = useState<FuseResultModel>();
     const virtuosoRef = useRef<VirtuosoHandle>(null);
-
+    const data = resultModel?.result || [];
     useEffect(() => {
       return model.registerListeners((data) => {
         setData(data);
@@ -58,6 +60,7 @@ export const SearchResultGridView = observer(
       >
         <Drawer
           icon="info-sign"
+          className="inline-search-drawer"
           onClose={() => {
             setDrawerOpen(false);
             setUid("");
@@ -89,7 +92,20 @@ export const SearchResultGridView = observer(
                   interactive
                   className="grid-item"
                   elevation={1}
-                  onClick={() => {
+                  key={item.item[":block/uid"]}
+                  onClick={(e) => {
+                    if (e.shiftKey) {
+                      e.preventDefault();
+                      window.getSelection().removeAllRanges();
+
+                      window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                        window: {
+                          "block-uid": item.item[":block/uid"],
+                          type: "block",
+                        },
+                      });
+                      return;
+                    }
                     setDrawerOpen(true);
                     setUid(item.item[":block/uid"]);
                   }}
@@ -104,9 +120,9 @@ export const SearchResultGridView = observer(
                       </small>
                     </div>
                   </div>
-                  <div className="content" style={{ display: 'inline' }}>
+                  <div className="content" >
                     {/* <UidRender uid={item.item[":block/uid"]} /> */}
-                    {item.item[":block/string"]}
+                    <BlockRender>{`- `+ item.item[":block/string"]}</BlockRender>
                   </div>
                 </Card>
               );
@@ -116,7 +132,19 @@ export const SearchResultGridView = observer(
                 interactive
                 className="grid-item"
                 elevation={1}
-                onClick={() => {
+                key={item.item[":block/uid"]}
+                onClick={(e) => {
+                  if (e.shiftKey) {
+                    e.preventDefault();
+                    window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                      window: {
+                        "block-uid": item.item[":block/uid"],
+                        type: "block",
+                      },
+                    });
+                    window.getSelection().removeAllRanges();
+                    return;
+                  }
                   setDrawerOpen(true);
                   setUid(item.item[":block/uid"]);
                 }}
@@ -124,10 +152,11 @@ export const SearchResultGridView = observer(
                 <h5
                   className="flex"
                   style={{
-                    alignItems: "center",
                   }}
                 >
-                  <PageIcon size={20} />
+                  <div style={{ minWidth: 24 }}>
+                    <PageIcon size={20} />
+                  </div>
                   {`  `}
                   {item.item[":node/title"]}
                 </h5>
@@ -194,4 +223,16 @@ function UidRender({ uid }: { uid: string }) {
     };
   }, [uid]);
   return <div ref={ref}></div>;
+}
+
+// @ts-ignore
+const LoadedMarkdown = Markdown() as unknown as Promise<typeof Markdown>;
+function BlockRender(props: { children: string }) {
+  const [children, setChildren] = useState(<>{props.children}</>);
+  useEffect(() => {
+    LoadedMarkdown.then((V) => {
+      setChildren(<V>{props.children}</V>);
+    });
+  }, []);
+  return <div>{children}</div>;
 }

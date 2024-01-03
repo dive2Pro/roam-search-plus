@@ -41,7 +41,14 @@ export const SearchResultFilter = observer(
             />
           </>
         ) : null}
-
+        <Divider />
+        <Button
+          icon="random"
+          small
+          onClick={() => {
+            props.model.shuffle();
+          }}
+        />
         <Divider />
         <ViewSelect
           value={props.model.viewType}

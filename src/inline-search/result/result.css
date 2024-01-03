@@ -2,10 +2,12 @@
   padding: 0.5rem; 
   width: 33%;
   min-height: 180px;
+  height: 240px;
   display: flex;
   flex: none;
   align-content: stretch;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .inline-search-result .virtuoso-grid-list {
@@ -25,6 +27,7 @@
   width: 100%;
   padding: 5px;
   min-height: 170px;
+  overflow: hidden;
 }
 .inline-search-result .content {
   pointer-events: none;
@@ -48,4 +51,15 @@
   .virtuoso-grid-item {
       width: 100%;
   }
+}
+
+.inline-search-result ul {
+  padding-left: 16px;
+}
+
+.inline-search-result li {
+  display: inline;
+}
+.inline-search-drawer .rm-block-separator {
+  display: none;
 }

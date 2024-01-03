@@ -25,6 +25,9 @@ import { ContentFilter } from "./content";
 import Fuse, { FuseResult } from "fuse.js";
 import { BlockRefFilter } from "./ref-block";
 import { delay } from "../../delay";
+import { PullBlock } from "roamjs-components/types";
+import shuffle from 'lodash.shuffle';
+
 let id = 0;
 // ------------------------------
 class FilterPlaceholder {
@@ -448,10 +451,21 @@ const fuseOptions = {
   keys: [":block/string", ":node/title"],
 };
 
+export class FuseResultModel {
+  shuffle() {
+    this.result = shuffle(this.result);
+  }
+  result: FuseResult<PullBlock>[] = [];
+  constructor() {
+    makeAutoObservable(this);
+  }
+}
+
 export class ResultFilterModel {
   constructor(public model: SearchInlineModel) {
     makeAutoObservable(this, { result: false });
   }
+  fuseResultModel = new FuseResultModel();
 
   type = "all";
   viewType = "side-menu";
@@ -489,23 +503,26 @@ export class ResultFilterModel {
     return this.filter(this.model.searchResult);
   }
 
-  registerListeners(cb: (data: FuseResult<Block>[]) => void) {
+  shuffle() {
+    this.fuseResultModel.shuffle();
+  }
+
+  registerListeners(cb: (data: FuseResultModel) => void) {
+    cb(this.fuseResultModel);
     const dispose = reaction(
       () => [this.query.trim(), this.result] as const,
       ([query, result]) => {
         console.log(query, " = query");
         if (!query.trim()) {
-          cb(
-            this.result.map((item) => ({
-              item,
-              refIndex: 0,
-              matches: [],
-            }))
-          );
+         this.fuseResultModel.result =  this.result.map((item) => ({
+            item,
+            refIndex: 0,
+            matches: [],
+          }));
           return;
         }
         this.fuse.setCollection(result);
-        cb(this.fuse.search(query));
+        this.fuseResultModel.result = this.fuse.search(query);
       },
       {
         name: "fuse",
@@ -523,6 +540,8 @@ export class ResultFilterModel {
   reset() {
     this.type = "all";
     this.query = "";
+    this.model.blockInfo.saveResultFilterQuery("");
+    this.model.blockInfo.saveResultFilterType("all");
   }
 
   hydrate(json: { query: string; type: string; viewType: string }) {
