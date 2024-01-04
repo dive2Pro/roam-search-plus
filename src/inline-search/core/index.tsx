@@ -116,12 +116,11 @@ type FiltersType = {
 type GroupsType = {
   filters: FiltersType[];
   groups: GroupsType[];
+  connector: IConnector;
 };
 
 class FilterGroup {
   id = Date.now();
-  fieldType: "page" | "block" = "page";
-  label: string = "group";
   creating = true;
   filters: FilterPlaceholder[] = [];
   groups: FilterGroup[] = [];
@@ -131,9 +130,6 @@ class FilterGroup {
     makeAutoObservable(this);
   }
 
-  onFieldTypeChange(type: "page" | "block") {
-    this.fieldType = type;
-  }
 
   changeParent(parent: FilterGroup) {
     this.parent = parent;
@@ -176,6 +172,8 @@ class FilterGroup {
       group.hydrate(groupData);
       return group;
     });
+
+    this.connector = json.connector
   }
 
   toggleConnector() {
@@ -264,6 +262,7 @@ class FilterGroup {
     return {
       filters,
       groups,
+      connector: this.connector
     };
   }
 }
@@ -682,6 +681,7 @@ const AndOrToggle = observer(({ group }: { group: FilterGroup }) => {
   return (
     <div
       className="flex"
+      style={{ alignItems: "center", justifyContent: 'center' }}
       onClick={(e) => {
         e.preventDefault();
         group.toggleConnector();
