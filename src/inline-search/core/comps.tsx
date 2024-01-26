@@ -956,7 +956,6 @@ export function RecentDates(props: {
   };
   onChange: (v: { option: number; time: number }) => void;
 }) {
-  const [option, setOption] = useState(props.value.option);
   const options = [
     { label: "specific date", value: 0 },
     {

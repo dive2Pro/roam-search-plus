@@ -1083,6 +1083,7 @@ export const store = {
       return windowUi.visible.onChange(cb);
     },
     async loadingGraph() {
+      if (ui.graph.loading.get()) return;
       ui.graph.loading.set(true);
       await delay(10);
       const start = Date.now();

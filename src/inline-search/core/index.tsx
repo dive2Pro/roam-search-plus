@@ -600,10 +600,13 @@ export class SearchInlineModel {
     }
     runInAction(() => {
       this._updateTime = Date.now();
-      this.result = [...result.map((item) => ({ ...item }))];
-      console.log(this.result, " = result ");
+      console.time("result")
+      // this.result = [...result.map((item) => ({ ...item }))];
+      this.result = result;
+      // console.log(this.result, " = result ");
       this.save();
       this.isLoading = false;
+      console.timeEnd('result')
     });
   };
 
