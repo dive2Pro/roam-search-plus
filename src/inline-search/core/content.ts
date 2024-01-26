@@ -208,15 +208,23 @@ class SentencesContainsOperator implements IOperator<string> {
 
 
 class FuzzyOperator implements IOperator<string> {
-  fuse = new Fuse([] as PullBlock[], {
-    useExtendedSearch: true,
-    includeMatches: true,
-    keys: [":block/string", ":node/title"],
-  });
+  // fuse = new Fuse([] as PullBlock[], {
+  //   useExtendedSearch: true,
+  //   includeMatches: true,
+  //   keys: [":block/string", ":node/title"],
+  // });
   filter(blocks: PullBlock[]) {
-    this.fuse.setCollection(blocks);
-    return this.fuse.search(this.value).map(({ item }) => item);
+    // this.fuse.setCollection(blocks);
+    console.time('fuzzy')
+    const result = new Fuse(blocks, {
+      useExtendedSearch: true,
+      includeMatches: true,
+      keys: [":block/string", ":node/title"],
+    }).search(this.value).map(({ item }) => item);
+    console.timeEnd("fuzzy");
+    return result;
   }
+
   label = "fuzzy";
   rightIcon = "fuzzy"
 
@@ -260,15 +268,21 @@ export class ContentFilter implements IFilterField {
   }
 
   filterData = (blocks: Block[]) => {
+    // TODO: 优化
     if(this.activeOperator instanceof FuzzyOperator) {
       return this.activeOperator.filter(blocks);
+      // return blocks
     }
-    return blocks.filter((block) => {
+    console.time("T")
+    const r = blocks.filter((block) => {
       return (
         this.activeOperator.filterMethod(block, ":node/title") ||
         this.activeOperator.filterMethod(block, ":block/string")
       );
     });
+    console.timeEnd("T");
+
+    return r;
   };
 
   onSelect(operator: string) {

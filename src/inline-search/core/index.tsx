@@ -26,7 +26,7 @@ import Fuse, { FuseResult } from "fuse.js";
 import { BlockRefFilter } from "./ref-block";
 import { delay } from "../../delay";
 import { PullBlock } from "roamjs-components/types";
-import shuffle from 'lodash.shuffle';
+import shuffle from "lodash.shuffle";
 
 let id = 0;
 // ------------------------------
@@ -130,7 +130,6 @@ class FilterGroup {
     makeAutoObservable(this);
   }
 
-
   changeParent(parent: FilterGroup) {
     this.parent = parent;
   }
@@ -173,7 +172,7 @@ class FilterGroup {
       return group;
     });
 
-    this.connector = json.connector
+    this.connector = json.connector;
   }
 
   toggleConnector() {
@@ -262,7 +261,7 @@ class FilterGroup {
     return {
       filters,
       groups,
-      connector: this.connector
+      connector: this.connector,
     };
   }
 }
@@ -451,18 +450,33 @@ const fuseOptions = {
 };
 
 export class FuseResultModel {
+  _updateTime = Date.now();
   shuffle() {
     this.result = shuffle(this.result);
   }
-  result: FuseResult<PullBlock>[] = [];
+  _result: FuseResult<PullBlock>[] = [];
+
+  get result() {
+    this._updateTime;
+    return this._result;
+  }
+
+  set result(v) {
+    this._result = v;
+    this._updateTime = Date.now();
+  }
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable(this, { _result: false });
   }
 }
 
 export class ResultFilterModel {
   constructor(public model: SearchInlineModel) {
-    makeAutoObservable(this, { result: false });
+    makeAutoObservable(this, {
+      result: false,
+      fuse: false,
+      fuseResultModel: false,
+    });
   }
   fuseResultModel = new FuseResultModel();
 
@@ -513,11 +527,14 @@ export class ResultFilterModel {
       ([query, result]) => {
         console.log(query, " = query");
         if (!query.trim()) {
-         this.fuseResultModel.result =  this.result.map((item) => ({
+          console.time(" result -");
+          this.fuseResultModel.result = this.result.map((item) => ({
             item,
             refIndex: 0,
             matches: [],
           }));
+          console.timeEnd(" result -");
+
           return;
         }
         this.fuse.setCollection(result);
@@ -600,13 +617,13 @@ export class SearchInlineModel {
     }
     runInAction(() => {
       this._updateTime = Date.now();
-      console.time("result")
+      console.time("result");
       // this.result = [...result.map((item) => ({ ...item }))];
       this.result = result;
       // console.log(this.result, " = result ");
       this.save();
       this.isLoading = false;
-      console.timeEnd('result')
+      console.timeEnd("result");
     });
   };
 
@@ -684,7 +701,7 @@ const AndOrToggle = observer(({ group }: { group: FilterGroup }) => {
   return (
     <div
       className="flex"
-      style={{ alignItems: "center", justifyContent: 'center' }}
+      style={{ alignItems: "center", justifyContent: "center" }}
       onClick={(e) => {
         e.preventDefault();
         group.toggleConnector();

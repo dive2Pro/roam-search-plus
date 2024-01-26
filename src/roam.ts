@@ -67,7 +67,7 @@ const CACHE_BLOCKS_REFS_BY_ID: Map<number, PullBlock> = new Map();
 const CACHE_PARENTS_REFS_BY_ID: Map<number, number[]> = new Map();
 
 export const getAllData = () => {
-  return [...ALLBLOCK_PAGES.values()]
+  return Array.from(ALLBLOCK_PAGES.values())
 };
 export const getAllUsers = () => {
   return [...CACHE_USERS.values()];

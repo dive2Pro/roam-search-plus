@@ -2,10 +2,23 @@ import { makeAutoObservable } from "mobx";
 import { getAllBlockRefs, getAllPages } from "../../roam";
 
 class AllPagesItems {
-  items = this.getData();
+  _items = this.getData();
+  _updateTime = Date.now()
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable(this, {
+      _items: false,
+    });
   }
+
+  get items() {
+    return this._items
+  }
+
+  set items(v) {
+    this._items = v;
+    this._updateTime = Date.now();
+  }
+
   update() {
     this.items = this.getData();
   }
@@ -32,16 +45,27 @@ class AllPagesItems {
 }
 
 class AllBlocksItems {
-  items = this.getData();
+  _items = this.getData();
+  _updateTime = Date.now();
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable(this, { _items: false});
   }
   update() {
     this.items = this.getData();
   }
+
+  get items() {
+    return this._items;
+  }
+
+  set items(v) {
+    this._items = v;
+    this._updateTime = Date.now();
+  }
+  
   private getData() {
     return getAllBlockRefs()
-      .filter(block => block?.[":block/uid"])
+      .filter((block) => block?.[":block/uid"])
       .map((block) => {
         const r = {
           uid: block[":block/uid"],

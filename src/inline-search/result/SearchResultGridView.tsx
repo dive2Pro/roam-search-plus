@@ -1,7 +1,4 @@
 import React, {
-  JSXElementConstructor,
-  PropsWithChildren,
-  ReactComponentElement,
   forwardRef,
   useEffect,
   useRef,
@@ -9,8 +6,7 @@ import React, {
 } from "react";
 import { FuseResultModel, ResultFilterModel } from "../core";
 import { observer } from "mobx-react-lite";
-import { Button, Callout, Card, Classes, Drawer } from "@blueprintjs/core";
-import { Block } from "../core/type";
+import { Callout, Card, Classes, Drawer } from "@blueprintjs/core";
 import { VirtuosoGrid, VirtuosoHandle } from "react-virtuoso";
 import { PageIcon } from "../core/PageIcon";
 import { BlockIcon } from "../core/BlockIcon";

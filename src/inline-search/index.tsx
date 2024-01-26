@@ -27,7 +27,7 @@ import { delay } from "../delay";
 import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
 import { SearchResultSideMenuView } from "./result/SearchResultSideMenuView";
 import { SearchResultFilter } from "./result/SearchResultFilter";
-import { SearchResultGridView } from "./result/SearchResultGrid.View";
+import { SearchResultGridView } from "./result/SearchResultGridView";
 
 export function unmountNode(node: HTMLElement) {
   const parent = node.closest(".roam-block-container");
@@ -286,7 +286,6 @@ const SearchResult = observer(({ model }: { model: SearchInlineModel }) => {
   if (model.searchResult.length === 0) {
     return <Callout intent="warning" title="No Results"></Callout>;
   }
-
   return (
     <section className={`inline-search-result-container`}>
       <SearchResultFilter model={model.filter} />
