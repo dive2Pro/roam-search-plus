@@ -117,6 +117,7 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
         await delay(10);
         await store.actions.loadingGraph();
         t.dismiss(toastId);
+        await delay(100);
       }
 
       allBlockRefsItems.update();

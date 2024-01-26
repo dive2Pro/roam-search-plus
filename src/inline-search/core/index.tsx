@@ -474,7 +474,7 @@ export class ResultFilterModel {
   constructor(public model: SearchInlineModel) {
     makeAutoObservable(this, {
       result: false,
-      fuse: false,
+
       fuseResultModel: false,
     });
   }
@@ -482,8 +482,7 @@ export class ResultFilterModel {
 
   type = "all";
   viewType = "side-menu";
-  query = "";
-  fuse: Fuse<Block> = new Fuse([], fuseOptions);
+  query = ""; 
 
   changeViewType(type: string) {
     this.viewType = type as "grid";
@@ -537,8 +536,15 @@ export class ResultFilterModel {
 
           return;
         }
-        this.fuse.setCollection(result);
-        this.fuseResultModel.result = this.fuse.search(query);
+        const indexs = Fuse.createIndex(
+          fuseOptions.keys,
+          result
+        ); 
+        this.fuseResultModel.result = new Fuse(
+          result,
+          fuseOptions,
+          indexs
+        ).search(query.trim());
       },
       {
         name: "fuse",
@@ -630,7 +636,7 @@ export class SearchInlineModel {
   hydrate(json: any) {
     console.log(`hydrate: `, json);
     this.group.hydrate(json);
-    this.search();
+    // this.search();
   }
 
   private save() {

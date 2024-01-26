@@ -216,11 +216,12 @@ class FuzzyOperator implements IOperator<string> {
   filter(blocks: PullBlock[]) {
     // this.fuse.setCollection(blocks);
     console.time('fuzzy')
+    const indexs = Fuse.createIndex([":block/string", ":node/title"], blocks);
     const result = new Fuse(blocks, {
       useExtendedSearch: true,
       includeMatches: true,
       keys: [":block/string", ":node/title"],
-    }).search(this.value).map(({ item }) => item);
+    }, indexs).search(this.value).map(({ item }) => item);
     console.timeEnd("fuzzy");
     return result;
   }
