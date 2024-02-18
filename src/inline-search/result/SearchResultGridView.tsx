@@ -12,11 +12,6 @@ import { PageIcon } from "../core/PageIcon";
 import { BlockIcon } from "../core/BlockIcon";
 import "./result.css";
 import dayjs from "dayjs";
-import Markdown from "marked-react";
-
-const ItemWrapper = forwardRef<HTMLDivElement, any>((props, ref) => {
-  return <div className="grid-item-wrapper" {...props} ref={ref} />;
-});
 
 const ListContainer = forwardRef<HTMLDivElement, any>((props, ref) => {
   return <div className="grid-list" {...props} ref={ref} />;
@@ -221,12 +216,15 @@ function UidRender({ uid }: { uid: string }) {
   return <div ref={ref}></div>;
 }
 
-// @ts-ignore
-const LoadedMarkdown = Markdown() as unknown as Promise<typeof Markdown>;
+
+
+
 function BlockRender(props: { children: string }) {
   const [children, setChildren] = useState(<>{props.children}</>);
   useEffect(() => {
-    LoadedMarkdown.then((V) => {
+    const LoadedMarkdown = require("marked-react") as unknown as () => Promise<any>;
+    console.log(LoadedMarkdown, ' --- ')
+    LoadedMarkdown().then((V) => {
       setChildren(<V>{props.children}</V>);
     });
   }, []);
