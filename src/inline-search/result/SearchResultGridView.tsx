@@ -1,12 +1,18 @@
-import React, {
-  forwardRef,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { forwardRef, useEffect, useRef, useState } from "react";
 import { FuseResultModel, ResultFilterModel } from "../core";
 import { observer } from "mobx-react-lite";
-import { Callout, Card, Classes, Drawer } from "@blueprintjs/core";
+import {
+  Button,
+  Callout,
+  Card,
+  Classes,
+  Dialog,
+  Drawer,
+  Icon,
+  Menu,
+  MenuItem,
+  Popover,
+} from "@blueprintjs/core";
 import { VirtuosoGrid, VirtuosoHandle } from "react-virtuoso";
 import { PageIcon } from "../core/PageIcon";
 import { BlockIcon } from "../core/BlockIcon";
@@ -34,6 +40,7 @@ export const SearchResultGridView = observer(
       virtuosoRef.current?.scrollToIndex?.(0);
     }, [data]);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
     const [uid, setUid] = useState("");
     if (data.length === 0) {
       return (
@@ -64,8 +71,23 @@ export const SearchResultGridView = observer(
             </div>
           </div>
         </Drawer>
+        <Dialog
+          isOpen={dialogOpen}
+          onClose={() => {
+            setDialogOpen(false);
+            setUid("");
+          }}
+          style={{
+            width: '80%',
+            minHeight: 500
+          }}
+        >
+          <div className={Classes.DIALOG_BODY}>
+            <UidRender uid={uid} />
+          </div>
+        </Dialog>
         <VirtuosoGrid
-          style={{ height: 500, width: "100%" }}
+          style={{ height: 650, width: "100%" }}
           totalCount={data.length}
           overscan={200}
           data={data}
@@ -77,6 +99,26 @@ export const SearchResultGridView = observer(
           }}
           itemContent={(index) => {
             const item = data[index];
+            const onSidebar = () => {
+              window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                window: {
+                  "block-uid": item.item[":block/uid"],
+                  type: "block",
+                },
+              });
+              window.getSelection().removeAllRanges();
+            };
+
+            const onDialog = () => {
+              setDialogOpen(true);
+              setUid(item.item[":block/uid"]);
+            };
+
+            const onSidePeek = () => {
+              setDrawerOpen(true);
+              setUid(item.item[":block/uid"]);
+            };
+
             if (item.item[":block/parents"]) {
               return (
                 <Card
@@ -85,35 +127,37 @@ export const SearchResultGridView = observer(
                   elevation={1}
                   key={item.item[":block/uid"]}
                   onClick={(e) => {
-                    if (e.shiftKey) {
-                      e.preventDefault();
-                      window.getSelection().removeAllRanges();
+                    e.preventDefault();
 
-                      window.roamAlphaAPI.ui.rightSidebar.addWindow({
-                        window: {
-                          "block-uid": item.item[":block/uid"],
-                          type: "block",
-                        },
-                      });
+                    if (e.shiftKey) {
+                      onSidebar();
                       return;
                     }
-                    setDrawerOpen(true);
-                    setUid(item.item[":block/uid"]);
+                    if (e.altKey) {
+                      onSidePeek();
+                      return;
+                    }
+                    onDialog();
                   }}
                 >
-                  <div>
-                    <div className="flex">
-                      <BlockIcon />
-                      <small className="footer">
-                        {dayjs(item.item[":edit/time"]).format(
-                          "YYYY-MM-DD hh:mm"
-                        )}
-                      </small>
-                    </div>
-                  </div>
-                  <div className="content" >
+                  <RightTopMenu
+                    onSidebar={onSidebar}
+                    onSidePeek={onSidePeek}
+                    onCopy={() => {
+                      // TODO:
+                    }}
+                  />
+                  <div className="content">
                     {/* <UidRender uid={item.item[":block/uid"]} /> */}
-                    <BlockRender>{`- `+ item.item[":block/string"]}</BlockRender>
+                    <PageContent uid={item.item[":block/uid"]} />
+                  </div>
+                  <div className="footer">
+                    <BlockIcon />
+                    <small className="">
+                      {dayjs(item.item[":edit/time"]).format(
+                        "YYYY-MM-DD hh:mm"
+                      )}
+                    </small>
                   </div>
                 </Card>
               );
@@ -125,37 +169,35 @@ export const SearchResultGridView = observer(
                 elevation={1}
                 key={item.item[":block/uid"]}
                 onClick={(e) => {
+                  e.preventDefault();
+
                   if (e.shiftKey) {
-                    e.preventDefault();
-                    window.roamAlphaAPI.ui.rightSidebar.addWindow({
-                      window: {
-                        "block-uid": item.item[":block/uid"],
-                        type: "block",
-                      },
-                    });
-                    window.getSelection().removeAllRanges();
+                    onSidebar();
                     return;
                   }
-                  setDrawerOpen(true);
-                  setUid(item.item[":block/uid"]);
+                  if (e.altKey) {
+                    onSidePeek();
+                    return;
+                  }
+                  onDialog();
                 }}
               >
-                <h5
-                  className="flex"
-                  style={{
+                <RightTopMenu
+                  onSidebar={onSidebar}
+                  onSidePeek={onSidePeek}
+                  onCopy={() => {
+                    // TODO:
                   }}
-                >
-                  <div style={{ minWidth: 24 }}>
-                    <PageIcon size={20} />
-                  </div>
-                  {`  `}
-                  {item.item[":node/title"]}
-                </h5>
-                <small className="footer">
-                  {dayjs(item.item[":edit/time"]).format("YYYY-MM-DD hh:mm")}
-                </small>
+                />
+
                 <div className="content">
                   <PageContent uid={item.item[":block/uid"]} />
+                </div>
+                <div className="footer">
+                  <div className="flex">
+                    <PageIcon size={20} />
+                    <div className="bold">{item.item[":node/title"]}</div>
+                  </div>
                 </div>
               </Card>
             );
@@ -216,17 +258,62 @@ function UidRender({ uid }: { uid: string }) {
   return <div ref={ref}></div>;
 }
 
-
-
-
 function BlockRender(props: { children: string }) {
   const [children, setChildren] = useState(<>{props.children}</>);
   useEffect(() => {
-    const LoadedMarkdown = require("marked-react") as unknown as () => Promise<any>;
-    console.log(LoadedMarkdown, ' --- ')
+    const LoadedMarkdown =
+      require("marked-react") as unknown as () => Promise<any>;
     LoadedMarkdown().then((V) => {
+      console.log(LoadedMarkdown, " --- ", V);
       setChildren(<V>{props.children}</V>);
     });
   }, []);
   return <div>{children}</div>;
+}
+
+function RightTopMenu(props: {
+  onSidePeek: () => void;
+  onCopy: () => void;
+  onSidebar: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="right-top-menu">
+      <Popover
+        isOpen={open}
+        onClose={() => {
+          setOpen(false);
+        }}
+        autoFocus={false}
+        content={
+          <Menu>
+            <MenuItem
+              text="Open in sidebar"
+              icon="panel-stats"
+              label="shift+Click"
+              onClick={props.onSidebar}
+            />
+            <MenuItem
+              text="Open in side peek"
+              icon="list-detail-view"
+              label="⌥+Click"
+              onClick={props.onSidePeek}
+            />
+            <MenuItem text="Copy link" icon="link" onClick={props.onCopy} />
+          </Menu>
+        }
+      >
+        <Button
+          autoFocus={false}
+          small
+          icon="more"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(true);
+          }}
+        />
+      </Popover>
+    </div>
+  );
 }

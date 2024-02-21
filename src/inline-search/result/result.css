@@ -1,6 +1,6 @@
 .inline-search-result .virtuoso-grid-item {
-  padding: 0.5rem; 
-  width: 33%;
+  padding: 0rem; 
+  width: calc(33% - 8px);
   min-height: 180px;
   height: 240px;
   display: flex;
@@ -8,30 +8,61 @@
   align-content: stretch;
   box-sizing: border-box;
   overflow: hidden;
+  box-shadow: rgba(15, 15, 15, 0.1) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 2px 4px;
+  margin-top: 2px;
 }
 
 .inline-search-result .virtuoso-grid-list {
   display: flex;
   flex-wrap: wrap;
+  gap: 16px;
+  padding: 2px;
 }
 
 .inline-search-result .grid-item-wrapper {
   flex: 1;
   text-align: center;
   font-size: 80%;
-  padding: 1rem 1rem;
   white-space: nowrap;
 }
 
 .inline-search-result  .grid-item {
   width: 100%;
-  padding: 5px;
   min-height: 170px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 0;
 }
+
+.inline-search-result  .grid-item:hover .right-top-menu {
+  opacity: 1;
+}
+
+.inline-search-result .grid-item .right-top-menu {
+  opacity: 1;
+  transition: all 0.25s;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
 .inline-search-result .content {
   pointer-events: none;
-  padding: 0 5px;
+  padding: 8px 8px 0px;
+  flex: 1;
+  background-color: rgba(55, 53, 47, 0.024);
+  overflow: hidden;
+}
+
+
+.inline-search-result .footer {
+  pointer-events: none;
+  padding: 8px 10px 10px;
+  background-color: white;
+  min-height: 30px;
+  display: flex;
 }
 .inline-search-result .rm-api-render--page > div > div:first-child {
   display: none;
@@ -43,7 +74,7 @@
 
 @media screen and (max-width: 1024px) {
   .virtuoso-grid-item {
-    width: 33%;
+    width: calc(33% -8px);
   }
 }
 

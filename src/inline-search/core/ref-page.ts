@@ -4,6 +4,8 @@ import { Empty, MultiSelectField } from "./comps";
 import { RefsPullBlock, getInfoById, getParentsRefsById, isPageId } from "../../roam";
 import { SearchInlineModel } from ".";
 import { allPageRefsItems } from "./allItems";
+import { JSXElementConstructor } from "react";
+import { PullBlock } from "roamjs-components/types";
 
 const DailyNotesItem = { label: "Daily Notes", uid: "daily notes", icon: "calendar" };
 
@@ -341,44 +343,6 @@ class EqualsToOperator<T extends { label: string; uid: string; id: number }>
   Input = MultiSelectField;
 }
 
-class DoesNotEqualsToOperator<
-  T extends { label: string; uid: string; id: number }
-> implements IOperator<T[]>
-{
-  label = "does not equals to";
-
-  constructor() {
-    makeAutoObservable(this);
-  }
-
-  filterMethod = (block: Block, k: keyof Block) => {
-    const b = block[k] as { ":db/id": number }[] | undefined;
-    if (!this.value.length) {
-      return true;
-    }
-    return b
-      ? this.value.every((v) => !b.some((item) => item[":db/id"] === v.id))
-      : false;
-  };
-
-  get items() {
-    // 获取所有的
-    return getAllItems();
-  }
-
-  value: T[] = [];
-
-  onChange = (v: T[]) => {
-    this.value = v;
-  };
-
-  reset() {
-    this.value = [];
-  }
-
-  Input = MultiSelectField;
-}
-
 class IsEmptyOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
@@ -436,4 +400,33 @@ class IsNotEmptyOperator<T extends { label: string; uid: string; id: number }>
   }
 
   Input = Empty;
+}
+
+
+class HasRelavantOperator<T extends { label: string; uid: string; id: number }>
+  implements IOperator<T[]>
+{
+  title?: string;
+  rightIcon?: string;
+  
+  filterMethod: (block: PullBlock, key: keyof PullBlock) => boolean = (block) => {
+    // 这是一个递归的过程
+    // 
+    return true;
+  };
+
+  value: T[] = [];
+  onChange = (value: T[]) => {
+    this.value = value;
+    // 这里需要获取所有相关的 block 和 page 的 id 到内存中？
+    // 1. 找到选择的 value 的 相关 refs 以及其
+  };
+  reset: () => void = () => {
+    this.value = [];
+  };
+  get items() {
+    return getAllItems();
+  };
+  Input = MultiSelectField;
+  label = "has relavant";
 }
