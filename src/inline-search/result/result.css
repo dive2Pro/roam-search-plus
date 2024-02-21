@@ -41,11 +41,12 @@
 }
 
 .inline-search-result .grid-item .right-top-menu {
-  opacity: 1;
+  opacity: 0;
   transition: all 0.25s;
   position: absolute;
   top: 5px;
   right: 5px;
+  z-index: 1;
 }
 
 .inline-search-result .content {

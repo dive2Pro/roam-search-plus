@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { FuseResultModel, ResultFilterModel } from "../core";
 import { observer } from "mobx-react-lite";
 import {
@@ -10,8 +10,10 @@ import {
   Drawer,
   Icon,
   Menu,
+  MenuDivider,
   MenuItem,
   Popover,
+  Toaster,
 } from "@blueprintjs/core";
 import { VirtuosoGrid, VirtuosoHandle } from "react-virtuoso";
 import { PageIcon } from "../core/PageIcon";
@@ -42,7 +44,16 @@ export const SearchResultGridView = observer(
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [uid, setUid] = useState("");
-    if (data.length === 0) {
+    const [deletedUidsSet, setDeletedUidsSet] = useState<Set<string>>(
+      new Set()
+    );
+    const source = useMemo(() => {
+      return deletedUidsSet.size
+        ? data.filter((item) => !deletedUidsSet.has(item.item[":block/uid"]))
+        : data;
+    }, [deletedUidsSet, data.length]);
+    console.log({...source.map( item => ({...item.item}))}, data.length, deletedUidsSet , ' ____@');
+    if (source.length === 0) {
       return (
         <Callout intent="primary">
           No items match your query/filter criteria.
@@ -78,8 +89,8 @@ export const SearchResultGridView = observer(
             setUid("");
           }}
           style={{
-            width: '80%',
-            minHeight: 500
+            width: "80%",
+            minHeight: 500,
           }}
         >
           <div className={Classes.DIALOG_BODY}>
@@ -88,17 +99,17 @@ export const SearchResultGridView = observer(
         </Dialog>
         <VirtuosoGrid
           style={{ height: 650, width: "100%" }}
-          totalCount={data.length}
+          totalCount={source.length}
           overscan={200}
-          data={data}
+          data={source}
           components={{
             List: ListContainer,
             // ScrollSeekPlaceholder: ({ height, width, index }) => (
             //   <Card interactive className="grid-item" elevation={1}></Card>
             // ),
           }}
-          itemContent={(index) => {
-            const item = data[index];
+          itemContent={(_index, item) => {
+            // const item = data[index];
             const onSidebar = () => {
               window.roamAlphaAPI.ui.rightSidebar.addWindow({
                 window: {
@@ -117,6 +128,46 @@ export const SearchResultGridView = observer(
             const onSidePeek = () => {
               setDrawerOpen(true);
               setUid(item.item[":block/uid"]);
+            };
+
+            const onDelete = (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // 1. 从 data 中暂时移除
+              setDeletedUidsSet((prev) => {
+                const set = new Set(prev)
+                set.add(item.item[":block/uid"]);
+                return set;
+              });
+              // 2. 当 Toast dismiss 的时候再从实际数据中删除
+              const timeout = 5000;
+              let timer = setTimeout(() => {
+                model.deleteById(item.item[":block/uid"]);
+                setDeletedUidsSet((prev) => {
+                  const set = new Set(prev);
+                  set.delete(item.item[":block/uid"]);
+                  return set;
+                });
+              }, timeout);
+              Toaster.create({
+                position: "bottom-right",
+              }).show({
+                timeout: timeout,
+                // intent: 'warning',
+                message: "Target deleted",
+                action: {
+                  text: "Undo",
+                  onClick: () => {
+                    // 3. 如果 undo 了，从 data 中恢复
+                    clearInterval(timer);
+                    setDeletedUidsSet((prev) => {
+                      const set = new Set(prev);
+                      set.delete(item.item[":block/uid"]);
+                      return set;
+                    });
+                  },
+                },
+              });
             };
 
             if (item.item[":block/parents"]) {
@@ -144,8 +195,11 @@ export const SearchResultGridView = observer(
                     onSidebar={onSidebar}
                     onSidePeek={onSidePeek}
                     onCopy={() => {
-                      // TODO:
+                      navigator.clipboard.writeText(
+                        `((${item.item[":block/uid"]}))`
+                      );
                     }}
+                    onDelete={onDelete}
                   />
                   <div className="content">
                     {/* <UidRender uid={item.item[":block/uid"]} /> */}
@@ -186,8 +240,11 @@ export const SearchResultGridView = observer(
                   onSidebar={onSidebar}
                   onSidePeek={onSidePeek}
                   onCopy={() => {
-                    // TODO:
+                    navigator.clipboard.writeText(
+                      `[[${item.item[":node/title"]}]]`
+                    );
                   }}
+                  onDelete={onDelete}
                 />
 
                 <div className="content">
@@ -232,7 +289,7 @@ function PageContent({ uid }: { uid: string }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [uid]);
   return <div ref={ref}></div>;
 }
 
@@ -275,6 +332,7 @@ function RightTopMenu(props: {
   onSidePeek: () => void;
   onCopy: () => void;
   onSidebar: () => void;
+  onDelete: (e: React.MouseEvent) => void;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -286,7 +344,7 @@ function RightTopMenu(props: {
         }}
         autoFocus={false}
         content={
-          <Menu>
+          <Menu onClick={(e) => e.preventDefault()}>
             <MenuItem
               text="Open in sidebar"
               icon="panel-stats"
@@ -299,7 +357,25 @@ function RightTopMenu(props: {
               label="⌥+Click"
               onClick={props.onSidePeek}
             />
-            <MenuItem text="Copy link" icon="link" onClick={props.onCopy} />
+            <MenuItem
+              text="Copy link"
+              icon="link"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onCopy();
+                setOpen(false);
+              }}
+            />
+            <MenuDivider />
+            <MenuItem
+              text="Delete"
+              intent="danger"
+              icon="trash"
+              onClick={(e) => {
+                props.onDelete(e);
+                setOpen(false);
+              }}
+            />
           </Menu>
         }
       >

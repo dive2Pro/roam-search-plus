@@ -359,6 +359,7 @@ export const getCacheByUid = (uid: string) => {
 export const deleteFromCacheByUid = (uid: string) => {
   CACHE_BLOCKS.delete(uid);
   CACHE_PAGES.delete(uid);
+  ALLBLOCK_PAGES.delete(uid);
 };
 
 // TODO: if api available 如果 graph 没有变化, 则 cache 不清空

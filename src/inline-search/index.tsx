@@ -163,7 +163,7 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
           minimal
           loading={store.ui.isLoading()}
           onClick={() => {
-            store.actions.renewGraph().then(() => {
+            store.actions.loadingGraph().then(() => {
               searchModel.search();
               allBlockRefsItems.update();
               allPageRefsItems.update();

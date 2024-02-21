@@ -27,6 +27,7 @@ import { BlockRefFilter } from "./ref-block";
 import { delay } from "../../delay";
 import { PullBlock } from "roamjs-components/types";
 import shuffle from "lodash.shuffle";
+import { deleteFromCacheByUid } from "../../roam";
 
 let id = 0;
 // ------------------------------
@@ -571,6 +572,11 @@ export class ResultFilterModel {
     this.type = json.type;
     this.viewType = json.viewType;
   }
+
+  deleteById(id: string) {
+    this.model.deleteById(id);
+  }
+
 }
 export class SearchInlineModel {
   group = new FilterGroup(this);
@@ -602,6 +608,24 @@ export class SearchInlineModel {
     return [];
   };
 
+  deleteById = (id: string) => {
+    this.result = this.result.filter((item) => item[":block/uid"] !== id);
+    this._updateTime = Date.now();
+    window.roamAlphaAPI.deletePage({
+      page: {
+        uid: id
+      },
+      block: {
+        uid: id,
+      }
+    })
+    //  window.roamAlphaAPI.deleteBlock({
+    //    block: {
+    //      uid: id,
+    //    },
+    //  });
+    deleteFromCacheByUid(id)
+  }
   /**
    * 被 SearchFilter 重置触发更新
    */
