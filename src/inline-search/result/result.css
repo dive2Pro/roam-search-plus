@@ -34,6 +34,7 @@
   flex-direction: column;
   position: relative;
   padding: 0;
+  background-color: rgba(55, 53, 47, 0.024)
 }
 
 .inline-search-result  .grid-item:hover .right-top-menu {
@@ -53,7 +54,6 @@
   pointer-events: none;
   padding: 8px 8px 0px;
   flex: 1;
-  background-color: rgba(55, 53, 47, 0.024);
   overflow: hidden;
 }
 
@@ -83,6 +83,10 @@
   .virtuoso-grid-item {
       width: 100%;
   }
+}
+
+.inline-search-result  {
+  padding: 12px 0 ;
 }
 
 .inline-search-result ul {

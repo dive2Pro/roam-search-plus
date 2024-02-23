@@ -19,6 +19,7 @@ import {
   Popover,
   TextArea,
   Toaster,
+  Tooltip,
 } from "@blueprintjs/core";
 import { store } from "../store";
 import { isGraphLoaded } from "../loaded";
@@ -134,7 +135,7 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
   };
   return (
     <div className="inline-search-container">
-      <div className="flex inline-search-head">
+      <div className="flex inline-search-head gap-8">
         <div className="flex" style={{ marginRight: 20 }}>
           <EditableText
             value={inlineRoamBlock.title}
@@ -154,25 +155,28 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
           }}
           small
           intent={open ? "primary" : "none"}
-          minimal
+          icon={open ? "filter-keep" : "filter"}
+          minimal={open ? false : true}
         >
-          Filter
+          Filters
         </Button>
 
-        <Button
-          minimal
-          loading={store.ui.isLoading()}
-          onClick={() => {
-            store.actions.renewGraph().then(() => {
-              searchModel.search();
-              allBlockRefsItems.update();
-              allPageRefsItems.update();
-              // layoutChangeEvent.dispatch()
-            });
-          }}
-          small
-          icon="refresh"
-        ></Button>
+        <Tooltip content={"Re-run search"}>
+          <Button
+            minimal
+            loading={store.ui.isLoading()}
+            onClick={() => {
+              store.actions.renewGraph().then(() => {
+                searchModel.search();
+                allBlockRefsItems.update();
+                allPageRefsItems.update();
+                // layoutChangeEvent.dispatch()
+              });
+            }}
+            small
+            icon="refresh"
+          ></Button>
+        </Tooltip>
         <SearchSettings model={searchModel} onDelete={props.onUnmount} />
       </div>
       {/* </Popover> */}
@@ -191,7 +195,7 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
       ) : null}
       <div
         style={{
-          padding: 5,
+          padding: "12px 25px",
         }}
       >
         <SearchResult model={searchModel} />

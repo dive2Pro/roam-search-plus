@@ -140,7 +140,8 @@
 }
 
 .inline-search-head {
-  padding: 6px 10px;
+  padding: 12px 25px;
+  align-items: center;
 }
 
 .inline-search-div {

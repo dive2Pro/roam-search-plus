@@ -15,9 +15,6 @@ export const SearchResultFilter = observer(
     return (
       <ControlGroup
         className={` ${props.model.model.isLoading ? Classes.SKELETON : ""}`}
-        style={{
-          padding: 5,
-        }}
       >
         <ResultKeywordsFilter model={props.model} />
         <Divider />
