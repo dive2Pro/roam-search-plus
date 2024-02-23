@@ -15,8 +15,8 @@ class DoesNotContainsOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    if(!this.value) {
-      return true
+    if (!this.value) {
+      return true;
     }
     return b ? !b.includes(this.value) : false;
   };
@@ -43,7 +43,7 @@ class EqualsToOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    return b ? b === (this.value) : false;
+    return b ? b === this.value : false;
   };
 
   value = "";
@@ -68,7 +68,7 @@ class DoesNotEqualsToOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    return b ? b !== (this.value) : false;
+    return b ? b !== this.value : false;
   };
 
   value = "";
@@ -92,8 +92,8 @@ class ContentIsEmptyOperator implements IOperator<string> {
   }
 
   filterMethod = (block: Block) => {
-    const b = block[':block/string'] as string;
-    
+    const b = block[":block/string"] as string;
+
     return b === "" && !!block[":block/parents"];
   };
 
@@ -119,7 +119,7 @@ class IsNotEmptyOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    return !!b 
+    return !!b;
   };
 
   value = "";
@@ -158,7 +158,6 @@ class ExistOperator implements IOperator<string> {
   Input = Empty;
 }
 
-
 class RegexOperator implements IOperator<string> {
   label = "regex";
   constructor() {
@@ -167,14 +166,18 @@ class RegexOperator implements IOperator<string> {
 
   filterMethod = (block: Block, k: keyof Block) => {
     const b = block[k] as string;
-    return !!b && new RegExp(this.value).test(b);
+    try {
+      return !!b && new RegExp(this.value).test(b);
+    } catch (e) {
+      return true
+    }
   };
 
   value = "";
 
   onChange = (v: string) => {
     this.value = v;
-    console.log(v, ' ----- ')
+    console.log(v, " ----- ");
   };
 
   reset() {
@@ -206,7 +209,6 @@ class SentencesContainsOperator implements IOperator<string> {
   Input = TextInput;
 }
 
-
 class FuzzyOperator implements IOperator<string> {
   // fuse = new Fuse([] as PullBlock[], {
   //   useExtendedSearch: true,
@@ -215,19 +217,25 @@ class FuzzyOperator implements IOperator<string> {
   // });
   filter(blocks: PullBlock[]) {
     // this.fuse.setCollection(blocks);
-    console.time('fuzzy')
+    console.time("fuzzy");
     const indexs = Fuse.createIndex([":block/string", ":node/title"], blocks);
-    const result = new Fuse(blocks, {
-      useExtendedSearch: true,
-      includeMatches: true,
-      keys: [":block/string", ":node/title"],
-    }, indexs).search(this.value).map(({ item }) => item);
+    const result = new Fuse(
+      blocks,
+      {
+        useExtendedSearch: true,
+        includeMatches: true,
+        keys: [":block/string", ":node/title"],
+      },
+      indexs
+    )
+      .search(this.value)
+      .map(({ item }) => item);
     console.timeEnd("fuzzy");
     return result;
   }
 
   label = "fuzzy";
-  rightIcon = "fuzzy"
+  rightIcon = "fuzzy";
 
   constructor() {
     makeAutoObservable(this);
@@ -270,11 +278,11 @@ export class ContentFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     // TODO: 优化
-    if(this.activeOperator instanceof FuzzyOperator) {
+    if (this.activeOperator instanceof FuzzyOperator) {
       return this.activeOperator.filter(blocks);
       // return blocks
     }
-    console.time("T")
+    console.time("T");
     const r = blocks.filter((block) => {
       return (
         this.activeOperator.filterMethod(block, ":node/title") ||

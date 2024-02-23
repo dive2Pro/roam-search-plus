@@ -163,7 +163,7 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
           minimal
           loading={store.ui.isLoading()}
           onClick={() => {
-            store.actions.loadingGraph().then(() => {
+            store.actions.renewGraph().then(() => {
               searchModel.search();
               allBlockRefsItems.update();
               allPageRefsItems.update();
@@ -327,9 +327,6 @@ function ScrollBaseOnMargin(props: PropsWithChildren<{}>) {
   }, []);
   return (
     <div
-      style={{
-        overflow: "auto hidden",
-      }}
       ref={ref}
       {...props}
     ></div>

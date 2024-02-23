@@ -1,6 +1,6 @@
 .inline-search-result .virtuoso-grid-item {
   padding: 0rem; 
-  width: calc(33% - 8px);
+  width: 100%;
   min-height: 180px;
   height: 240px;
   display: flex;
@@ -13,10 +13,10 @@
 }
 
 .inline-search-result .virtuoso-grid-list {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 16px;
   padding: 2px;
+  grid-template-columns: repeat(auto-fill, minmax(218px, 1fr));
 }
 
 .inline-search-result .grid-item-wrapper {

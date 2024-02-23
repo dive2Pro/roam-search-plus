@@ -89,7 +89,7 @@ export const SearchResultGridView = observer(
             setUid("");
           }}
           style={{
-            width: "80%",
+            width: "68%",
             minHeight: 500,
           }}
         >
@@ -344,18 +344,26 @@ function RightTopMenu(props: {
         }}
         autoFocus={false}
         content={
-          <Menu onClick={(e) => e.preventDefault()}>
+          <Menu >
             <MenuItem
               text="Open in sidebar"
               icon="panel-stats"
               label="shift+Click"
-              onClick={props.onSidebar}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false)
+                props.onSidebar();
+              }}
             />
             <MenuItem
               text="Open in side peek"
               icon="list-detail-view"
               label="⌥+Click"
-              onClick={props.onSidePeek}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                props.onSidePeek();
+              }}
             />
             <MenuItem
               text="Copy link"
@@ -372,6 +380,7 @@ function RightTopMenu(props: {
               intent="danger"
               icon="trash"
               onClick={(e) => {
+                e.stopPropagation();
                 props.onDelete(e);
                 setOpen(false);
               }}
