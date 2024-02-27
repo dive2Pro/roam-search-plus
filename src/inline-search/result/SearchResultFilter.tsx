@@ -7,6 +7,7 @@ import {
   ControlGroup,
   Divider,
   InputGroup,
+  Popover,
 } from "@blueprintjs/core";
 import { PageOrBlockSelect, ViewSelect } from "../core/comps";
 
@@ -46,6 +47,18 @@ export const SearchResultFilter = observer(
             props.model.changeViewType(type);
           }}
         />
+        {/* <Popover content={<ResultReferencesFilter model={props.model} />}>
+          <Button
+            icon="filter"
+            small
+            onClick={() => {
+              props.model.shuffle();
+            }}
+          >
+            Filter by references
+          </Button>
+        </Popover> */}
+
         <Button
           icon="random"
           small
@@ -70,3 +83,10 @@ const ResultKeywordsFilter = observer((props: { model: ResultFilterModel }) => {
     />
   );
 });
+
+const ResultReferencesFilter = observer(
+  (props: { model: ResultFilterModel }) => {
+    props.model;
+    return null;
+  }
+);

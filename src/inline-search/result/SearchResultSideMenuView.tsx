@@ -28,9 +28,15 @@ export const SearchResultSideMenuView = observer(
 
     if (data.length === 0) {
       return (
-        <Callout intent="primary">
-          No items match your query/filter criteria.
-        </Callout>
+        <div
+          className={`inline-search-result ${
+            model.model.isLoading ? Classes.SKELETON : ""
+          }`}
+        >
+          <Callout intent="primary">
+            No items match your query/filter criteria.
+          </Callout>
+        </div>
       );
     }
 

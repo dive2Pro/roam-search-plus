@@ -29,5 +29,5 @@ export interface IFilterField {
   operators: IOperator<any>[];
   activeOperator: IOperator<any>;
 
-  filterData: (b: Block[]) => Block[];
+  filterData: (b: Block[]) => Promise<Block[]> | Block[];
 }

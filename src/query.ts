@@ -3,7 +3,7 @@ import { pull } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 
 
-export const Query = (config: QueryConfig) => {
+export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAllPagesFn = getAllPages) => {
   console.time("SSSS");
   const keywords = config.search;
   const hasKeywords = keywords.some(key => !!key);
@@ -35,8 +35,8 @@ export const Query = (config: QueryConfig) => {
 
   const findBlocksContainsAllKeywords = (keywords: string[]) => {
     const lowBlocks: CacheBlockType[] = [];
-    const result = getAllBlocks().filter((item) => {
-      if (config.include.pages?.length) {
+    const result = getAllBlocksFn().filter((item) => {
+      if (config.include?.pages?.length) {
         if (
           !config.include.pages.some((pageUid) => {
             return pageUid === item.page;
@@ -46,12 +46,12 @@ export const Query = (config: QueryConfig) => {
         }
       }
 
-      if (config.exclude.pages?.length) {
-        if (config.exclude.pages.some(pageUid => pageUid === item.page)) {
+      if (config.exclude?.pages?.length) {
+        if (config.exclude.pages.some((pageUid) => pageUid === item.page)) {
           return false;
         }
       }
-      if (config.exclude.tags?.length) {
+      if (config.exclude?.tags?.length) {
         // console.log(config.exclude.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]))
         // if (config.exclude.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
         // return false
@@ -67,12 +67,20 @@ export const Query = (config: QueryConfig) => {
         );
       });
 
-      if (config.include.tags.length) {
-        const hasTagged = item.block[":block/refs"] &&
-          config.include.tags.some(tagId =>
-            item.block[":block/refs"].some(ref =>
-              String(ref[":db/id"]) === String(tagId)))
-        console.log(hasTagged, config.include.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]), '____item book')
+      if (config.include?.tags?.length) {
+        const hasTagged =
+          item.block[":block/refs"] &&
+          config.include.tags.some((tagId) =>
+            item.block[":block/refs"].some(
+              (ref) => String(ref[":db/id"]) === String(tagId)
+            )
+          );
+        console.log(
+          hasTagged,
+          config.include.tags,
+          item.block[":block/refs"]?.map((item) => item[":db/id"]),
+          "____item book"
+        );
         if (r) {
           if (hasTagged) {
             return true;
@@ -114,13 +122,13 @@ export const Query = (config: QueryConfig) => {
 
     // let lowBlocks: CacheBlockType[] = [];
     timemeasure("0", () => {
-      if (config.include.pages?.length) {
+      if (config.include?.pages?.length) {
         lowBlocks = lowBlocks.filter((block) => {
           return config.include.pages.some((uid) => uid === block.page);
         });
       }
 
-      if (config.include.tags.length) {
+      if (config.include?.tags.length) {
         // console.log(config.exclude.tags, item.block[":block/refs"]?.map(item => item[":db/id"]))
         // if (!config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
         //   return false
@@ -213,35 +221,50 @@ export const Query = (config: QueryConfig) => {
   }
 
   function findAllRelatedPageUids(keywords: string[]) {
-    return getAllPages().filter((page) => {
-
+    return getAllPagesFn().filter((page) => {
       // 过滤掉非选中页面
       if (config.exclude) {
         if (config.exclude.pages?.length) {
-          if (config.exclude.pages.some(uid => page.block[":block/uid"] === uid)) {
-            return false
+          if (
+            config.exclude.pages.some((uid) => page.block[":block/uid"] === uid)
+          ) {
+            return false;
           }
         }
         if (config.exclude.tags?.length && page.block[":block/refs"]?.length) {
           // console.log(config.exclude.tags, page.block[":block/refs"]?.map(item => item[":db/id"]))
-          if (config.exclude.tags.some(tagId => page.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
-            return false
+          if (
+            config.exclude.tags.some((tagId) =>
+              page.block[":block/refs"].some(
+                (ref) => String(ref[":db/id"]) === String(tagId)
+              )
+            )
+          ) {
+            return false;
           }
         }
       }
-      if (config.include.pages?.length) {
-        if (!config.include.pages.some((uid) => page.block[":block/uid"] === uid)) {
+      if (config.include?.pages?.length) {
+        if (
+          !config.include.pages.some((uid) => page.block[":block/uid"] === uid)
+        ) {
           return false;
         }
       }
 
-      if (config.include.tags.length) {
+      if (config.include?.tags?.length) {
         if (!page.block[":block/refs"]?.length) {
           return false;
         }
         if (config.include.tags.length && page.block[":block/refs"]?.length) {
-          if (!config.include.tags.some(tagId => page.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
-            return false
+          if (
+            !config.include.tags.some((tagId) =>
+              page.block[":block/refs"].some(
+                (ref) => String(ref[":db/id"]) === String(tagId)
+              )
+            )
+          ) {
+            return false;
           }
         }
       }

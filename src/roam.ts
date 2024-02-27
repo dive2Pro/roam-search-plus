@@ -66,6 +66,10 @@ const CACHE_BLOCKS_REFS_BY_ID: Map<number, PullBlock> = new Map();
 // 所有 block parents 中包含的 refs 的 id
 const CACHE_PARENTS_REFS_BY_ID: Map<number, number[]> = new Map();
 
+export const getPageById = (id: number) => {
+  return CACHE_PAGES_BY_ID.get(id);
+}
+
 export const getAllData = () => {
   return Array.from(ALLBLOCK_PAGES.values())
 };

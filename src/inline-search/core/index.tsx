@@ -28,6 +28,7 @@ import { delay } from "../../delay";
 import { PullBlock } from "roamjs-components/types";
 import shuffle from "lodash.shuffle";
 import { deleteFromCacheByUid } from "../../roam";
+import { debounce } from "../../helper";
 
 let id = 0;
 // ------------------------------
@@ -207,43 +208,44 @@ class FilterGroup {
     }
   }
 
-  filterData(_source: Block[]): Block[] {
+  async filterData(_source: Block[]): Promise<Block[]> {
     if (this.connector === "AND") {
       let source = _source;
       // console.log(source, " = ");
-      this.filters.forEach((filter) => {
+      for (const filter of this.filters) {
         if (filter.delegate) {
-          const result = filter.delegate.filterData(source);
+          const result = await filter.delegate.filterData(source);
           source = result;
         }
+      }
+
+      const groups = this.groups.filter((group) => {
+        // return group.filters.length > 0 || group.groups.length > 0;
+        return group.isValidGroup();
       });
-      this.groups
-        .filter((group) => {
-          // return group.filters.length > 0 || group.groups.length > 0;
-          return group.isValidGroup();
-        })
-        .forEach((group) => {
-          source = group.filterData(source);
-        });
+      for (const group of groups) {
+        source = await group.filterData(source);
+      }
       return source;
     } else {
-      const filterResult = this.filters.reduce((p, filter) => {
-        if (filter.delegate) {
-          return [...p, ...filter.delegate.filterData(_source)];
-        }
-        return p;
-      }, [] as Block[]);
-      const result = this.groups
-        .filter((group) => {
-          // return group.filters.length > 0 || group.groups.length > 0;
-          return group.isValidGroup();
-        })
-        .reduce((p, group) => {
-          const result = group.filterData(_source);
+      let total = [] as Block[];
 
-          return [...p, ...result];
-        }, filterResult);
-      return uniqueArray(result);
+      for (const filter of this.filters) {
+        if (filter.delegate) {
+          total = [...total, ...(await filter.delegate.filterData(_source))];
+        }
+      }
+
+      const groups = this.groups.filter((group) => {
+        // return group.filters.length > 0 || group.groups.length > 0;
+        return group.isValidGroup();
+      });
+      for (const group of groups) {
+        const result = group.filterData(_source);
+
+        total = [...total, ...(await result)];
+      }
+      return uniqueArray(total);
     }
 
     function uniqueArray<T extends Block>(objs: T[]) {
@@ -483,7 +485,9 @@ export class ResultFilterModel {
 
   type = "all";
   viewType = "side-menu";
-  query = ""; 
+  query = "";
+
+  queryChangedTime = Date.now();
 
   changeViewType(type: string) {
     this.viewType = type as "grid";
@@ -498,7 +502,12 @@ export class ResultFilterModel {
   changeQuery = (v: string) => {
     this.query = v;
     this.model.blockInfo.saveResultFilterQuery(v);
+    this.changeQueryTime()
   };
+
+  changeQueryTime = debounce(() => {
+    this.queryChangedTime = Date.now();
+  }, 250)
 
   filter = (bs: Block[]) => {
     switch (this.type) {
@@ -523,8 +532,9 @@ export class ResultFilterModel {
   registerListeners(cb: (data: FuseResultModel) => void) {
     cb(this.fuseResultModel);
     const dispose = reaction(
-      () => [this.query.trim(), this.result] as const,
-      ([query, result]) => {
+      () => [this.queryChangedTime, this.result] as const,
+      ([_queryTime, result]) => {
+        const query = this.query;
         console.log(query, " = query");
         if (!query.trim()) {
           console.time(" result -");
@@ -537,10 +547,7 @@ export class ResultFilterModel {
 
           return;
         }
-        const indexs = Fuse.createIndex(
-          fuseOptions.keys,
-          result
-        ); 
+        const indexs = Fuse.createIndex(fuseOptions.keys, result);
         this.fuseResultModel.result = new Fuse(
           result,
           fuseOptions,
@@ -576,7 +583,6 @@ export class ResultFilterModel {
   deleteById(id: string) {
     this.model.deleteById(id);
   }
-
 }
 export class SearchInlineModel {
   group = new FilterGroup(this);
@@ -613,19 +619,19 @@ export class SearchInlineModel {
     this._updateTime = Date.now();
     window.roamAlphaAPI.deletePage({
       page: {
-        uid: id
+        uid: id,
       },
       block: {
         uid: id,
-      }
-    })
+      },
+    });
     //  window.roamAlphaAPI.deleteBlock({
     //    block: {
     //      uid: id,
     //    },
     //  });
-    deleteFromCacheByUid(id)
-  }
+    deleteFromCacheByUid(id);
+  };
   /**
    * 被 SearchFilter 重置触发更新
    */
@@ -641,7 +647,7 @@ export class SearchInlineModel {
     this.isLoading = true;
     await delay(10);
     const index = ++this.searchKeyIndex;
-    const result = this.group.filterData(this.getData());
+    const result = await this.group.filterData(this.getData());
     if (index !== this.searchKeyIndex) {
       return;
     }

@@ -55,9 +55,15 @@ export const SearchResultGridView = observer(
     console.log({...source.map( item => ({...item.item}))}, data.length, deletedUidsSet , ' ____@');
     if (source.length === 0) {
       return (
-        <Callout intent="primary">
-          No items match your query/filter criteria.
-        </Callout>
+        <div
+          className={`inline-search-result ${
+            model.model.isLoading ? Classes.SKELETON : ""
+          }`}
+        >
+          <Callout intent="primary">
+            No items match your query/filter criteria.
+          </Callout>
+        </div>
       );
     }
 

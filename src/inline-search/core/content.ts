@@ -5,6 +5,8 @@ import { SearchInlineModel } from ".";
 import { InputGroup } from "@blueprintjs/core";
 import { PullBlock } from "roamjs-components/types";
 import Fuse from "fuse.js";
+import { Query } from "../../query";
+import { CacheBlockType, getPageById } from "../../roam";
 
 class DoesNotContainsOperator implements IOperator<string> {
   label = "does not contains";
@@ -169,7 +171,7 @@ class RegexOperator implements IOperator<string> {
     try {
       return !!b && new RegExp(this.value).test(b);
     } catch (e) {
-      return true
+      return true;
     }
   };
 
@@ -257,11 +259,79 @@ class FuzzyOperator implements IOperator<string> {
   Input = TextInput;
 }
 
+class CrossBlocksOperator implements IOperator<string> {
+  // fuse = new Fuse([] as PullBlock[], {
+  //   useExtendedSearch: true,
+  //   includeMatches: true,
+  //   keys: [":block/string", ":node/title"],
+  // });
+  filter(blocks: PullBlock[]) {
+    // this.fuse.setCollection(blocks);
+    const pages: CacheBlockType[] = [];
+    const cacheBlocks: CacheBlockType[] = [];
+    blocks.forEach((block) => {
+      if (block[":node/title"]) {
+        pages.push({
+          block: block as any,
+          isBlock: false,
+          page: block[":block/uid"],
+        });
+      } else if (block[":block/page"]) {
+        const page = getPageById(block[":block/page"][":db/id"]);
+        if (!page) {
+          return;
+        }
+        cacheBlocks.push({
+          block: block as any,
+          isBlock: true,
+          page: page[":block/uid"],
+        });
+      }
+    });
+    return Query(
+      {
+        search: this.value.trim().split(" "),
+        caseIntensive: false,
+      },
+      () => cacheBlocks,
+      () => pages
+    ).promise.then(([pages, topBlocks, lowBlocks]) => {
+      return [
+        ...pages.map((page) => page.block),
+        ...topBlocks.map((b) => b.block),
+        ...lowBlocks.map((b) => b.page.block),
+      ];
+    });
+  }
+
+  label = "cross blocks";
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  filterMethod = (block: Block, key: keyof Block) => {
+    return true;
+  };
+
+  value = "";
+
+  onChange = (v: string) => {
+    this.value = v;
+  };
+
+  reset() {
+    this.value = "";
+  }
+  Input = TextInput;
+}
+
 export class ContentFilter implements IFilterField {
   static diaplayName = "content";
   label: string = "content";
   operators: IOperator<any>[] = [
     new FuzzyOperator(),
+    new CrossBlocksOperator(),
     new SentencesContainsOperator(),
     new DoesNotContainsOperator(),
     new RegexOperator(),
@@ -278,7 +348,10 @@ export class ContentFilter implements IFilterField {
 
   filterData = (blocks: Block[]) => {
     // TODO: 优化
-    if (this.activeOperator instanceof FuzzyOperator) {
+    if (
+      this.activeOperator instanceof FuzzyOperator ||
+      this.activeOperator instanceof CrossBlocksOperator
+    ) {
       return this.activeOperator.filter(blocks);
       // return blocks
     }
