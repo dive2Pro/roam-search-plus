@@ -51,8 +51,8 @@ export const SearchResultGridView = observer(
       return deletedUidsSet.size
         ? data.filter((item) => !deletedUidsSet.has(item.item[":block/uid"]))
         : data;
-    }, [deletedUidsSet, data.length]);
-    console.log({...source.map( item => ({...item.item}))}, data.length, deletedUidsSet , ' ____@');
+    }, [deletedUidsSet, data]);
+    // console.log({...source.map( item => ({...item.item}))}, data.length, deletedUidsSet , ' ____@');
     if (source.length === 0) {
       return (
         <div
