@@ -10,7 +10,7 @@ import { PullBlock } from "roamjs-components/types";
 const DailyNotesItem = { label: "Daily Notes", uid: "daily notes", icon: "calendar" };
 
 function getAllItems() {
-  console.log(allPageRefsItems.items, " = items");
+// console.log(allPageRefsItems.items, " = items");
   return allPageRefsItems.items;
 }
 

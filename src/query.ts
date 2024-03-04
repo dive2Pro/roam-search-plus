@@ -75,12 +75,12 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
               (ref) => String(ref[":db/id"]) === String(tagId)
             )
           );
-        console.log(
-          hasTagged,
-          config.include.tags,
-          item.block[":block/refs"]?.map((item) => item[":db/id"]),
-          "____item book"
-        );
+      // console.log(
+      //     hasTagged,
+      //     config.include.tags,
+      //     item.block[":block/refs"]?.map((item) => item[":db/id"]),
+      //     "____item book"
+      //   );
         if (r) {
           if (hasTagged) {
             return true;
@@ -137,7 +137,7 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
         lowBlocks = lowBlocks.filter(item => {
           return isUnderTag(config.include.tags, item.block)
         })
-        console.log(lowBlocks, ' --- ', config.include.tags, topLevelBlocks)
+      // console.log(lowBlocks, ' --- ', config.include.tags, topLevelBlocks)
 
       }
     });
@@ -164,7 +164,7 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
             result = r;
           }
           // if (r)
-          //   console.log(
+          // // console.log(
           //     item,
           //     item.block[":block/string"],
           //     r,
@@ -274,7 +274,7 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
       return r;
     });
   }
-  console.log(config, " ---- config");
+// console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const promise = Promise.all([
     findAllRelatedPageUids(keywords),
@@ -306,7 +306,7 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
 
           // lowLevelBlocks,
         ] as const;
-        console.log("end!!!!!!", result);
+      // console.log("end!!!!!!", result);
         console.timeEnd("SSSS");
 
         return result;

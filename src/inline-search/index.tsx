@@ -45,7 +45,7 @@ export function renderNode(node: HTMLElement) {
   if (!block) {
     return;
   }
-  console.log(block, " - renderNode - ", id);
+// console.log(block, " - renderNode - ", id);
   const parent = block.closest(".roam-block-container");
   if (!parent) {
     return;
@@ -325,7 +325,7 @@ function ScrollBaseOnMargin(props: PropsWithChildren<{}>) {
     }
     const rect = ref.current.getBoundingClientRect();
     const left = ref.current.clientLeft;
-    console.log(rect, left, " === ");
+  // console.log(rect, left, " === ");
     // TODO: 和 roam-article 或者 sidebar-window 找到最近的那一个。
     // 将其的宽度，和获取到的数据进行比较，得到要 margin 的宽度
   }, []);
