@@ -28,7 +28,7 @@ const process = (node: HTMLElement) => {
       renderNode(d as HTMLButtonElement);
     });
 
-//   console.log(nodes.map((d) => d));
+// // console.log(nodes.map((d) => d));
   [node]
     .filter(
       (d) =>

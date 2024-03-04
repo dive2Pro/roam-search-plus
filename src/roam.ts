@@ -27,7 +27,7 @@ export const getParentsStrFromBlockUid = (uid: string) => {
     `,
     [":block/uid", `${uid}`]
   ) as unknown as ReversePullBlock;
-  //  console.log(uid, result, ' paths ')
+  //// console.log(uid, result, ' paths ')
   if (result) {
     let strs: string[] = [];
     let ary = result[":block/_children"];
@@ -311,9 +311,9 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     .forEach((b) => {
       CACHE_PAGES.set(b.block[":block/uid"], b);
     });
-  console.log(refsSet, " =refsSet;");
+// console.log(refsSet, " =refsSet;");
   [...refsSet.values()].forEach((id) => {
-    console.log(id, isPageId(id), " ----");
+  // console.log(id, isPageId(id), " ----");
     if (!isPageId(id)) {
       CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
     }

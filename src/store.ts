@@ -160,10 +160,10 @@ type ITab = ReturnType<typeof defaultTab>;
 let Tabs = [defaultTab()] as ITab[];
 
 const addToTabs = (newTab: ITab) => {
-  console.log(Tabs.length, windowUi.tab.tabs.length);
+// console.log(Tabs.length, windowUi.tab.tabs.length);
   Tabs.push(newTab);
   windowUi.tab.tabs.push(newTab);
-  console.log(Tabs.length, windowUi.tab.tabs.length);
+// console.log(Tabs.length, windowUi.tab.tabs.length);
   Tab.save(Tabs);
   focusInTabs(newTab.id);
 };
@@ -285,7 +285,7 @@ const trigger = debounce(
         });
       }
       if (filterCount === 0 && !ui.conditions.modificationDate.peek()) {
-        console.log("return search", config);
+      // console.log("return search", config);
         return;
       }
     }
@@ -370,7 +370,7 @@ const trigger = debounce(
         }),
       ];
       // _result = result;
-      console.log(" ui result = ", result);
+    // console.log(" ui result = ", result);
       // ui.result.set([]);
       console.timeEnd("2222");
       setResult(result);
@@ -669,7 +669,7 @@ export const store = {
       ui.showSelectedTarget.toggle();
       if (ui.showSelectedTarget.peek()) {
       } else {
-        console.log("ahahah");
+      // console.log("ahahah");
         ui.selectedTarget.set((prev) => {
           return prev.filter((item) => item.selected === 1);
         });

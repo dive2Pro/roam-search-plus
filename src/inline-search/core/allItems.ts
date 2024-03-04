@@ -23,7 +23,7 @@ class AllPagesItems {
     this.items = this.getData();
   }
   private getData() {
-    console.log(getAllPages(), ' = all pages')
+    // console.log(getAllPages(), ' = all pages')
     return getAllPages()
       .filter((page) => !page.isBlock)
       .map((page) => {

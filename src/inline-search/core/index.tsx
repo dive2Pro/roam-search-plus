@@ -40,7 +40,7 @@ class FilterPlaceholder {
   mounted = false;
 
   onSelect(name: string) {
-    console.log(`onSelect ${name}`);
+  // console.log(`onSelect ${name}`);
     this.delegate = this.filterOptions
       .find((option) => option.name === name)!
       .gen();
@@ -202,7 +202,7 @@ class FilterGroup {
       this.parent = newGroup;
       newGroup.addFilterConditionGroup(this);
       parent.groups.splice(index, 1, newGroup);
-      console.log(newGroup, " condition ");
+    // console.log(newGroup, " condition ");
     } else {
       this.model.groupCurrentConditions();
     }
@@ -311,7 +311,7 @@ export class InlineRoamBlockInfo {
   }
   hydrateByData(blockProps: { ":block/props"?: Record<string, any> }) {
     const json = blockProps[":block/props"][":inline-search"];
-    console.log(blockProps, " = props");
+  // console.log(blockProps, " = props");
     this.hydrateImpl({
       // @ts-ignore
       title: blockProps[":block/props"][":inline-search-title"],
@@ -369,7 +369,7 @@ export class InlineRoamBlockInfo {
     //     ":block/uid",
     //     this.id,
     //   ]);
-    //   console.log(blockProps, " ==== ");
+    // // console.log(blockProps, " ==== ");
     // }, 200);
   }
 
@@ -535,7 +535,7 @@ export class ResultFilterModel {
       () => [this.queryChangedTime, this.result] as const,
       ([_queryTime, result]) => {
         const query = this.query;
-        console.log(query, " = query");
+      // console.log(query, " = query");
         if (!query.trim()) {
           console.time(" result -");
           this.fuseResultModel.result = this.result.map((item) => ({
@@ -664,7 +664,7 @@ export class SearchInlineModel {
   };
 
   hydrate(json: any) {
-    console.log(`hydrate: `, json);
+  // console.log(`hydrate: `, json);
     this.group.hydrate(json);
     // this.search();
   }
@@ -791,7 +791,7 @@ const SearchFilters = observer(
         }
         const firstRect = first.getBoundingClientRect();
         const lastRect = last.getBoundingClientRect();
-        console.log(firstRect, first, last, lastRect, " = first");
+      // console.log(firstRect, first, last, lastRect, " = first");
         const rectSize = {
           top: (first as HTMLElement).offsetTop + firstRect.height / 2 + 2,
           bottom:

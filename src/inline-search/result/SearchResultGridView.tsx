@@ -8,7 +8,6 @@ import {
   Classes,
   Dialog,
   Drawer,
-  Icon,
   Menu,
   MenuDivider,
   MenuItem,
@@ -268,7 +267,7 @@ export const SearchResultGridView = observer(
           // scrollSeekConfiguration={{
           //   enter: (velocity) => Math.abs(velocity) > 200,
           //   exit: (velocity) => Math.abs(velocity) < 30,
-          //   change: (_, range) => console.log({ range }),
+          //   change: (_, range) =// console.log({ range }),
           // }}
         />
       </div>
@@ -319,19 +318,6 @@ function UidRender({ uid }: { uid: string }) {
     };
   }, [uid]);
   return <div ref={ref}></div>;
-}
-
-function BlockRender(props: { children: string }) {
-  const [children, setChildren] = useState(<>{props.children}</>);
-  useEffect(() => {
-    const LoadedMarkdown =
-      require("marked-react") as unknown as () => Promise<any>;
-    LoadedMarkdown().then((V) => {
-      console.log(LoadedMarkdown, " --- ", V);
-      setChildren(<V>{props.children}</V>);
-    });
-  }, []);
-  return <div>{children}</div>;
 }
 
 function RightTopMenu(props: {
