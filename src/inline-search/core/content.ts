@@ -179,7 +179,7 @@ class RegexOperator implements IOperator<string> {
 
   onChange = (v: string) => {
     this.value = v;
-    console.log(v, " ----- ");
+  // console.log(v, " ----- ");
   };
 
   reset() {

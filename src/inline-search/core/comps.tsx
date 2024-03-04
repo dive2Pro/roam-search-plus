@@ -400,7 +400,7 @@ export function RemoveCondition(props: { onClose: () => void }) {
     }
     const parent = ref.current.buttonRef.closest(".search-filter");
     parent?.classList.toggle("search-highlight");
-    console.log(parent);
+    // console.log(parent);
   }
 
   function unhighlightParent() {
@@ -439,7 +439,7 @@ export function RemoveConditionGroup(props: { onClose: () => void }) {
     }
     const parent = ref.current.buttonRef.closest(".inner-group");
     parent?.classList.toggle("search-highlight");
-    console.log(parent);
+  // console.log(parent);
   }
 
   function unhighlightParent() {
@@ -460,7 +460,7 @@ export function MultiSelectField<
   onBlur: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  console.log(props, " = props.value");
+// console.log(props, " = props.value");
   return (
     <div
       className="bp3-input"
@@ -484,7 +484,7 @@ export function MultiSelectField<
             items={props.items}
             value={props.value}
             onSelect={(value) => {
-              console.log("onSelect", value);
+            // console.log("onSelect", value);
               props.onChange(value);
               setTimeout(() => {
                 props.onBlur();
@@ -779,7 +779,7 @@ export function MultiSelectField2<
   onBlur: () => void;
 }) {
   // const [height, setHeight] = useState(300);
-  console.log(props, " = mul");
+// console.log(props, " = mul");
   const fuse = useMemo(() => {
     const fuseOptions = {
       // isCaseSensitive: false,
@@ -806,7 +806,7 @@ export function MultiSelectField2<
   const [filtered, setFiltered] = useState<FuseResult<T>[]>(() =>
     fuse.search(" ")
   );
-  console.log(filtered, " --");
+// console.log(filtered, " --");
   return (
     <MultiSelect
       fill
@@ -998,7 +998,7 @@ export function RecentDates(props: {
         options={options}
         value={props.value.option}
         onChange={(event) => {
-          console.log(event.currentTarget.value, " = time");
+        // console.log(event.currentTarget.value, " = time");
         }}
       ></HTMLSelect>
       <DateInput />
