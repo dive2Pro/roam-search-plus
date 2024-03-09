@@ -220,4 +220,6 @@
 .invisible-2-3-4 > :nth-child(3){
   width: 0;
   min-width: 0;
+
+  
 }
