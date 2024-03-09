@@ -196,3 +196,24 @@
 .placeholder {
   color: #666;
 }
+
+
+.invisible-2-3-4 {
+
+}
+
+
+.invisible-2-3-4  > :nth-child(2){
+  width: 0;
+  min-width: 0;
+}
+.invisible-2-3-4 > :nth-child(4){
+  width: 0;
+  min-width: 0;
+
+  
+}
+.invisible-2-3-4 > :nth-child(3){
+  width: 0;
+  min-width: 0;
+}
