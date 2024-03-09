@@ -275,7 +275,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     const refs = [...(item[0][":block/refs"] || [])].map((v) => v[":db/id"]);
     // console.log(refs, ' --- refs ')
     refs.forEach((ref) => {
-      // CACHE_BLOCKS_REFS_BY_ID.set(ref[":db/id"], ref);
+      CACHE_BLOCKS_REFS_BY_ID.set(ref[":db/id"], ref);
       refsSet.add(ref);
     });
     const block = blockEnhance(item[0], item[1], config);
@@ -309,6 +309,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
       };
     })
     .forEach((b) => {
+      // console.log({...b.block }, ' ====== ')
       CACHE_PAGES.set(b.block[":block/uid"], b);
     });
 // console.log(refsSet, " =refsSet;");

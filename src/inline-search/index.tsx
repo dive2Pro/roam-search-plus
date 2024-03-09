@@ -35,7 +35,8 @@ export function unmountNode(node: HTMLElement) {
   if (!parent) {
     return;
   }
-  parent.querySelectorAll(":scope > .inline-search-el").forEach((e) => {
+  // console.log(' unmount node ', node)
+  parent.querySelectorAll(".inline-search-el").forEach((e) => {
     e.remove();
   });
 }
@@ -45,7 +46,7 @@ export function renderNode(node: HTMLElement) {
   if (!block) {
     return;
   }
-// console.log(block, " - renderNode - ", id);
+  // console.log(block, " - renderNode - ", id);
   const parent = block.closest(".roam-block-container");
   if (!parent) {
     return;
@@ -59,14 +60,28 @@ export function renderNode(node: HTMLElement) {
   }
   const el = document.createElement("div");
   el.className = `inline-search-el`;
-  parent.appendChild(el);
+
+  parent.firstElementChild.appendChild(el);
 
   const isUnder = !!node.closest(".inline-search-result");
+
+  const otherChildren = {
+    show: () => {
+      parent.firstElementChild.classList.toggle("invisible-2-3-4");
+    },
+    hide: () => {
+      parent.firstElementChild.classList.toggle("invisible-2-3-4");
+    },
+  };
+  otherChildren.hide();
   ReactDOM.render(
     <PreventAutoRenderFromSearchResult
       id={id}
       shouldRender={!isUnder}
-      onUnmount={() => el.remove()}
+      onUnmount={() => {
+        otherChildren.show();
+        el.remove();
+      }}
     />,
     el
   );
@@ -167,9 +182,10 @@ const App = observer((props: { id: string; onUnmount: () => void }) => {
             loading={store.ui.isLoading()}
             onClick={() => {
               store.actions.renewGraph().then(() => {
-                searchModel.search();
                 allBlockRefsItems.update();
                 allPageRefsItems.update();
+                searchModel.search();
+
                 // layoutChangeEvent.dispatch()
               });
             }}
@@ -325,14 +341,9 @@ function ScrollBaseOnMargin(props: PropsWithChildren<{}>) {
     }
     const rect = ref.current.getBoundingClientRect();
     const left = ref.current.clientLeft;
-  // console.log(rect, left, " === ");
+    // console.log(rect, left, " === ");
     // TODO: 和 roam-article 或者 sidebar-window 找到最近的那一个。
     // 将其的宽度，和获取到的数据进行比较，得到要 margin 的宽度
   }, []);
-  return (
-    <div
-      ref={ref}
-      {...props}
-    ></div>
-  );
+  return <div ref={ref} {...props}></div>;
 }

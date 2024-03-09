@@ -1,16 +1,25 @@
 import { makeAutoObservable } from "mobx";
 import { Block, IFilterField, IOperator } from "./type";
 import { Empty, MultiSelectField } from "./comps";
-import { RefsPullBlock, getInfoById, getParentsRefsById, isPageId } from "../../roam";
+import {
+  RefsPullBlock,
+  getInfoById,
+  getParentsRefsById,
+  isPageId,
+} from "../../roam";
 import { SearchInlineModel } from ".";
 import { allPageRefsItems } from "./allItems";
 import { JSXElementConstructor } from "react";
 import { PullBlock } from "roamjs-components/types";
 
-const DailyNotesItem = { label: "Daily Notes", uid: "daily notes", icon: "calendar" };
+const DailyNotesItem = {
+  label: "Daily Notes Pages",
+  uid: "daily notes",
+  icon: "calendar",
+};
 
 function getAllItems() {
-// console.log(allPageRefsItems.items, " = items");
+  // console.log(allPageRefsItems.items, " = items");
   return allPageRefsItems.items;
 }
 
@@ -59,6 +68,7 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
 {
   label = "under any of";
   title = "Hierarchical search";
+  dailyNotesSelected = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -70,17 +80,40 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
       return true;
     }
     const parents = getParentsRefsById(block[":db/id"]);
-    // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
+    if (this.dailyNotesSelected) {
+      const isUnderDNPageRef = [
+        block[":block/page"]?.[":db/id"] || 0,
+        ...parents,
+      ].some((p) => {
+        const page = getInfoById(p);
+        // console.log(page, " = parents");
+        if (!page) {
+          return false;
+        }
+        if (isValidDate(page[":block/uid"] || "")) {
+          return true;
+        }
+      });
+      if (isUnderDNPageRef) {
+        return true;
+      }
+    }
+    // return this.value.some((v) => parents.some((p) => p === v.id && v.uid !== block[':block/uid']));
     return this.value.some((v) => parents.some((p) => p === v.id));
   };
 
   get items() {
-    // 获取所有的
-    return getAllItems();
+    // 添加过滤掉 daylies notes 的选项
+
+    return [...getAllItems()];
   }
+
   value: T[] = [];
 
   onChange = (v: T[]) => {
+    this.dailyNotesSelected = !!v.find(
+      (item) => item.uid === DailyNotesItem.uid
+    );
     this.value = v;
   };
 
@@ -92,9 +125,9 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
 }
 
 function isValidDate(dateString: string) {
-  const regex = /^\d{4}-\d{2}-\d{2}$/;
+  const regex = /^\d{2}-\d{2}-\d{4}$/;
 
-  if(!regex.test(dateString)) return false;
+  if (!regex.test(dateString)) return false;
 
   const date = new Date(dateString);
   const dateNum = date.getTime();
@@ -118,27 +151,35 @@ class NotUnderAnyOfOperator<
     if (!this.value.length) {
       return true;
     }
-    
+
     const parents = getParentsRefsById(block[":db/id"]);
-    // console.log(this.value , ' = value ', block[':block/page'], JSON.stringify({...block}))
-   
     if (this.dailyNotesSelected) {
-      const page = block[":block/page"] ? getInfoById(block[':block/page'][":db/id"]) : undefined
-      if(page) {
-        if (isValidDate(page[":node/title"] || "")) {
+      const isUnderDNPageRef = [
+        block[":block/page"]?.[":db/id"] || 0,
+        ...parents,
+      ].some((p) => {
+        const page = getInfoById(p);
+        // console.log(page, " = parents");
+        if (!page) {
           return false;
         }
+        if (isValidDate(page[":block/uid"] || "")) {
+          return true;
+        }
+      });
+      if (isUnderDNPageRef) {
+        return false;
       }
     }
-    return !parents ? true :  this.value.every(
-      (v) => !parents.some((p) => p === v.id)
-    );
+    return !parents
+      ? true
+      : this.value.every((v) => !parents.some((p) => p === v.id));
   };
 
   get items() {
     // 添加过滤掉 daylies notes 的选项
-
-    return [DailyNotesItem, ...getAllItems()];
+    // TODO: 暂时不支持 DailyNotes，因为这要求将 dailyNotesSelected 也存入 props，现在没有好的方案
+    return [...getAllItems()];
   }
   value: T[] = [];
 
@@ -402,16 +443,17 @@ class IsNotEmptyOperator<T extends { label: string; uid: string; id: number }>
   Input = Empty;
 }
 
-
 class HasRelavantOperator<T extends { label: string; uid: string; id: number }>
   implements IOperator<T[]>
 {
   title?: string;
   rightIcon?: string;
-  
-  filterMethod: (block: PullBlock, key: keyof PullBlock) => boolean = (block) => {
+
+  filterMethod: (block: PullBlock, key: keyof PullBlock) => boolean = (
+    block
+  ) => {
     // 这是一个递归的过程
-    // 
+    //
     return true;
   };
 
@@ -426,7 +468,7 @@ class HasRelavantOperator<T extends { label: string; uid: string; id: number }>
   };
   get items() {
     return getAllItems();
-  };
+  }
   Input = MultiSelectField;
   label = "has relavant";
 }

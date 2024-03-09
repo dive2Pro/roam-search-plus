@@ -11,6 +11,7 @@ class AllPagesItems {
   }
 
   get items() {
+    this._updateTime;
     return this._items
   }
 
@@ -55,6 +56,7 @@ class AllBlocksItems {
   }
 
   get items() {
+    this._updateTime;
     return this._items;
   }
 

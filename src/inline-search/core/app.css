@@ -129,9 +129,13 @@
   position: relative;
   z-index: 2;
   background: white;
-  margin-left: 40px;
+  margin-left: 0px;
   padding-left: 0px;
-  top: -30px;
+  top: 0;
+  width: 100%;
+  min-width: 650px;
+  left: 0;
+  margin-left: 0;
 }
 
 .inline-search-container {

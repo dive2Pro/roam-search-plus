@@ -261,7 +261,6 @@ export const FieldsSelect = (props: {
               key: item.name,
               // label: film.year.toString(),
               onClick: handleClick,
-              // onFocus: handleFocus,
               // ref,
               text: item.name,
             }}
@@ -310,7 +309,6 @@ export const OperatorsSelect = (props: {
                 key: item.label,
                 // label: film.year.toString(),
                 onClick: handleClick,
-                // onFocus: handleFocus,
                 // ref,
                 text: item.label,
                 labelElement:

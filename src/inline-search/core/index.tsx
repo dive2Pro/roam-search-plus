@@ -40,7 +40,7 @@ class FilterPlaceholder {
   mounted = false;
 
   onSelect(name: string) {
-  // console.log(`onSelect ${name}`);
+    // console.log(`onSelect ${name}`);
     this.delegate = this.filterOptions
       .find((option) => option.name === name)!
       .gen();
@@ -202,7 +202,7 @@ class FilterGroup {
       this.parent = newGroup;
       newGroup.addFilterConditionGroup(this);
       parent.groups.splice(index, 1, newGroup);
-    // console.log(newGroup, " condition ");
+      // console.log(newGroup, " condition ");
     } else {
       this.model.groupCurrentConditions();
     }
@@ -309,107 +309,76 @@ export class InlineRoamBlockInfo {
       layoutChangeEvent.dispatch();
     }, 200);
   }
-  hydrateByData(blockProps: { ":block/props"?: Record<string, any> }) {
-    const json = blockProps[":block/props"][":inline-search"];
-  // console.log(blockProps, " = props");
+  hydrateByData(blockProps: Record<string, any>) {
+    const json = blockProps["inline-search"];
+    // console.log(blockProps, " = props");
     this.hydrateImpl({
-      // @ts-ignore
-      title: blockProps[":block/props"][":inline-search-title"],
-      // @ts-ignore
+      title: blockProps["inline-search-title"],
       json: json ? JSON.parse(json) : undefined,
-      query:
-        // @ts-ignore
-        blockProps[":block/props"][":inline-search-result-filter-query"] || "",
+      query: blockProps["inline-search-result-filter-query"] || "",
 
-      type:
-        // @ts-ignore
-        blockProps[":block/props"][":inline-search-result-filter-type"] ||
-        "all",
+      type: blockProps["inline-search-result-filter-type"] || "all",
       viewType:
-        // @ts-ignore
-        blockProps[":block/props"][":inline-search-result-filter-view-type"] ||
-        "side-menu",
+        blockProps["inline-search-result-filter-view-type"] || "side-menu",
     });
+    saveConfigToFirstChild(this.id, JSON.stringify(blockProps));
   }
 
   hydrate() {
-    const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
-      ":block/uid",
-      this.id,
-    ]);
-    if (blockProps && blockProps[":block/props"]) {
+    // 修改为从当前的第一个子 block 获取
+    const blockProps = getConfigFromFirstChild(this.id);
+
+    if (blockProps) {
       this.hydrateByData(blockProps);
     }
   }
   getBlockProps() {
-    return (
-      window.roamAlphaAPI.pull(`[:block/props]`, [":block/uid", this.id]) || {}
-    );
+    return getConfigFromFirstChild(this.id);
   }
   private getInfo() {
-    const blockProps = this.getBlockProps()[":block/props"] || {};
+    const blockProps = this.getBlockProps();
     return Object.keys(blockProps).reduce((p, c) => {
-      p[c.substring(1)] = blockProps[c as keyof typeof blockProps];
+      p[c] = blockProps[c as keyof typeof blockProps];
       return p;
     }, {} as Record<string, unknown>);
   }
   saveFilterJson(json: {}) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-          "inline-search": json,
-        },
-      },
-    });
-    // setTimeout(() => {
-    //   const blockProps = window.roamAlphaAPI.pull(`[:block/props]`, [
-    //     ":block/uid",
-    //     this.id,
-    //   ]);
-    // // console.log(blockProps, " ==== ");
-    // }, 200);
+    saveConfigToFirstChild(
+      this.id,
+      JSON.stringify({
+        ...this.getInfo(),
+        "inline-search": json,
+      })
+    );
   }
 
   saveResultViewType(type: string) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-          "inline-search-result-filter-view-type": type,
-        },
-      },
-    });
+    saveConfigToFirstChild(
+      this.id,
+      JSON.stringify({
+        ...this.getInfo(),
+        "inline-search-result-filter-view-type": type,
+      })
+    );
   }
   saveResultFilterQuery(query: string) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-
-          "inline-search-result-filter-query": query,
-        },
-      },
-    });
+    saveConfigToFirstChild(
+      this.id,
+      JSON.stringify({
+        ...this.getInfo(),
+        "inline-search-result-filter-query": query,
+      })
+    );
   }
 
   saveResultFilterType(type: string) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-          "inline-search-result-filter-type": type,
-        },
-      },
-    });
+    saveConfigToFirstChild(
+      this.id,
+      JSON.stringify({
+        ...this.getInfo(),
+        "inline-search-result-filter-type": type,
+      })
+    );
   }
 
   changeTitle(v: string): void {
@@ -417,16 +386,13 @@ export class InlineRoamBlockInfo {
   }
 
   saveTitle(v: string) {
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: this.id,
-        // @ts-ignore
-        props: {
-          ...this.getInfo(),
-          "inline-search-title": v,
-        },
-      },
-    });
+    saveConfigToFirstChild(
+      this.id,
+      JSON.stringify({
+        ...this.getInfo(),
+        "inline-search-title": v,
+      })
+    );
   }
 }
 
@@ -502,12 +468,12 @@ export class ResultFilterModel {
   changeQuery = (v: string) => {
     this.query = v;
     this.model.blockInfo.saveResultFilterQuery(v);
-    this.changeQueryTime()
+    this.changeQueryTime();
   };
 
   changeQueryTime = debounce(() => {
     this.queryChangedTime = Date.now();
-  }, 250)
+  }, 250);
 
   filter = (bs: Block[]) => {
     switch (this.type) {
@@ -535,7 +501,7 @@ export class ResultFilterModel {
       () => [this.queryChangedTime, this.result] as const,
       ([_queryTime, result]) => {
         const query = this.query;
-      // console.log(query, " = query");
+        // console.log(query, " = query");
         if (!query.trim()) {
           console.time(" result -");
           this.fuseResultModel.result = this.result.map((item) => ({
@@ -664,7 +630,7 @@ export class SearchInlineModel {
   };
 
   hydrate(json: any) {
-  // console.log(`hydrate: `, json);
+    // console.log(`hydrate: `, json);
     this.group.hydrate(json);
     // this.search();
   }
@@ -791,7 +757,7 @@ const SearchFilters = observer(
         }
         const firstRect = first.getBoundingClientRect();
         const lastRect = last.getBoundingClientRect();
-      // console.log(firstRect, first, last, lastRect, " = first");
+        // console.log(firstRect, first, last, lastRect, " = first");
         const rectSize = {
           top: (first as HTMLElement).offsetTop + firstRect.height / 2 + 2,
           bottom:
@@ -912,3 +878,58 @@ const SearchFilters = observer(
     );
   }
 );
+function getConfigFromFirstChild(id: string) {
+  const configStr = window.roamAlphaAPI.q(
+    `[
+      :find ?s 
+      :where 
+        [?c :block/string ?s] 
+        [?c :block/order 0] 
+        [?p :block/children ?c] 
+        [?p :block/uid "${id}"]
+     ]`
+  )?.[0]?.[0] as string;
+
+  try {
+    console.log(configStr, " = config Str");
+    return JSON.parse(configStr);
+  } catch (error) {
+    return {};
+  }
+}
+
+function saveConfigToFirstChild(id: string, config: string) {
+  const firstChildUid = window.roamAlphaAPI.q(
+    `[
+      :find ?s .
+      :where 
+        [?c :block/uid ?s] 
+        [?c :block/order 0] 
+        [?p :block/children ?c] 
+        [?p :block/uid "${id}"]
+     ]`
+  ) as unknown as string | undefined;
+  if (firstChildUid) {
+    return window.roamAlphaAPI.updateBlock({
+      block: {
+        uid: firstChildUid,
+        string: config,
+      },
+    });
+  }
+  window.roamAlphaAPI.createBlock({
+    block: {
+      string: config,
+    },
+    location: {
+      "parent-uid": id,
+      order: 0,
+    },
+  });
+  window.roamAlphaAPI.updateBlock({
+    block: {
+      uid: id,
+      open: false,
+    },
+  });
+}
