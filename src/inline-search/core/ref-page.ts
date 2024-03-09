@@ -99,7 +99,9 @@ class UnderAnyOfOperator<T extends { label: string; uid: string; id: number }>
       }
     }
     // return this.value.some((v) => parents.some((p) => p === v.id && v.uid !== block[':block/uid']));
-    return this.value.some((v) => parents.some((p) => p === v.id));
+    return this.value.some((v) =>
+      parents.some((p) => p === v.id)
+    );
   };
 
   get items() {
