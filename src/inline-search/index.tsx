@@ -35,6 +35,9 @@ export function unmountNode(node: HTMLElement) {
   if (!parent) {
     return;
   }
+  parent.querySelectorAll(".invisible-2-3-4").forEach((el) => {
+    el.classList.remove("invisible-2-3-4");
+  });
   // console.log(' unmount node ', node)
   parent.querySelectorAll(".inline-search-el").forEach((e) => {
     e.remove();

@@ -107,7 +107,7 @@ export function RegexInput(props: {
   ];
 
   const index = menus.findIndex((item) => item.value === props.value);
-
+  const ref = useRef<HTMLInputElement>();
   return (
     <InputGroup
       value={props.value}
@@ -124,8 +124,10 @@ export const TextInput = (props: {
   value: string;
   onChange: (v: string) => void;
 }) => {
+  const ref = useRef<HTMLInputElement>();
   return (
     <InputGroup
+      inputRef={ref}
       value={props.value}
       onChange={(e) => {
         props.onChange((e.target as HTMLInputElement).value);
@@ -133,7 +135,8 @@ export const TextInput = (props: {
       onBlur={props.onBlur}
       onKeyPress={(event) => {
         if (event.key === "Enter") {
-          props.onBlur();
+          // props.onBlur();
+          ref.current.blur();
         }
       }}
     />
@@ -437,7 +440,7 @@ export function RemoveConditionGroup(props: { onClose: () => void }) {
     }
     const parent = ref.current.buttonRef.closest(".inner-group");
     parent?.classList.toggle("search-highlight");
-  // console.log(parent);
+    // console.log(parent);
   }
 
   function unhighlightParent() {
@@ -458,7 +461,7 @@ export function MultiSelectField<
   onBlur: () => void;
 }) {
   const [open, setOpen] = useState(false);
-// console.log(props, " = props.value");
+  // console.log(props, " = props.value");
   return (
     <div
       className="bp3-input"
@@ -482,7 +485,7 @@ export function MultiSelectField<
             items={props.items}
             value={props.value}
             onSelect={(value) => {
-            // console.log("onSelect", value);
+              // console.log("onSelect", value);
               props.onChange(value);
               setTimeout(() => {
                 props.onBlur();
@@ -660,7 +663,7 @@ function CustomMultiSelect<
   const [filtered, setFiltered] = useState<FuseResult<T>[]>(() =>
     props.items.map((item) => ({ item, refIndex: 0 }))
   );
-
+  const ref = useRef<HTMLInputElement>();
   return (
     <div
       style={{
@@ -669,6 +672,7 @@ function CustomMultiSelect<
     >
       <InputGroup
         autoFocus
+        inputRef={ref}
         leftIcon="search"
         value={query}
         onKeyDown={(e) => {
@@ -777,7 +781,7 @@ export function MultiSelectField2<
   onBlur: () => void;
 }) {
   // const [height, setHeight] = useState(300);
-// console.log(props, " = mul");
+  // console.log(props, " = mul");
   const fuse = useMemo(() => {
     const fuseOptions = {
       // isCaseSensitive: false,
@@ -804,7 +808,7 @@ export function MultiSelectField2<
   const [filtered, setFiltered] = useState<FuseResult<T>[]>(() =>
     fuse.search(" ")
   );
-// console.log(filtered, " --");
+  // console.log(filtered, " --");
   return (
     <MultiSelect
       fill
@@ -996,7 +1000,7 @@ export function RecentDates(props: {
         options={options}
         value={props.value.option}
         onChange={(event) => {
-        // console.log(event.currentTarget.value, " = time");
+          // console.log(event.currentTarget.value, " = time");
         }}
       ></HTMLSelect>
       <DateInput />

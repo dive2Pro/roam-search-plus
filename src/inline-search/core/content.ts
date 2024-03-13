@@ -371,6 +371,7 @@ export class ContentFilter implements IFilterField {
     const oldOperator = this.activeOperator;
     this.activeOperator = this.operators.find((ope) => ope.label === operator)!;
     this.activeOperator.value = oldOperator.value;
+    // console.log('on select - ', operator)
     this.model.search();
   }
 }
