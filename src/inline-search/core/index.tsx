@@ -27,7 +27,7 @@ import { BlockRefFilter } from "./ref-block";
 import { delay } from "../../delay";
 import { PullBlock } from "roamjs-components/types";
 import shuffle from "lodash.shuffle";
-import { deleteFromCacheByUid } from "../../roam";
+import { deleteFromCacheByUid, getInfoById } from "../../roam";
 import { debounce } from "../../helper";
 
 let id = 0;
@@ -125,7 +125,7 @@ class FilterGroup {
   cleanFilters() {
     this.filters = [];
     this.groups = [];
-    this.model.search()
+    this.model.search();
   }
   id = Date.now();
   creating = true;
@@ -446,10 +446,13 @@ export class FuseResultModel {
 }
 
 export class ResultFilterModel {
+  refTargetInfo: RefTargetInfo;
+  updateRefTarget(refTargetInfo: RefTargetInfo) {
+    this.refTargetInfo = refTargetInfo;
+  }
   constructor(public model: SearchInlineModel) {
     makeAutoObservable(this, {
       result: false,
-
       fuseResultModel: false,
     });
   }
@@ -478,23 +481,16 @@ export class ResultFilterModel {
   };
 
   changeQueryTime = debounce(() => {
-    this.queryChangedTime = Date.now();
+    runInAction(() => {
+      this.queryChangedTime = Date.now();
+    });
   }, 250);
 
-  filter = (bs: Block[]) => {
-    switch (this.type) {
-      case "all":
-        return bs;
-      case "page":
-        return bs.filter((b) => !b[":block/parents"]);
-      case "block":
-        return bs.filter((b) => b[":block/parents"]);
-    }
-    return bs;
-  };
-
+  get totalCount() {
+    return this.model.searchResult.length;
+  }
   get result() {
-    return this.filter(this.model.searchResult);
+    return this.refTargetInfo.filterResult;
   }
 
   shuffle() {
@@ -504,27 +500,42 @@ export class ResultFilterModel {
   registerListeners(cb: (data: FuseResultModel) => void) {
     cb(this.fuseResultModel);
     const dispose = reaction(
-      () => [this.queryChangedTime, this.result] as const,
-      ([_queryTime, result]) => {
+      () => [this.queryChangedTime, this.result, this.type] as const,
+      ([_queryTime, result, type]) => {
         const query = this.query;
+
+        switch (type) {
+          case "all":
+            break;
+          case "page":
+            result = result.filter((b) => {
+              // console.log("filter - a ");
+              return !b[":block/parents"];
+            });
+            break;
+          case "block":
+            result = result.filter((b) => b[":block/parents"]);
+            break;
+        }
+
         // console.log(query, " = query");
         if (!query.trim()) {
-          console.time(" result -");
-          this.fuseResultModel.result = this.result.map((item) => ({
+          this.fuseResultModel.result = result.map((item) => ({
             item,
             refIndex: 0,
             matches: [],
           }));
-          console.timeEnd(" result -");
-
           return;
         }
+        console.time(" result -");
+
         const indexs = Fuse.createIndex(fuseOptions.keys, result);
         this.fuseResultModel.result = new Fuse(
           result,
           fuseOptions,
           indexs
         ).search(query.trim());
+        console.timeEnd(" result -");
       },
       {
         name: "fuse",
@@ -624,14 +635,25 @@ export class SearchInlineModel {
       return;
     }
     runInAction(() => {
-      this._updateTime = Date.now();
-      // console.time("result");
+      console.time("result");
       // this.result = [...result.map((item) => ({ ...item }))];
+      this.filter.updateRefTarget(new RefTargetInfo(result));
       this.result = result;
+      this._updateTime = Date.now();
+
+      /**
+       * 只能每次都进行重建， 不然用户编辑后， 数据会乱掉
+       * 重建之后， 赋值给 filterModel.
+       * 在内部操作之后， 过滤结果， 并且对结果再次进行重建
+       */
+
+      // console.log(
+      //   [...refTargetMap.entries()].sort((a, b) => b[1].size - a[1].size)
+      // );
       // console.log(this.result, " = result ");
       this.save();
       this.isLoading = false;
-      // console.timeEnd("result");
+      console.timeEnd("result");
     });
   };
 
@@ -718,9 +740,13 @@ const SearchGroup = observer(
           </div>
           {isTopLevel &&
           (group.filters.length > 0 || group.groups.length > 0) ? (
-            <Button minimal small onClick={() => {
-              group.cleanFilters()
-            }}>
+            <Button
+              minimal
+              small
+              onClick={() => {
+                group.cleanFilters();
+              }}
+            >
               Clear All
             </Button>
           ) : null}
@@ -963,4 +989,110 @@ function saveConfigToFirstChild(id: string, config: string) {
       open: false,
     },
   });
+}
+
+class RefTargetInfo {
+  _updateTime = Date.now();
+  constructor(public result: PullBlock[]) {
+    makeAutoObservable(this, {
+      result: false,
+    });
+    this.recaculate(result);
+  }
+
+  contains: RefTargetItem[] = [];
+  excludes: RefTargetItem[] = [];
+  commons: RefTargetItem[] = [];
+
+  get filterResult() {
+    this._updateTime;
+    return this.result;
+  }
+
+  recaculate = (blocks: PullBlock[]) => {
+    const self = this;
+    const refTargetMap = new Map<number, Set<number>>();
+
+    const result = blocks.filter((bItem) => {
+      const bItemRefs = bItem[":block/refs"] || [];
+      if (this.contains.length !== 0) {
+        // 如果 block 的 refs 没有在 contains 中， 就不继续
+
+        if (!this.contains.every((i) => i.refUids.has(bItem[":db/id"]))) {
+          return false;
+        }
+      }
+      if (this.excludes.length !== 0) {
+        // 如果 block 的 refs 在 excludes 中， 就不继续
+        if (this.excludes.some((i) => i.refUids.has(bItem[":db/id"]))) {
+          return false;
+        }
+      }
+
+      bItemRefs.forEach((ref) => {
+        const id = ref[":db/id"];
+        const block = getInfoById(id);
+        if (!block) {
+          return;
+        }
+        if (!refTargetMap.has(block[":db/id"])) {
+          refTargetMap.set(block[":db/id"], new Set());
+        }
+        refTargetMap.get(block[":db/id"]).add(bItem[":db/id"]);
+      });
+
+      return true;
+    });
+
+    this.result = result;
+    // console.log(result.length, " = length ", this);
+    this._updateTime = Date.now();
+
+    this.commons = [...refTargetMap.entries()]
+      .map(([_k, v]) => {
+        const k = getInfoById(_k);
+        const item = {
+          id: k[":db/id"],
+          text: k[":node/title"],
+          refUids: v,
+          onClick: (e: React.MouseEvent) => {
+            if (e.shiftKey) {
+              const i = self.excludes.push({
+                id: k[":db/id"],
+                text: k[":node/title"],
+                onClick: () => {
+                  self.excludes.splice(i - 1, 1);
+                  self.recaculate(blocks);
+                },
+                refUids: v,
+              });
+            } else {
+              const i = self.contains.push({
+                id: k[":db/id"],
+                text: k[":node/title"],
+                onClick: () => {
+                  self.contains.splice(i - 1, 1);
+                  self.recaculate(blocks);
+                },
+                refUids: v,
+              });
+            }
+            self.recaculate(blocks);
+          },
+        };
+        return item;
+      })
+      .filter((item) => {
+        return ![...this.contains, ...this.excludes].some(
+          (v) => v.id === item.id
+        );
+      });
+  };
+}
+
+interface RefTargetItem {
+  id: number;
+  onClick: (e: React.MouseEvent) => void;
+  text: string;
+  refUids: Set<number>;
 }

@@ -27,8 +27,8 @@ const ListContainer = forwardRef<HTMLDivElement, any>((props, ref) => {
 export const SearchResultGridView = observer(
   ({ model }: { model: ResultFilterModel }) => {
     const [index, setIndex] = useState(-1);
-    const [resultModel, setData] = useState<FuseResultModel>();
     const virtuosoRef = useRef<VirtuosoHandle>(null);
+    const [resultModel, setData] = useState<FuseResultModel>();
     const data = resultModel?.result || [];
     useEffect(() => {
       return model.registerListeners((data) => {
@@ -67,115 +67,162 @@ export const SearchResultGridView = observer(
     }
 
     return (
-      <div
-        className={`inline-search-result ${
-          model.model.isLoading ? Classes.SKELETON : ""
-        }`}
-      >
-        <Drawer
-          icon="info-sign"
-          className="inline-search-drawer"
-          onClose={() => {
-            setDrawerOpen(false);
-            setUid("");
-          }}
-          isOpen={drawerOpen}
+      <div>
+        <div
+          className={`inline-search-result ${
+            model.model.isLoading ? Classes.SKELETON : ""
+          }`}
         >
-          <div className={Classes.DRAWER_BODY}>
+          <Drawer
+            icon="info-sign"
+            className="inline-search-drawer"
+            onClose={() => {
+              setDrawerOpen(false);
+              setUid("");
+            }}
+            isOpen={drawerOpen}
+          >
+            <div className={Classes.DRAWER_BODY}>
+              <div className={Classes.DIALOG_BODY}>
+                <UidRender uid={uid} />
+              </div>
+            </div>
+          </Drawer>
+          <Dialog
+            isOpen={dialogOpen}
+            onClose={() => {
+              setDialogOpen(false);
+              setUid("");
+            }}
+            style={{
+              width: "68%",
+              minHeight: 500,
+            }}
+          >
             <div className={Classes.DIALOG_BODY}>
               <UidRender uid={uid} />
             </div>
-          </div>
-        </Drawer>
-        <Dialog
-          isOpen={dialogOpen}
-          onClose={() => {
-            setDialogOpen(false);
-            setUid("");
-          }}
-          style={{
-            width: "68%",
-            minHeight: 500,
-          }}
-        >
-          <div className={Classes.DIALOG_BODY}>
-            <UidRender uid={uid} />
-          </div>
-        </Dialog>
-        <VirtuosoGrid
-          style={{ height: 650, width: "100%" }}
-          totalCount={source.length}
-          overscan={200}
-          data={source}
-          components={{
-            List: ListContainer,
-            // ScrollSeekPlaceholder: ({ height, width, index }) => (
-            //   <Card interactive className="grid-item" elevation={1}></Card>
-            // ),
-          }}
-          itemContent={(_index, item) => {
-            // const item = data[index];
-            const onSidebar = () => {
-              window.roamAlphaAPI.ui.rightSidebar.addWindow({
-                window: {
-                  "block-uid": item.item[":block/uid"],
-                  type: "block",
-                },
-              });
-              window.getSelection().removeAllRanges();
-            };
+          </Dialog>
 
-            const onDialog = () => {
-              setDialogOpen(true);
-              setUid(item.item[":block/uid"]);
-            };
+          <VirtuosoGrid
+            style={{ height: 650, width: "100%" }}
+            totalCount={source.length}
+            overscan={200}
+            data={source}
+            components={{
+              List: ListContainer,
+              // ScrollSeekPlaceholder: ({ height, width, index }) => (
+              //   <Card interactive className="grid-item" elevation={1}></Card>
+              // ),
+            }}
+            itemContent={(_index, item) => {
+              // const item = data[index];
+              const onSidebar = () => {
+                window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                  window: {
+                    "block-uid": item.item[":block/uid"],
+                    type: "block",
+                  },
+                });
+                window.getSelection().removeAllRanges();
+              };
 
-            const onSidePeek = () => {
-              setDrawerOpen(true);
-              setUid(item.item[":block/uid"]);
-            };
+              const onDialog = () => {
+                setDialogOpen(true);
+                setUid(item.item[":block/uid"]);
+              };
 
-            const onDelete = (e: React.MouseEvent) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // 1. 从 data 中暂时移除
-              setDeletedUidsSet((prev) => {
-                const set = new Set(prev)
-                set.add(item.item[":block/uid"]);
-                return set;
-              });
-              // 2. 当 Toast dismiss 的时候再从实际数据中删除
-              const timeout = 5000;
-              let timer = setTimeout(() => {
-                model.deleteById(item.item[":block/uid"]);
+              const onSidePeek = () => {
+                setDrawerOpen(true);
+                setUid(item.item[":block/uid"]);
+              };
+
+              const onDelete = (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // 1. 从 data 中暂时移除
                 setDeletedUidsSet((prev) => {
                   const set = new Set(prev);
-                  set.delete(item.item[":block/uid"]);
+                  set.add(item.item[":block/uid"]);
                   return set;
                 });
-              }, timeout);
-              Toaster.create({
-                position: "bottom-right",
-              }).show({
-                timeout: timeout,
-                // intent: 'warning',
-                message: "Target deleted",
-                action: {
-                  text: "Undo",
-                  onClick: () => {
-                    // 3. 如果 undo 了，从 data 中恢复
-                    clearInterval(timer);
-                    setDeletedUidsSet((prev) => {
-                      const set = new Set(prev);
-                      set.delete(item.item[":block/uid"]);
-                      return set;
-                    });
+                // 2. 当 Toast dismiss 的时候再从实际数据中删除
+                const timeout = 5000;
+                let timer = setTimeout(() => {
+                  model.deleteById(item.item[":block/uid"]);
+                  setDeletedUidsSet((prev) => {
+                    const set = new Set(prev);
+                    set.delete(item.item[":block/uid"]);
+                    return set;
+                  });
+                }, timeout);
+                Toaster.create({
+                  position: "bottom-right",
+                }).show({
+                  timeout: timeout,
+                  // intent: 'warning',
+                  message: "Target deleted",
+                  action: {
+                    text: "Undo",
+                    onClick: () => {
+                      // 3. 如果 undo 了，从 data 中恢复
+                      clearInterval(timer);
+                      setDeletedUidsSet((prev) => {
+                        const set = new Set(prev);
+                        set.delete(item.item[":block/uid"]);
+                        return set;
+                      });
+                    },
                   },
-                },
-              });
-            };
+                });
+              };
 
-            if (item.item[":block/parents"]) {
+              if (item.item[":block/parents"]) {
+                return (
+                  <Card
+                    interactive
+                    className="grid-item"
+                    elevation={1}
+                    key={item.item[":block/uid"]}
+                    onClick={(e) => {
+                      e.preventDefault();
+
+                      if (e.shiftKey) {
+                        onSidebar();
+                        return;
+                      }
+                      if (e.altKey) {
+                        onSidePeek();
+                        return;
+                      }
+                      onDialog();
+                    }}
+                  >
+                    <RightTopMenu
+                      onSidebar={onSidebar}
+                      onSidePeek={onSidePeek}
+                      onCopy={() => {
+                        navigator.clipboard.writeText(
+                          `((${item.item[":block/uid"]}))`
+                        );
+                      }}
+                      onDelete={onDelete}
+                    />
+                    <div className="content">
+                      {/* <UidRender uid={item.item[":block/uid"]} /> */}
+                      <PageContent uid={item.item[":block/uid"]} />
+                    </div>
+                    <div className="footer">
+                      <BlockIcon />
+                      <small className="">
+                        {dayjs(item.item[":edit/time"]).format(
+                          "YYYY-MM-DD hh:mm"
+                        )}
+                      </small>
+                    </div>
+                  </Card>
+                );
+              }
               return (
                 <Card
                   interactive
@@ -201,75 +248,31 @@ export const SearchResultGridView = observer(
                     onSidePeek={onSidePeek}
                     onCopy={() => {
                       navigator.clipboard.writeText(
-                        `((${item.item[":block/uid"]}))`
+                        `[[${item.item[":node/title"]}]]`
                       );
                     }}
                     onDelete={onDelete}
                   />
+
                   <div className="content">
-                    {/* <UidRender uid={item.item[":block/uid"]} /> */}
                     <PageContent uid={item.item[":block/uid"]} />
                   </div>
                   <div className="footer">
-                    <BlockIcon />
-                    <small className="">
-                      {dayjs(item.item[":edit/time"]).format(
-                        "YYYY-MM-DD hh:mm"
-                      )}
-                    </small>
+                    <div className="flex">
+                      <PageIcon size={20} />
+                      <div className="bold">{item.item[":node/title"]}</div>
+                    </div>
                   </div>
                 </Card>
               );
-            }
-            return (
-              <Card
-                interactive
-                className="grid-item"
-                elevation={1}
-                key={item.item[":block/uid"]}
-                onClick={(e) => {
-                  e.preventDefault();
-
-                  if (e.shiftKey) {
-                    onSidebar();
-                    return;
-                  }
-                  if (e.altKey) {
-                    onSidePeek();
-                    return;
-                  }
-                  onDialog();
-                }}
-              >
-                <RightTopMenu
-                  onSidebar={onSidebar}
-                  onSidePeek={onSidePeek}
-                  onCopy={() => {
-                    navigator.clipboard.writeText(
-                      `[[${item.item[":node/title"]}]]`
-                    );
-                  }}
-                  onDelete={onDelete}
-                />
-
-                <div className="content">
-                  <PageContent uid={item.item[":block/uid"]} />
-                </div>
-                <div className="footer">
-                  <div className="flex">
-                    <PageIcon size={20} />
-                    <div className="bold">{item.item[":node/title"]}</div>
-                  </div>
-                </div>
-              </Card>
-            );
-          }}
-          // scrollSeekConfiguration={{
-          //   enter: (velocity) => Math.abs(velocity) > 200,
-          //   exit: (velocity) => Math.abs(velocity) < 30,
-          //   change: (_, range) =// console.log({ range }),
-          // }}
-        />
+            }}
+            // scrollSeekConfiguration={{
+            //   enter: (velocity) => Math.abs(velocity) > 200,
+            //   exit: (velocity) => Math.abs(velocity) < 30,
+            //   change: (_, range) =// console.log({ range }),
+            // }}
+          />
+        </div>
       </div>
     );
   }
@@ -336,14 +339,14 @@ function RightTopMenu(props: {
         }}
         autoFocus={false}
         content={
-          <Menu >
+          <Menu>
             <MenuItem
               text="Open in sidebar"
               icon="panel-stats"
               label="shift+Click"
               onClick={(e) => {
                 e.stopPropagation();
-                setOpen(false)
+                setOpen(false);
                 props.onSidebar();
               }}
             />

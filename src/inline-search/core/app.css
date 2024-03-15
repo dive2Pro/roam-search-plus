@@ -18,7 +18,7 @@
 .search-group {
   padding: 10px;
   z-index: 2;
-  background-color: white;
+  background-color: var(--dark-bg, white);
   min-width: 450px;
   position: relative;
   overflow: visible;
@@ -34,7 +34,8 @@
 .search-group-toggle {
   position: absolute;
   left: 10px;
-  background-color: white;
+  background-color: var(--dark-bg, white);
+
   padding: 2px;
   cursor: pointer;
 }
@@ -58,7 +59,8 @@
   flex-direction: column;
   justify-content: center;
   position: relative;
-  background-color: white;
+  background-color: var(--dark-bg, white);
+
   padding-left: 10px;
 }
 
@@ -67,7 +69,8 @@
   width: max-content;
 }
 .search-filters > div {
-  margin-bottom: 8px;
+  margin-bottom: 0px;
+  padding: 4px;
   position: relative;
   z-index: 1;
 }
@@ -90,32 +93,32 @@
 }
 
 .search-highlight.inner-group {
-  background-color: #ffe6eb;
+  background-color: var(--dark-bg-2, #ffe6eb);
 }
 
 
 .search-highlight .search-group {
-  background-color: #ffe6eb;
+  background-color: var(--dark-bg-2, #ffe6eb);
 }
 
 .search-highlight .inner-group {
-  background-color: #ffe6eb;
+  background-color: var(--dark-bg-2, #ffe6eb);
 }
 
 .search-highlight .search-filters {
-  background-color: #ffe6eb;
+  background-color: var(--dark-bg-2, #ffe6eb);
 }
 
 .search-highlight button {
-  background-color: #ffe6eb !important;
+  background-color: var(--dark-bg-2, #ffe6eb) !important;
 }
 
 .search-highlight .bp3-tag-input-values {
-  background-color: #ffe6eb !important;
+  background-color: var(--dark-bg-2, #ffe6eb) !important;
 }
 
 .search-highlight input {
-  background-color: #ffe6eb;
+  background-color: var(--dark-bg-2, #ffe6eb) !important;
 }
 
 .search-group .date-range input {
@@ -131,7 +134,7 @@
   padding: 2px 0 2px 0px;
   position: relative;
   z-index: 2;
-  background: white;
+  background: var(--dark-bg, white);
   margin-left: 0px;
   padding-left: 0px;
   top: 0;

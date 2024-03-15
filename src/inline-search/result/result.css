@@ -34,7 +34,7 @@
   flex-direction: column;
   position: relative;
   padding: 0;
-  background-color: rgba(55, 53, 47, 0.024)
+  background-color: var(--dark-bg-3, rgba(55, 53, 47, 0.024));
 }
 
 .inline-search-result  .grid-item:hover .right-top-menu {
@@ -61,7 +61,7 @@
 .inline-search-result .footer {
   pointer-events: none;
   padding: 8px 10px 10px;
-  background-color: white;
+  background-color: var(--dark-bg, white);
   min-height: 30px;
   display: flex;
 }

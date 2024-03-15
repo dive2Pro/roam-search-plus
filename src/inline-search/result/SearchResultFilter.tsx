@@ -1,5 +1,5 @@
-import React from "react";
-import { ResultFilterModel } from "../core";
+import React, { useEffect, useState } from "react";
+import { FuseResultModel, ResultFilterModel } from "../core";
 import { observer } from "mobx-react-lite";
 import {
   Button,
@@ -11,9 +11,18 @@ import {
   Tooltip,
 } from "@blueprintjs/core";
 import { PageOrBlockSelect, ViewSelect } from "../core/comps";
+import { DIALOG_BODY } from "@blueprintjs/core/lib/esm/common/classes";
 
 export const SearchResultFilter = observer(
   (props: { model: ResultFilterModel }) => {
+     const [resultModel, setData] = useState<FuseResultModel>();
+     const data = resultModel?.result || [];
+     useEffect(() => {
+       return props.model.registerListeners((data) => {
+         setData(data);
+       });
+     }, []);
+
     return (
       <ControlGroup
         className={` ${props.model.model.isLoading ? Classes.SKELETON : ""}`}
@@ -26,6 +35,9 @@ export const SearchResultFilter = observer(
             props.model.changeType(type);
           }}
         />
+        <Popover content={<ResultReferencesFilter model={props.model} />}>
+          <Button icon="filter" small />
+        </Popover>
         {props.model.hasFilter ? (
           <>
             <Divider />
@@ -36,7 +48,7 @@ export const SearchResultFilter = observer(
               outlined
               small
               icon="small-cross"
-              text="clear filters"
+              text="clear"
             />
           </>
         ) : null}
@@ -48,17 +60,7 @@ export const SearchResultFilter = observer(
             props.model.changeViewType(type);
           }}
         />
-        {/* <Popover content={<ResultReferencesFilter model={props.model} />}>
-          <Button
-            icon="filter"
-            small
-            onClick={() => {
-              props.model.shuffle();
-            }}
-          >
-            Filter by references
-          </Button>
-        </Popover> */}
+
         <Tooltip content={"shuffle notes"}>
           <Button
             icon="random"
@@ -68,6 +70,10 @@ export const SearchResultFilter = observer(
             }}
           />
         </Tooltip>
+        <div style={{ flex: 1 }} />
+        <small>
+          {data.length}/{props.model.totalCount}
+        </small>
       </ControlGroup>
     );
   }
@@ -75,10 +81,21 @@ export const SearchResultFilter = observer(
 const ResultKeywordsFilter = observer((props: { model: ResultFilterModel }) => {
   return (
     <InputGroup
-      leftIcon="filter"
       value={props.model.query}
       small
-      placeholder="Filter by content"
+      rightElement={
+        props.model.query ? (
+          <Button
+            icon="small-cross"
+            minimal
+            small
+            onClick={() => {
+              props.model.changeQuery("");
+            }}
+          />
+        ) : null
+      }
+      placeholder="fuzzy search..."
       onChange={(e) => {
         props.model.changeQuery(e.target.value);
       }}
@@ -88,7 +105,27 @@ const ResultKeywordsFilter = observer((props: { model: ResultFilterModel }) => {
 
 const ResultReferencesFilter = observer(
   (props: { model: ResultFilterModel }) => {
-    props.model;
-    return null;
+    return (
+      <div className={DIALOG_BODY}>
+        <div>Includes</div>
+        {props.model.refTargetInfo.contains.map((item) => {
+          return <Button small onClick={item.onClick}>{item.text}</Button>;
+        })}
+
+        <div>Removes</div>
+
+        {props.model.refTargetInfo.excludes.map((item) => {
+          return <Button small onClick={item.onClick}>{item.text}</Button>;
+        })}
+
+        <br />
+        <Divider />
+        <div>
+          {props.model.refTargetInfo.commons.map((item) => {
+            return <Button small onClick={item.onClick}>{item.text}</Button>;
+          })}
+        </div>
+      </div>
+    );
   }
 );
