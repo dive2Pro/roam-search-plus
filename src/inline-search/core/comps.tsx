@@ -321,7 +321,7 @@ export const OperatorsSelect = (props: {
                       content={
                         <div className={Classes.CALLOUT}>
                           More advanced search is{" "}
-                          <a href="https://www.fusejs.io/examples.html#extended-search">
+                          <a target="_blank" href="https://www.fusejs.io/examples.html#extended-search">
                             here
                           </a>
                         </div>

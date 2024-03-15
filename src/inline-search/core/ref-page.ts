@@ -44,7 +44,7 @@ export class RefFilter implements IFilterField {
     makeAutoObservable(this);
   }
 
-  activeOperator = this.operators[0];
+  activeOperator = this.operators[2];
 
   filterData = (blocks: Block[]) => {
     return blocks.filter((block) => {

@@ -68,10 +68,10 @@ const CACHE_PARENTS_REFS_BY_ID: Map<number, number[]> = new Map();
 
 export const getPageById = (id: number) => {
   return CACHE_PAGES_BY_ID.get(id);
-}
+};
 
 export const getAllData = () => {
-  return Array.from(ALLBLOCK_PAGES.values())
+  return Array.from(ALLBLOCK_PAGES.values());
 };
 export const getAllUsers = () => {
   return [...CACHE_USERS.values()];
@@ -99,11 +99,10 @@ function blockEnhance(
     get(target, prop, receiver) {
       if (prop === ":block/string") {
         if (config.blockRefToString) {
-
           return replacedString;
         }
-      } else if(prop === ':block/string-replaced') {
-        return replacedString
+      } else if (prop === ":block/string-replaced") {
+        return replacedString;
       }
       return Reflect.get(target, prop);
     },
@@ -249,6 +248,13 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     });
 };
 
+const lastestRenewTime = {
+  value: new Date().setHours(0, 0, 0, 0),
+  update: () => {
+    lastestRenewTime.value = new Date().setHours(0, 0, 0, 0);
+  },
+};
+
 export const renewCache2 = (config: { blockRefToString: boolean }) => {
   // 找到今日修改过的所有 block 和 page, users
   // 将其插入到 allBlocks 中
@@ -269,7 +275,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
               
         ]
     `,
-      new Date().setHours(0, 0, 0, 0)
+      lastestRenewTime.value
     ) as unknown as []
   ).forEach((item) => {
     const refs = [...(item[0][":block/refs"] || [])].map((v) => v[":db/id"]);
@@ -294,7 +300,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
                 [?e :node/title]
         ]
     `,
-      new Date().setHours(0, 0, 0, 0)
+      lastestRenewTime.value
     ) as unknown as RefsPullBlock[]
   )
     .map((item) => {
@@ -312,9 +318,9 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
       // console.log({...b.block }, ' ====== ')
       CACHE_PAGES.set(b.block[":block/uid"], b);
     });
-// console.log(refsSet, " =refsSet;");
+  // console.log(refsSet, " =refsSet;");
   [...refsSet.values()].forEach((id) => {
-  // console.log(id, isPageId(id), " ----");
+    // console.log(id, isPageId(id), " ----");
     if (!isPageId(id)) {
       CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
     }
@@ -333,11 +339,12 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
                 [?e :block/uid]
         ]
     `,
-      new Date().setHours(0, 0, 0, 0)
+      lastestRenewTime.value
     ) as unknown as User[]
   ).forEach((user) => {
     CACHE_USERS.set(user[":db/id"], user);
   });
+  lastestRenewTime.update();
   console.timeEnd("renew");
 };
 

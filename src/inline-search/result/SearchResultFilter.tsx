@@ -8,6 +8,7 @@ import {
   Divider,
   InputGroup,
   Popover,
+  Tooltip,
 } from "@blueprintjs/core";
 import { PageOrBlockSelect, ViewSelect } from "../core/comps";
 
@@ -58,14 +59,15 @@ export const SearchResultFilter = observer(
             Filter by references
           </Button>
         </Popover> */}
-
-        <Button
-          icon="random"
-          small
-          onClick={() => {
-            props.model.shuffle();
-          }}
-        />
+        <Tooltip content={"shuffle notes"}>
+          <Button
+            icon="random"
+            small
+            onClick={() => {
+              props.model.shuffle();
+            }}
+          />
+        </Tooltip>
       </ControlGroup>
     );
   }

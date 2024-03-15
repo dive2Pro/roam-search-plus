@@ -122,6 +122,11 @@ type GroupsType = {
 };
 
 class FilterGroup {
+  cleanFilters() {
+    this.filters = [];
+    this.groups = [];
+    this.model.search()
+  }
   id = Date.now();
   creating = true;
   filters: FilterPlaceholder[] = [];
@@ -309,23 +314,19 @@ export class InlineRoamBlockInfo {
       layoutChangeEvent.dispatch();
     }, 200);
   }
-  hydrateByData(blockProps:  Record<string, any> ) {
+  hydrateByData(blockProps: Record<string, any>) {
     const json = blockProps["inline-search"];
     // console.log(blockProps, " = props");
     this.hydrateImpl({
       title: blockProps["inline-search-title"],
       json: json ? JSON.parse(json) : undefined,
-      query:
-        blockProps["inline-search-result-filter-query"] || "",
+      query: blockProps["inline-search-result-filter-query"] || "",
 
-      type:
-        blockProps["inline-search-result-filter-type"] ||
-        "all",
+      type: blockProps["inline-search-result-filter-type"] || "all",
       viewType:
-        blockProps["inline-search-result-filter-view-type"] ||
-        "side-menu",
+        blockProps["inline-search-result-filter-view-type"] || "side-menu",
     });
-    saveConfigToFirstChild(this.id, JSON.stringify(blockProps))
+    saveConfigToFirstChild(this.id, JSON.stringify(blockProps));
   }
 
   hydrate() {
@@ -356,28 +357,27 @@ export class InlineRoamBlockInfo {
     );
   }
 
-  saveResultViewType(type: string) {
-     saveConfigToFirstChild(
-       this.id,
-       JSON.stringify({
-         ...this.getInfo(),
-         "inline-search-result-filter-view-type": type,
-       })
-     );
-   
-  }
-  saveResultFilterQuery(query: string) {
-      saveConfigToFirstChild(
-        this.id,
-        JSON.stringify({
-          ...this.getInfo(),
-          "inline-search-result-filter-query": query,
-        })
-      );
+  saveResultViewType = debounce((type: string) => {
+    saveConfigToFirstChild(
+      this.id,
+      JSON.stringify({
+        ...this.getInfo(),
+        "inline-search-result-filter-view-type": type,
+      })
+    );
+  });
 
-  }
+  saveResultFilterQuery = debounce((query: string) => {
+    saveConfigToFirstChild(
+      this.id,
+      JSON.stringify({
+        ...this.getInfo(),
+        "inline-search-result-filter-query": query,
+      })
+    );
+  });
 
-  saveResultFilterType(type: string) {
+  saveResultFilterType = debounce((type: string) => {
     saveConfigToFirstChild(
       this.id,
       JSON.stringify({
@@ -385,7 +385,7 @@ export class InlineRoamBlockInfo {
         "inline-search-result-filter-type": type,
       })
     );
-  }
+  });
 
   changeTitle(v: string): void {
     this.title = v;
@@ -456,7 +456,7 @@ export class ResultFilterModel {
   fuseResultModel = new FuseResultModel();
 
   type = "all";
-  viewType = "side-menu";
+  viewType = "grid";
   query = "";
 
   queryChangedTime = Date.now();
@@ -625,13 +625,13 @@ export class SearchInlineModel {
     }
     runInAction(() => {
       this._updateTime = Date.now();
-      console.time("result");
+      // console.time("result");
       // this.result = [...result.map((item) => ({ ...item }))];
       this.result = result;
       // console.log(this.result, " = result ");
       this.save();
       this.isLoading = false;
-      console.timeEnd("result");
+      // console.timeEnd("result");
     });
   };
 
@@ -653,52 +653,77 @@ export const SearchInline = observer(
     useEffect(() => {
       layoutChangeEvent.dispatch();
     }, []);
-    return <SearchGroup group={model.group} onSearch={() => model.search()} />;
+    return (
+      <SearchGroup
+        group={model.group}
+        onSearch={() => model.search()}
+        isTopLevel
+      />
+    );
   }
 );
 
 const SearchGroup = observer(
-  ({ group, onSearch }: { group: FilterGroup; onSearch: () => void }) => {
+  ({
+    group,
+    onSearch,
+    isTopLevel,
+  }: {
+    isTopLevel?: boolean;
+    group: FilterGroup;
+    onSearch: () => void;
+  }) => {
     return (
       <div className="search-group">
         <div className="flex">
           <SearchFilters group={group} onSearch={onSearch} />
         </div>
         <section className="search-group-btns">
-          <Button
-            onClick={() => {
-              group.addFilterCondition();
-              layoutChangeEvent.dispatch();
-            }}
-            minimal
-            intent="primary"
-            small
-          >
-            Add filter condition
-          </Button>
-          <Popover
-            interactionKind="hover"
-            content={
-              <Menu>
-                <MenuItem
-                  onClick={() => {
-                    group.addFilterConditionGroup();
-                    layoutChangeEvent.dispatch();
-                  }}
-                  text="Add filter condition group"
-                />
-                <MenuItem
-                  onClick={() => {
-                    group.groupCurrentConditions();
-                    layoutChangeEvent.dispatch();
-                  }}
-                  text="Group current conditions and Add"
-                />
-              </Menu>
-            }
-          >
-            <Button minimal icon="caret-down" />
-          </Popover>
+          <div>
+            <Button
+              onClick={() => {
+                group.addFilterCondition();
+                layoutChangeEvent.dispatch();
+              }}
+              minimal
+              intent="primary"
+              small
+              icon="add"
+            >
+              Add filter condition
+            </Button>
+            <Popover
+              interactionKind="hover"
+              content={
+                <Menu>
+                  <MenuItem
+                    onClick={() => {
+                      group.addFilterConditionGroup();
+                      layoutChangeEvent.dispatch();
+                    }}
+                    text="Add filter condition group"
+                  />
+                  <MenuItem
+                    onClick={() => {
+                      group.groupCurrentConditions();
+                      layoutChangeEvent.dispatch();
+                    }}
+                    text="Group current conditions and Add"
+                  />
+                </Menu>
+              }
+            >
+              <Button minimal icon="caret-down" />
+            </Popover>
+          </div>
+          {isTopLevel &&
+          (group.filters.length > 0 || group.groups.length > 0) ? (
+            <Button minimal small onClick={() => {
+              group.cleanFilters()
+            }}>
+              Clear All
+            </Button>
+          ) : null}
         </section>
       </div>
     );
@@ -897,7 +922,7 @@ function getConfigFromFirstChild(id: string) {
   )?.[0]?.[0] as string;
 
   try {
-    console.log(configStr, ' = config Str')
+    console.log(configStr, " = config Str");
     return JSON.parse(configStr);
   } catch (error) {
     return {};
@@ -933,9 +958,9 @@ function saveConfigToFirstChild(id: string, config: string) {
     },
   });
   window.roamAlphaAPI.updateBlock({
-    "block": {
-      "uid": id,
-      "open": false
-    }
-  })
+    block: {
+      uid: id,
+      open: false,
+    },
+  });
 }
