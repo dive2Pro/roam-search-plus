@@ -99,3 +99,7 @@
 .inline-search-drawer .rm-block-separator {
   display: none;
 }
+
+.bp3-popover-content > .inline-search-choose-filter {
+  max-height: fit-content !important;
+}

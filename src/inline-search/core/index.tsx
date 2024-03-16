@@ -993,6 +993,17 @@ function saveConfigToFirstChild(id: string, config: string) {
 
 class RefTargetInfo {
   _updateTime = Date.now();
+  commonFilter = {
+    isShowing: false,
+    onChange: (v: string) => {
+      this.commonFilter.value = v;
+    },
+    value: "",
+  };
+  fuse: Fuse<RefTargetItem>;
+  get hasSelected(){
+    return this.contains.length > 0 || this.excludes.length > 0
+  };
   constructor(public result: PullBlock[]) {
     makeAutoObservable(this, {
       result: false,
@@ -1002,11 +1013,19 @@ class RefTargetInfo {
 
   contains: RefTargetItem[] = [];
   excludes: RefTargetItem[] = [];
-  commons: RefTargetItem[] = [];
+  private commons: RefTargetItem[] = [];
 
   get filterResult() {
     this._updateTime;
     return this.result;
+  }
+
+  commonList() {
+    if (!this.commonFilter.value) {
+      return this.commons;
+    }
+
+    return this.fuse.search(this.commonFilter.value).map((v) => v.item);
   }
 
   recaculate = (blocks: PullBlock[]) => {
@@ -1051,30 +1070,31 @@ class RefTargetInfo {
     this.commons = [...refTargetMap.entries()]
       .map(([_k, v]) => {
         const k = getInfoById(_k);
-        const item = {
+        const commonFields = {
           id: k[":db/id"],
-          text: k[":node/title"],
+          text: k[":node/title"] || k[":block/string"],
           refUids: v,
+          count: v.size,
+          isBlock: !!k[":block/string"]
+        };
+        const item = {
+          ...commonFields,
           onClick: (e: React.MouseEvent) => {
             if (e.shiftKey) {
               const i = self.excludes.push({
-                id: k[":db/id"],
-                text: k[":node/title"],
+                ...commonFields,
                 onClick: () => {
                   self.excludes.splice(i - 1, 1);
                   self.recaculate(blocks);
                 },
-                refUids: v,
               });
             } else {
               const i = self.contains.push({
-                id: k[":db/id"],
-                text: k[":node/title"],
+                ...commonFields,
                 onClick: () => {
                   self.contains.splice(i - 1, 1);
                   self.recaculate(blocks);
                 },
-                refUids: v,
               });
             }
             self.recaculate(blocks);
@@ -1086,7 +1106,19 @@ class RefTargetInfo {
         return ![...this.contains, ...this.excludes].some(
           (v) => v.id === item.id
         );
-      });
+      }).sort((a, b) => b.count - a.count);
+
+    const indexs = Fuse.createIndex(["text"], this.commons);
+    this.commonFilter.isShowing = this.commons.length > 3;
+    this.fuse = new Fuse(
+      this.commons,
+      {
+        useExtendedSearch: true,
+        includeMatches: true,
+        keys: ["text"],
+      },
+      indexs
+    );
   };
 }
 
@@ -1094,5 +1126,7 @@ interface RefTargetItem {
   id: number;
   onClick: (e: React.MouseEvent) => void;
   text: string;
+  count: number;
+  isBlock: boolean;
   refUids: Set<number>;
 }
