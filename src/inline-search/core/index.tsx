@@ -446,9 +446,9 @@ export class FuseResultModel {
 }
 
 export class ResultFilterModel {
-  refTargetInfo: RefTargetInfo;
-  updateRefTarget(refTargetInfo: RefTargetInfo) {
-    this.refTargetInfo = refTargetInfo;
+  refTargetInfo = new RefTargetInfo();
+  updateRefTarget(result: PullBlock[]) {
+    this.refTargetInfo.recaculate(result);
   }
   constructor(public model: SearchInlineModel) {
     makeAutoObservable(this, {
@@ -637,7 +637,7 @@ export class SearchInlineModel {
     runInAction(() => {
       console.time("result");
       // this.result = [...result.map((item) => ({ ...item }))];
-      this.filter.updateRefTarget(new RefTargetInfo(result));
+      this.filter.updateRefTarget(result);
       this.result = result;
       this._updateTime = Date.now();
 
@@ -1001,14 +1001,15 @@ class RefTargetInfo {
     value: "",
   };
   fuse: Fuse<RefTargetItem>;
-  get hasSelected(){
-    return this.contains.length > 0 || this.excludes.length > 0
-  };
-  constructor(public result: PullBlock[]) {
+  get hasSelected() {
+    return this.contains.length > 0 || this.excludes.length > 0;
+  }
+  result: PullBlock[];
+  constructor() {
     makeAutoObservable(this, {
       result: false,
     });
-    this.recaculate(result);
+    // this.recaculate(result);
   }
 
   contains: RefTargetItem[] = [];
@@ -1020,11 +1021,12 @@ class RefTargetInfo {
     return this.result;
   }
 
-  commonList() {
+  get commonList() {
+    console.log(this.commons, " == value");
+
     if (!this.commonFilter.value) {
       return this.commons;
     }
-
     return this.fuse.search(this.commonFilter.value).map((v) => v.item);
   }
 
@@ -1075,7 +1077,7 @@ class RefTargetInfo {
           text: k[":node/title"] || k[":block/string"],
           refUids: v,
           count: v.size,
-          isBlock: !!k[":block/string"]
+          isBlock: !!k[":block/string"],
         };
         const item = {
           ...commonFields,
@@ -1106,8 +1108,9 @@ class RefTargetInfo {
         return ![...this.contains, ...this.excludes].some(
           (v) => v.id === item.id
         );
-      }).sort((a, b) => b.count - a.count);
-
+      })
+      .sort((a, b) => b.count - a.count);
+    // console.log(this.commons, ' = commons')
     const indexs = Fuse.createIndex(["text"], this.commons);
     this.commonFilter.isShowing = this.commons.length > 3;
     this.fuse = new Fuse(

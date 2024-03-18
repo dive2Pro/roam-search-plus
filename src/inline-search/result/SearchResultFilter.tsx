@@ -178,6 +178,10 @@ const ResultReferencesFilter = observer(
         <div className="rm-line" />
         <ControlGroup className="flex-h-box gap-8">
           <div style={{ flex: 1 }}>
+            {/* 
+// TODO: 修改后， 不起作用
+            
+            */}
             <InputGroup
               value={props.model.refTargetInfo.commonFilter.value}
               onChange={(e) =>
@@ -207,7 +211,7 @@ const ResultReferencesFilter = observer(
         </ControlGroup>
         <LoadMoreCommons
           isIncludeBlock={isIncludeBlock}
-          list={props.model.refTargetInfo.commonList()}
+          list={props.model.refTargetInfo.commonList}
         />
       </div>
     );
@@ -220,84 +224,83 @@ type CommonItem = {
   text: string;
   isBlock: boolean;
 };
-function LoadMoreCommons(props: {
-  list: CommonItem[];
-  isIncludeBlock: boolean;
-}) {
-  const ref = useRef<HTMLDivElement>();
-  const SIZE = 100;
-  const [data, setData] = useState(props.list.slice(0, SIZE));
+const LoadMoreCommons = observer(
+  (props: { list: CommonItem[]; isIncludeBlock: boolean }) => {
+    const ref = useRef<HTMLDivElement>();
+    const SIZE = 100;
+    const [data, setData] = useState(props.list.slice(0, SIZE));
 
-  useEffect(() => {
-    // 假设你有一个函数来获取更多的数据
-    let index = 1;
-    function fetchMoreData() {
-      return new Promise<CommonItem[]>((resolve) => {
-        return resolve(props.list.slice(0, ++index * SIZE));
-      });
-    }
-
-    // 假设你的数据列表容器有一个特定的ID
-    const listContainer = ref.current;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // 如果列表容器与视口的交叉状态为true，即用户滚动到了列表底部
-        if (entries[0].isIntersecting) {
-          if (index * SIZE > props.list.length) {
-            return;
-          }
-          // 停止观察器，避免重复触发
-          observer.unobserve(listContainer);
-          // 加载更多数据
-          fetchMoreData().then((newData) => {
-            // 将新数据追加到原有数据数组中
-            setData(newData);
-            // 重新开始观察列表容器
-            observer.observe(listContainer);
-          });
-        }
-      },
-      {
-        // 配置选项，设置阈值来确定何时触发观察器的回调函数
-        threshold: 0,
+    useEffect(() => {
+      let index = 1;
+      // setData(props.list.slice(0, SIZE * index));
+      function fetchMoreData() {
+        return new Promise<CommonItem[]>((resolve) => {
+          return resolve(props.list.slice(0, ++index * SIZE));
+        });
       }
-    );
 
-    // 开始观察列表容器
-    observer.observe(listContainer);
-    return () => {
-      observer.disconnect();
-    };
-  }, [props.list]);
+      // 假设你的数据列表容器有一个特定的ID
+      const listContainer = ref.current;
 
-  return (
-    <div
-      ref={ref}
-      style={{
-        overflow: "auto",
-        maxHeight: 280,
-        marginTop: 12,
-      }}
-    >
+      const observer = new IntersectionObserver(
+        (entries) => {
+          // 如果列表容器与视口的交叉状态为true，即用户滚动到了列表底部
+          if (entries[0].isIntersecting) {
+            if (index * SIZE > props.list.length) {
+              return;
+            }
+            // 停止观察器，避免重复触发
+            observer.unobserve(listContainer);
+            // 加载更多数据
+            fetchMoreData().then((newData) => {
+              // 将新数据追加到原有数据数组中
+              setData(newData);
+              // 重新开始观察列表容器
+              observer.observe(listContainer);
+            });
+          }
+        },
+        {
+          // 配置选项，设置阈值来确定何时触发观察器的回调函数
+          threshold: 0,
+        }
+      );
+
+      // 开始观察列表容器
+      observer.observe(listContainer);
+      return () => {
+        observer.disconnect();
+      };
+    }, [props.list]);
+
+    return (
       <div
+        ref={ref}
         style={{
-          gap: 8,
-          display: "flex",
-          flexWrap: "wrap",
+          overflow: "auto",
+          maxHeight: 280,
+          marginTop: 12,
         }}
       >
-        {data
-          .filter((v) => (v.isBlock ? props.isIncludeBlock : true))
-          .map((item) => {
-            return (
-              <Button className="rm-filter-button" onClick={item.onClick}>
-                {item.text}
-                <sub className="rm-sub-text">{item.count}</sub>
-              </Button>
-            );
-          })}
+        <div
+          style={{
+            gap: 8,
+            display: "flex",
+            flexWrap: "wrap",
+          }}
+        >
+          {data
+            .filter((v) => (v.isBlock ? props.isIncludeBlock : true))
+            .map((item) => {
+              return (
+                <Button className="rm-filter-button" onClick={item.onClick}>
+                  {item.text}
+                  <sub className="rm-sub-text">{item.count}</sub>
+                </Button>
+              );
+            })}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+);
