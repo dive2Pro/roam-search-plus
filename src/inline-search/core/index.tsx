@@ -1086,7 +1086,11 @@ class RefTargetInfo {
               const i = self.excludes.push({
                 ...commonFields,
                 onClick: () => {
-                  self.excludes.splice(i - 1, 1);
+                  const index = self.excludes.findIndex(
+                    (c) => c.id === commonFields.id
+                  );
+                  self.excludes.splice(index, 1);
+
                   self.recaculate(blocks);
                 },
               });
@@ -1094,7 +1098,11 @@ class RefTargetInfo {
               const i = self.contains.push({
                 ...commonFields,
                 onClick: () => {
-                  self.contains.splice(i - 1, 1);
+                  const index = self.contains.findIndex(
+                    (c) => c.id === commonFields.id
+                  );
+                  self.contains.splice(index, 1);
+                  console.log(self.contains.length, " = length");
                   self.recaculate(blocks);
                 },
               });

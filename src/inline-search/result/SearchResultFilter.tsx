@@ -178,10 +178,6 @@ const ResultReferencesFilter = observer(
         <div className="rm-line" />
         <ControlGroup className="flex-h-box gap-8">
           <div style={{ flex: 1 }}>
-            {/* 
-// TODO: 修改后， 不起作用
-            
-            */}
             <InputGroup
               value={props.model.refTargetInfo.commonFilter.value}
               onChange={(e) =>
@@ -232,7 +228,7 @@ const LoadMoreCommons = observer(
 
     useEffect(() => {
       let index = 1;
-      // setData(props.list.slice(0, SIZE * index));
+      setData(props.list.slice(0, SIZE * index));
       function fetchMoreData() {
         return new Promise<CommonItem[]>((resolve) => {
           return resolve(props.list.slice(0, ++index * SIZE));
