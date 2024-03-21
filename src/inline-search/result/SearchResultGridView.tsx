@@ -13,6 +13,7 @@ import {
   MenuItem,
   Popover,
   Toaster,
+  Tooltip,
 } from "@blueprintjs/core";
 import { VirtuosoGrid, VirtuosoHandle } from "react-virtuoso";
 import { PageIcon } from "../core/PageIcon";

@@ -547,7 +547,7 @@ export class ResultFilterModel {
   }
 
   get hasFilter() {
-    return this.type !== "all" || this.query !== "";
+    return this.type !== "all" || this.query !== "" || this.refTargetInfo.hasSelected;
   }
 
   reset() {
@@ -555,6 +555,8 @@ export class ResultFilterModel {
     this.query = "";
     this.model.blockInfo.saveResultFilterQuery("");
     this.model.blockInfo.saveResultFilterType("all");
+    this.refTargetInfo.reset();
+    this.refTargetInfo.recaculate(this.model.searchResult)
   }
 
   hydrate(json: { query: string; type: string; viewType: string }) {
@@ -1001,6 +1003,11 @@ class RefTargetInfo {
     value: "",
   };
   fuse: Fuse<RefTargetItem>;
+
+  reset() {
+    this.contains = [];
+    this.excludes = [];
+  }
   get hasSelected() {
     return this.contains.length > 0 || this.excludes.length > 0;
   }
