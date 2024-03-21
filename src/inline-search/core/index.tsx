@@ -295,11 +295,13 @@ export class InlineRoamBlockInfo {
     json?: {};
     title?: string;
     viewType: string;
+    sort: string;
   }) {
     this.searchModel.filter.hydrate({
       query: blockProps.query,
       type: blockProps.type || "all",
       viewType: blockProps.viewType,
+      sort: blockProps.sort,
     });
 
     if (blockProps.json) {
@@ -320,11 +322,11 @@ export class InlineRoamBlockInfo {
     this.hydrateImpl({
       title: blockProps["inline-search-title"],
       json: json ? JSON.parse(json) : undefined,
-      query: blockProps["inline-search-result-filter-query"] || "",
+      query: blockProps["result-filter-query"] || "",
 
-      type: blockProps["inline-search-result-filter-type"] || "all",
-      viewType:
-        blockProps["inline-search-result-filter-view-type"] || "side-menu",
+      type: blockProps["result-filter-type"] || "all",
+      viewType: blockProps["result-filter-view-type"] || "grid",
+      sort: blockProps["result-filter-sort"] || "",
     });
     saveConfigToFirstChild(this.id, JSON.stringify(blockProps));
   }
@@ -362,7 +364,7 @@ export class InlineRoamBlockInfo {
       this.id,
       JSON.stringify({
         ...this.getInfo(),
-        "inline-search-result-filter-view-type": type,
+        "result-filter-view-type": type,
       })
     );
   });
@@ -372,7 +374,7 @@ export class InlineRoamBlockInfo {
       this.id,
       JSON.stringify({
         ...this.getInfo(),
-        "inline-search-result-filter-query": query,
+        "result-filter-query": query,
       })
     );
   });
@@ -382,7 +384,17 @@ export class InlineRoamBlockInfo {
       this.id,
       JSON.stringify({
         ...this.getInfo(),
-        "inline-search-result-filter-type": type,
+        "result-filter-type": type,
+      })
+    );
+  });
+
+  saveResultFilterSort = debounce((type: string) => {
+    saveConfigToFirstChild(
+      this.id,
+      JSON.stringify({
+        ...this.getInfo(),
+        "result-filter-sort": type,
       })
     );
   });
@@ -409,9 +421,9 @@ export function useSearchInlineModel(inlineModel: InlineRoamBlockInfo) {
 
 const fuseOptions = {
   // isCaseSensitive: false,
-  // includeScore: true,
+  includeScore: true,
   // shouldSort: true,
-  includeMatches: true,
+  // includeMatches: true,
   // findAllMatches: true,
   // minMatchCharLength: 1,
   // location: 0,
@@ -457,6 +469,7 @@ export class ResultFilterModel {
     });
   }
   fuseResultModel = new FuseResultModel();
+  sortResultModel = new SortResultModel(this);
 
   type = "all";
   viewType = "grid";
@@ -480,6 +493,10 @@ export class ResultFilterModel {
     this.changeQueryTime();
   };
 
+  saveSortType = (v: string) => {
+    this.model.blockInfo.saveResultFilterSort(v);
+  };
+
   changeQueryTime = debounce(() => {
     runInAction(() => {
       this.queryChangedTime = Date.now();
@@ -500,7 +517,13 @@ export class ResultFilterModel {
   registerListeners(cb: (data: FuseResultModel) => void) {
     cb(this.fuseResultModel);
     const dispose = reaction(
-      () => [this.queryChangedTime, this.result, this.type] as const,
+      () =>
+        [
+          this.queryChangedTime,
+          this.result,
+          this.type,
+          this.sortResultModel.current,
+        ] as const,
       ([_queryTime, result, type]) => {
         const query = this.query;
 
@@ -517,24 +540,25 @@ export class ResultFilterModel {
             result = result.filter((b) => b[":block/parents"]);
             break;
         }
-
         // console.log(query, " = query");
         if (!query.trim()) {
-          this.fuseResultModel.result = result.map((item) => ({
-            item,
-            refIndex: 0,
-            matches: [],
-          }));
+          this.fuseResultModel.result = this.sortResultModel.sort(
+            result.map((item) => ({
+              item,
+              refIndex: 0,
+              matches: [],
+              score: 0,
+            }))
+          );
+
           return;
         }
         console.time(" result -");
 
         const indexs = Fuse.createIndex(fuseOptions.keys, result);
-        this.fuseResultModel.result = new Fuse(
-          result,
-          fuseOptions,
-          indexs
-        ).search(query.trim());
+        this.fuseResultModel.result = this.sortResultModel.sort(
+          new Fuse(result, fuseOptions, indexs).search(query.trim())
+        );
         console.timeEnd(" result -");
       },
       {
@@ -547,7 +571,9 @@ export class ResultFilterModel {
   }
 
   get hasFilter() {
-    return this.type !== "all" || this.query !== "" || this.refTargetInfo.hasSelected;
+    return (
+      this.type !== "all" || this.query !== "" || this.refTargetInfo.hasSelected
+    );
   }
 
   reset() {
@@ -556,13 +582,19 @@ export class ResultFilterModel {
     this.model.blockInfo.saveResultFilterQuery("");
     this.model.blockInfo.saveResultFilterType("all");
     this.refTargetInfo.reset();
-    this.refTargetInfo.recaculate(this.model.searchResult)
+    this.refTargetInfo.recaculate(this.model.searchResult);
   }
 
-  hydrate(json: { query: string; type: string; viewType: string }) {
+  hydrate(json: {
+    query: string;
+    type: string;
+    viewType: string;
+    sort: string;
+  }) {
     this.query = json.query;
     this.type = json.type;
     this.viewType = json.viewType;
+    this.sortResultModel.current = json.sort;
   }
 
   deleteById(id: string) {
@@ -1147,4 +1179,107 @@ interface RefTargetItem {
   count: number;
   isBlock: boolean;
   refUids: Set<number>;
+}
+
+class SortResultModel {
+  sort(result: FuseResult<PullBlock>[]) {
+    console.log(result, " = result");
+    return result.sort(this.options.find((v) => v.value === this.current).sort);
+  }
+
+  current = "";
+  get options() {
+    return [
+      {
+        text: "Relevance",
+        label: "Highest first",
+        value: "",
+        sort: (a: FuseResult<PullBlock>, b: FuseResult<PullBlock>) => {
+          return a.score - b.score;
+        },
+      },
+      {
+        text: "Relevance",
+        label: "Lowest first",
+        value: "r-l",
+        sort: (a: FuseResult<PullBlock>, b: FuseResult<PullBlock>) => {
+          return b.score - a.score;
+        },
+      },
+      {
+        text: "Last Updated",
+        label: "Newest first",
+        value: "l-n-f",
+        sort: (a: FuseResult<PullBlock>, b: FuseResult<PullBlock>) => {
+          return b.item[":edit/time"] - a.item[":edit/time"];
+        },
+      },
+      {
+        text: "Last Updated",
+        label: "Oldest first",
+        value: "l-o-f",
+        sort: (a: FuseResult<PullBlock>, b: FuseResult<PullBlock>) => {
+          return a.item[":edit/time"] - b.item[":edit/time"];
+        },
+      },
+      {
+        text: "Created Date",
+        label: "Newest first",
+        value: "c-n-f",
+        sort: (a: FuseResult<PullBlock>, b: FuseResult<PullBlock>) => {
+          return a.item[":create/time"] - b.item[":create/time"];
+        },
+      },
+      {
+        text: "Created Date",
+        label: "Oldest first",
+        value: "c-o-f",
+        sort: (a: FuseResult<PullBlock>, b: FuseResult<PullBlock>) => {
+          return b.item[":create/time"] - a.item[":create/time"];
+        },
+      },
+      {
+        text: "Title",
+        label: "A -> Z",
+        value: "t-a-z",
+        sort: (a: FuseResult<PullBlock>, b: FuseResult<PullBlock>) => {
+          return (
+            a.item[":node/title"] || a.item[":block/string"]
+          ).localeCompare(
+            b.item[":node/title"] || b.item[":block/string"],
+            "en-US"
+          );
+        },
+      },
+      {
+        text: "Title",
+        label: "Z -> A",
+        value: "t-z-a",
+        sort: (a: FuseResult<PullBlock>, b: FuseResult<PullBlock>) => {
+          return (
+            b.item[":node/title"] || b.item[":block/string"]
+          ).localeCompare(
+            a.item[":node/title"] || a.item[":block/string"],
+            "en-US"
+          );
+        },
+      },
+    ].map((option) => ({
+      ...option,
+      intent: option.value === this.current ? "primary" : ("none" as "primary"),
+      onClick: () => {
+        runInAction(() => {
+          this.current = option.value;
+          this.filterModel.saveSortType(option.value);
+        });
+      },
+    }));
+  }
+  constructor(public filterModel: ResultFilterModel) {
+    makeAutoObservable(this);
+  }
+
+  get hasSelect() {
+    return !!this.current;
+  }
 }

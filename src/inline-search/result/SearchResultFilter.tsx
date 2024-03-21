@@ -44,6 +44,7 @@ export const SearchResultFilter = observer(
             intent={props.model.refTargetInfo.hasSelected ? "danger" : "none"}
           />
         </Popover>
+        <ResultSorts model={props.model} />
         {props.model.hasFilter ? (
           <>
             <Divider />
@@ -300,3 +301,23 @@ const LoadMoreCommons = observer(
     );
   }
 );
+
+const ResultSorts = observer((props: { model: ResultFilterModel }) => {
+  return (
+    <Popover
+      content={
+        <Menu >
+          {props.model.sortResultModel.options.map((option) => {
+            return <MenuItem  {...option} />;
+          })}
+        </Menu>
+      }
+    >
+      <Button
+        icon="sort"
+        small
+        intent={props.model.sortResultModel.hasSelect ? "primary" : "none"}
+      />
+    </Popover>
+  );
+});
