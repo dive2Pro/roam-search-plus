@@ -296,12 +296,17 @@ export class InlineRoamBlockInfo {
     title?: string;
     viewType: string;
     sort: string;
+    refFilters?: {
+      containsIds: number[];
+      excludesIds: number[];
+    };
   }) {
     this.searchModel.filter.hydrate({
       query: blockProps.query,
       type: blockProps.type || "all",
       viewType: blockProps.viewType,
       sort: blockProps.sort,
+      refFilters: blockProps.refFilters,
     });
 
     if (blockProps.json) {
@@ -327,6 +332,7 @@ export class InlineRoamBlockInfo {
       type: blockProps["result-filter-type"] || "all",
       viewType: blockProps["result-filter-view-type"] || "grid",
       sort: blockProps["result-filter-sort"] || "",
+      refFilters: blockProps["result-filter-tags"],
     });
     saveConfigToFirstChild(this.id, JSON.stringify(blockProps));
   }
@@ -399,6 +405,21 @@ export class InlineRoamBlockInfo {
     );
   });
 
+  saveResultRefFilters = debounce(
+    (containsIds: number[], excludesIds: number[]) => {
+      saveConfigToFirstChild(
+        this.id,
+        JSON.stringify({
+          ...this.getInfo(),
+          "result-filter-tags": {
+            containsIds,
+            excludesIds,
+          },
+        })
+      );
+    }
+  );
+
   changeTitle(v: string): void {
     this.title = v;
   }
@@ -458,9 +479,12 @@ export class FuseResultModel {
 }
 
 export class ResultFilterModel {
-  refTargetInfo = new RefTargetInfo();
+  refTargetInfo = new RefTargetInfo(this);
+  fuseResultModel = new FuseResultModel();
+  sortResultModel = new SortResultModel(this);
+
   updateRefTarget(result: PullBlock[]) {
-    this.refTargetInfo.recaculate(result);
+    this.refTargetInfo.recaculateInFirstPlace(result);
   }
   constructor(public model: SearchInlineModel) {
     makeAutoObservable(this, {
@@ -468,8 +492,6 @@ export class ResultFilterModel {
       fuseResultModel: false,
     });
   }
-  fuseResultModel = new FuseResultModel();
-  sortResultModel = new SortResultModel(this);
 
   type = "all";
   viewType = "grid";
@@ -496,6 +518,10 @@ export class ResultFilterModel {
   saveSortType = (v: string) => {
     this.model.blockInfo.saveResultFilterSort(v);
   };
+
+  saveRefFilter(containsIds: number[], excludesIds: number[]) {
+    this.model.blockInfo.saveResultRefFilters(containsIds, excludesIds);
+  }
 
   changeQueryTime = debounce(() => {
     runInAction(() => {
@@ -590,11 +616,19 @@ export class ResultFilterModel {
     type: string;
     viewType: string;
     sort: string;
+    refFilters?: {
+      containsIds: number[];
+      excludesIds: number[];
+    };
   }) {
     this.query = json.query;
     this.type = json.type;
     this.viewType = json.viewType;
     this.sortResultModel.current = json.sort;
+    this.refTargetInfo.hydrate(
+      json.refFilters?.containsIds || [],
+      json.refFilters?.excludesIds || []
+    );
   }
 
   deleteById(id: string) {
@@ -1044,7 +1078,7 @@ class RefTargetInfo {
     return this.contains.length > 0 || this.excludes.length > 0;
   }
   result: PullBlock[];
-  constructor() {
+  constructor(public model: ResultFilterModel) {
     makeAutoObservable(this, {
       result: false,
     });
@@ -1055,18 +1089,105 @@ class RefTargetInfo {
   excludes: RefTargetItem[] = [];
   private commons: RefTargetItem[] = [];
 
+  private containsIds: number[] = [];
+  private excludesIds: number[] = [];
+
+  hydrate(containsIds: number[], excludesIds: number[]) {
+    this.containsIds = containsIds;
+    this.excludesIds = excludesIds;
+  }
+
+  recaculateInFirstPlace(blocks: PullBlock[]) {
+    if (this.containsIds.length || this.excludesIds.length) {
+      const refTargetMap = new Map<number, Set<number>>();
+
+      blocks.filter((bItem) => {
+        const bItemRefs = bItem[":block/refs"] || [];
+        bItemRefs.forEach((ref) => {
+          const id = ref[":db/id"];
+          const block = getInfoById(id);
+          if (!block) {
+            return;
+          }
+          if (!refTargetMap.has(block[":db/id"])) {
+            refTargetMap.set(block[":db/id"], new Set());
+          }
+          refTargetMap.get(block[":db/id"]).add(bItem[":db/id"]);
+        });
+
+        return true;
+      });
+
+      this.contains = this.containsIds.map((id) => {
+        const v = refTargetMap.get(id);
+        const k = getInfoById(id);
+        const commonFields = {
+          id: k[":db/id"],
+          text: k[":node/title"] || k[":block/string"],
+          refUids: v,
+          count: v.size,
+          isBlock: !!k[":block/string"],
+        };
+        return {
+          ...commonFields,
+          onClick: () => {
+            const index = this.contains.findIndex(
+              (c) => c.id === commonFields.id
+            );
+            this.contains.splice(index, 1);
+            this.recaculate(blocks);
+            this.saveConfig();
+          },
+        };
+      });
+      this.containsIds = [];
+
+      this.excludes = this.excludesIds.map((id) => {
+        const v = refTargetMap.get(id);
+        const k = getInfoById(id);
+        const commonFields = {
+          id: k[":db/id"],
+          text: k[":node/title"] || k[":block/string"],
+          refUids: v,
+          count: v.size,
+          isBlock: !!k[":block/string"],
+        };
+        return {
+          ...commonFields,
+          onClick: () => {
+            const index = this.excludes.findIndex(
+              (c) => c.id === commonFields.id
+            );
+            this.excludes.splice(index, 1);
+
+            this.recaculate(blocks);
+            this.saveConfig();
+          },
+        };
+      });
+
+      this.excludesIds = [];
+    }
+    this.recaculate(blocks);
+  }
+
   get filterResult() {
     this._updateTime;
     return this.result;
   }
 
   get commonList() {
-    console.log(this.commons, " == value");
-
     if (!this.commonFilter.value) {
       return this.commons;
     }
     return this.fuse.search(this.commonFilter.value).map((v) => v.item);
+  }
+
+  private saveConfig() {
+    this.model.saveRefFilter(
+      this.contains.map((v) => v.id),
+      this.excludes.map((v) => v.id)
+    );
   }
 
   recaculate = (blocks: PullBlock[]) => {
@@ -1122,7 +1243,7 @@ class RefTargetInfo {
           ...commonFields,
           onClick: (e: React.MouseEvent) => {
             if (e.shiftKey) {
-              const i = self.excludes.push({
+              self.excludes.push({
                 ...commonFields,
                 onClick: () => {
                   const index = self.excludes.findIndex(
@@ -1131,22 +1252,24 @@ class RefTargetInfo {
                   self.excludes.splice(index, 1);
 
                   self.recaculate(blocks);
+                  this.saveConfig();
                 },
               });
             } else {
-              const i = self.contains.push({
+              self.contains.push({
                 ...commonFields,
                 onClick: () => {
                   const index = self.contains.findIndex(
                     (c) => c.id === commonFields.id
                   );
                   self.contains.splice(index, 1);
-                  console.log(self.contains.length, " = length");
                   self.recaculate(blocks);
+                  this.saveConfig();
                 },
               });
             }
             self.recaculate(blocks);
+            this.saveConfig();
           },
         };
         return item;
