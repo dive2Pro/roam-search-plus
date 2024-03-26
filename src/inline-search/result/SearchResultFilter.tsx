@@ -55,7 +55,7 @@ export const SearchResultFilter = observer(
               outlined
               small
               icon="small-cross"
-              text="clear"
+              text="Clear"
             />
           </>
         ) : null}

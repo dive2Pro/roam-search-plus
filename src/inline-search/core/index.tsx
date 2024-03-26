@@ -598,7 +598,10 @@ export class ResultFilterModel {
 
   get hasFilter() {
     return (
-      this.type !== "all" || this.query !== "" || this.refTargetInfo.hasSelected
+      this.type !== "all" ||
+      this.query !== "" ||
+      this.refTargetInfo.hasSelected ||
+      this.sortResultModel.hasSelect
     );
   }
 
@@ -607,6 +610,7 @@ export class ResultFilterModel {
     this.query = "";
     this.model.blockInfo.saveResultFilterQuery("");
     this.model.blockInfo.saveResultFilterType("all");
+    this.sortResultModel.reset();
     this.refTargetInfo.reset();
     this.refTargetInfo.recaculate(this.model.searchResult);
   }
@@ -1305,6 +1309,9 @@ interface RefTargetItem {
 }
 
 class SortResultModel {
+  reset() {
+    this.current = "";
+  }
   sort(result: FuseResult<PullBlock>[]) {
     console.log(result, " = result");
     return result.sort(this.options.find((v) => v.value === this.current).sort);

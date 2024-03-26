@@ -26,6 +26,11 @@
   white-space: nowrap;
 }
 
+.bp3-dark .inline-search-result  .grid-item {
+  background-color: var(--dark-bg-3, rgba(55, 53, 47, 0.024));
+
+}
+
 .inline-search-result  .grid-item {
   width: 100%;
   min-height: 170px;
@@ -34,7 +39,7 @@
   flex-direction: column;
   position: relative;
   padding: 0;
-  background-color: var(--dark-bg-3, rgba(55, 53, 47, 0.024));
+  background-color: rgba(55, 53, 47, 0.024);
 }
 
 .inline-search-result  .grid-item:hover .right-top-menu {
@@ -57,11 +62,14 @@
   overflow: hidden;
 }
 
+.bp3-dark .inline-search-result .footer { 
+  background-color: var(--dark-bg, white);
 
+}
 .inline-search-result .footer {
   pointer-events: none;
   padding: 8px 10px 10px;
-  background-color: var(--dark-bg, white);
+  background-color:  white;
   min-height: 30px;
   display: flex;
 }
