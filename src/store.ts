@@ -1,22 +1,14 @@
-import { TextArea, Toast, Toaster } from "@blueprintjs/core";
+import { Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
-import {
-  batch,
-  computed,
-  observable,
-  ObservableObject,
-  observe,
-} from "@legendapp/state";
-import dayjs, { Dayjs } from "dayjs";
+import { batch, observable, observe } from "@legendapp/state";
+import dayjs from "dayjs";
 import { ReactNode } from "react";
-import { PullBlock } from "roamjs-components/types";
 import { delay } from "./delay";
 import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
 import { clone, CONSTNATS, debounce, extension_helper } from "./helper";
 import { isGraphLoaded, setGraphLoaded } from "./loaded";
 import { Query } from "./query";
 import {
-  CacheBlockType,
   deleteFromCacheByUid,
   findLowestParentFromBlocks,
   getAllPages,
@@ -24,23 +16,22 @@ import {
   getCacheByUid,
   getCurrentPage,
   getMe,
-  getPageUidsFromUids,
   getParentsStrFromBlockUid,
   initCache,
   opens,
   renewCache2,
 } from "./roam";
 
-
 export function findLowestParentFromResult(block: ResultItem) {
-  if (block.children.length) {
+  if (block.children?.length) {
     let lowestParent = findLowestParentFromBlocks(
       block.children.map((item) => ({ uid: item.id }))
     );
-    lowestParent = lowestParent ? getCacheByUid(lowestParent[":block/uid"])?.block : null;
+    lowestParent = lowestParent
+      ? getCacheByUid(lowestParent[":block/uid"])?.block
+      : null;
 
     if (lowestParent) {
-      
       const result = {
         id: lowestParent[":block/uid"],
         text: lowestParent[":block/string"],
@@ -71,6 +62,7 @@ export type ResultItem = {
   isSelected: boolean;
   children: ResultItem[];
   createUser: string | number;
+  needCreate?: boolean;
 };
 
 export type SelectResultItem = ResultItem & {
@@ -160,10 +152,10 @@ type ITab = ReturnType<typeof defaultTab>;
 let Tabs = [defaultTab()] as ITab[];
 
 const addToTabs = (newTab: ITab) => {
-// console.log(Tabs.length, windowUi.tab.tabs.length);
+  // console.log(Tabs.length, windowUi.tab.tabs.length);
   Tabs.push(newTab);
   windowUi.tab.tabs.push(newTab);
-// console.log(Tabs.length, windowUi.tab.tabs.length);
+  // console.log(Tabs.length, windowUi.tab.tabs.length);
   Tab.save(Tabs);
   focusInTabs(newTab.id);
 };
@@ -260,6 +252,15 @@ const getResult = () => {
 let _list: ResultItem[] = [];
 const setList = (result: ResultItem[]) => {
   _list = result;
+  if (store && !store.ui?.isMultipleSelection() && !store.ui?.hasExactPage()) {
+    const createPage = {
+      text: store.ui.getSearch(),
+      isPage: true,
+      needCreate: true,
+      children: [],
+    } as ResultItem;
+    _list = [createPage, ..._list];
+  }
   query.list.set([]);
 };
 
@@ -285,7 +286,7 @@ const trigger = debounce(
         });
       }
       if (filterCount === 0 && !ui.conditions.modificationDate.peek()) {
-      // console.log("return search", config);
+        // console.log("return search", config);
         return;
       }
     }
@@ -307,6 +308,25 @@ const trigger = debounce(
       });
       console.timeEnd("promise");
       console.time("2222");
+
+      const setExactPageOnFirst = (title: string) => {
+        const findExactPage = (title: string) => {
+          return pages.findIndex((item) => item.block[":node/title"] === title);
+        };
+
+        const placeExactPageOnFirst = (index: number) => {
+          if (index === -1) {
+            return;
+          }
+          const item = pages[index];
+          pages.splice(index, 1);
+          pages.unshift(item);
+        };
+        const index = findExactPage(title);
+        placeExactPageOnFirst(index);
+      };
+
+      setExactPageOnFirst(config.search);
 
       const result: ResultItem[] = [
         ...pages.map((block) => {
@@ -370,7 +390,7 @@ const trigger = debounce(
         }),
       ];
       // _result = result;
-    // console.log(" ui result = ", result);
+      // console.log(" ui result = ", result);
       // ui.result.set([]);
       console.timeEnd("2222");
       setResult(result);
@@ -472,33 +492,6 @@ const dispose = observe(async () => {
   }
 });
 
-function conditionFilter<T extends PullBlock>(
-  blocks: T[],
-  config: {
-    modificationDate?: SelectDate;
-    creationDate?: SelectDate;
-  }
-) {
-  let result = blocks;
-  if (config.modificationDate) {
-    result = result.filter((item) => {
-      return (
-        item[":edit/time"] >= config.modificationDate.start.valueOf() &&
-        item[":edit/time"] >= config.modificationDate.end.valueOf()
-      );
-    });
-  }
-  if (config.modificationDate) {
-    result = result.filter((item) => {
-      return (
-        item[":create/time"] >= config.modificationDate.start.valueOf() &&
-        item[":create/time"] >= config.modificationDate.end.valueOf()
-      );
-    });
-  }
-  return result;
-}
-
 const disposeUiResult = observe(async () => {
   let uiResult = getResult();
 
@@ -522,15 +515,6 @@ const disposeUiResult = observe(async () => {
     }
     return result;
   });
-  // if (ui.conditions.onlyPage.get()) {
-  //   uiResult = uiResult.filter((item) => item.isPage);
-  // }
-  // uiResult.filter( item => item.isPage)
-  // const resultPages = getPageUidsFromUids(uiResult.map((item) => item.id));
-  // 只有选中的 page 才出现.
-  // uiResult = uiResult.filter((item) => {
-  //   return selectedPagesUids.some((id) => id === item.id);
-  // });
   const modificationDate = ui.conditions.modificationDate.get();
   const creationDate = ui.conditions.creationDate.get();
 
@@ -662,6 +646,20 @@ export const store = {
     ui,
   }),
   actions: {
+    createPage(title: string) {
+      window.roamAlphaAPI.createPage({
+        page: {
+          title: title,
+
+        }
+      }).then((res) => {
+        window.roamAlphaAPI.ui.mainWindow.openPage({
+          page: {
+            title
+          }
+        })
+      })
+    },
     toggleMaximize() {
       windowUi.mode.max.set((prev) => !prev);
     },
@@ -669,7 +667,7 @@ export const store = {
       ui.showSelectedTarget.toggle();
       if (ui.showSelectedTarget.peek()) {
       } else {
-      // console.log("ahahah");
+        // console.log("ahahah");
         ui.selectedTarget.set((prev) => {
           return prev.filter((item) => item.selected === 1);
         });
@@ -1093,7 +1091,7 @@ export const store = {
       }
       ui.graph.loading.set(false);
       // ui.graph.loaded.set(true);
-      setGraphLoaded(true)
+      setGraphLoaded(true);
     },
     async renewGraph() {
       await delay();
@@ -1188,6 +1186,7 @@ export const store = {
     hasValidSearch() {
       return ui.search.get()?.trim()?.length;
     },
+
     isMultipleSelection() {
       return ui.multiple.get();
     },
@@ -1410,6 +1409,11 @@ export const store = {
       },
     },
 
+    hasExactPage() {
+      const first = getResult()[0];
+
+      return first && first.isPage && first.text === ui.search.get();
+    },
     isLoading() {
       return ui.loading.get();
       // return true;

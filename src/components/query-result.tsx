@@ -13,7 +13,12 @@ import {
   Toaster,
 } from "@blueprintjs/core";
 import { For, observer } from "@legendapp/state/react";
-import { store, ResultItem, findLowestParentFromResult, SelectResultItem } from "../store";
+import {
+  store,
+  ResultItem,
+  findLowestParentFromResult,
+  SelectResultItem,
+} from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { date, highlightText } from "../helper";
@@ -188,7 +193,9 @@ const TargetCheckboxAbleRow = observer(
     return (
       <Checkbox
         checked={store.ui.isSelectedTargetInResult(props.item.peek())}
-        onChange={() => store.actions.changeSelectedTargetInResult(props.item.peek())}
+        onChange={() =>
+          store.actions.changeSelectedTargetInResult(props.item.peek())
+        }
         className="flex-row-center check-item"
       >
         <Row item={props.item.get()} />
@@ -205,7 +212,13 @@ export const QueryResult = observer(() => {
   } else {
     Item = Row;
   }
-  const list = store.ui.result.list();
+
+  const getList = () => {
+    const list = store.ui.result.list();
+    return list;
+  };
+  const list = getList();
+
   useLayoutEffect(() => {
     const el = [...document.querySelectorAll("[data-test-id]")].find(
       (el) => el.getAttribute("data-test-id") === "virtuoso-item-list"
@@ -219,7 +232,6 @@ export const QueryResult = observer(() => {
       store.actions.setHeight(vHeight);
     });
   }, [list]);
-  // console.log("render again", list);
   return (
     <Virtuoso
       className="infinite-scroll"
@@ -228,6 +240,10 @@ export const QueryResult = observer(() => {
       data={list}
       itemContent={(index, data) => {
         // console.log('index = ', index)
+        if (data.needCreate) {
+          return <PageCreator data={data} />;
+        }
+
         data = findLowestParentFromResult(data);
         return (
           <Item key={data.text.toString() + "-" + data.editTime} item={data} />
@@ -237,6 +253,27 @@ export const QueryResult = observer(() => {
   );
 });
 
+const PageCreator = observer((props: { data: ResultItem }) => {
+  return (
+    <section
+      className="result-item-container"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        store.actions.createPage(props.data.text as string);
+        store.actions.closeDialog();
+      }}
+    >
+      <Icon icon={"application"}></Icon>
+      <div style={{ width: "100%", marginLeft: 10 }}>
+        <Button small style={{ marginRight: 10 }}>
+          Create Page
+        </Button>
+        {props.data.text}
+      </div>
+    </section>
+  );
+});
 const SelectedResult = observer(() => {
   return (
     <div className="selected-result">

@@ -221,6 +221,7 @@ type CommonItem = {
   text: string;
   isBlock: boolean;
 };
+
 const LoadMoreCommons = observer(
   (props: { list: CommonItem[]; isIncludeBlock: boolean }) => {
     const ref = useRef<HTMLDivElement>();
