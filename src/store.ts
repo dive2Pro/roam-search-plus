@@ -244,6 +244,7 @@ const setResult = (result: ResultItem[]) => {
   _result = result;
   query.result.set([]);
 };
+
 const getResult = () => {
   query.result.get();
   return _result;

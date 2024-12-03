@@ -326,6 +326,7 @@
   color: #828282;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .as-history  section {
@@ -446,18 +447,17 @@
   .bp3-dialog-footer .hint {
     bottom: 10px;
   }
-  .search-content {
-    height: 100%;
-  }
+ 
   .search-content .main-view {
     height: 100%;
     padding: 5px 14px;
   }
 }
 
-.main-view .search-input {
-  box-shadow: none;
-}
+ .search-content {
+  flex: 1
+  }
+  
 
 .main-view {
   width: 100%;
@@ -465,6 +465,7 @@
 
 .graph-loading {
   position: relative;
+
 }
 .graph-loading .loading-view {
   position: absolute;

@@ -1,9 +1,10 @@
-import { Button, Icon, Toaster } from "@blueprintjs/core";
+import { Button, ButtonGroup, Icon, Toaster } from "@blueprintjs/core";
 import { ObservableObject } from "@legendapp/state";
 import { observer, For } from "@legendapp/state/react";
 import { CONSTNATS } from "../helper";
 import { opens } from "../roam";
 import { store } from "../store";
+import { useState } from "react";
 
 type Item = ObservableObject<{ text: string; id: string }>;
 
@@ -13,7 +14,6 @@ const HistoryItem = observer(({ item }: { item: Item }) => {
       minimal
       alignText="left"
       className="query-history-item"
-      icon="search"
       onClick={() => {
         store.actions.useHistory(item.text.peek());
       }}
@@ -28,7 +28,6 @@ const HistoryItem = observer(({ item }: { item: Item }) => {
           icon="small-cross"
         />
       }
-      fill
       text={item.text}
     />
   );
@@ -41,6 +40,7 @@ const RecentlyViewedItem = observer(
         minimal
         alignText="left"
         className="query-history-item"
+        large
         onClick={(e) => {
           // store.actions.useHistory(item.text.peek());
           let opened = false;
@@ -71,46 +71,51 @@ const RecentlyViewedItem = observer(
           />
         }
         fill
-        text={item.text.get()}
-      />
+      >
+        <div className="flex-align-center flex-row gap-4 p-2">
+          <Icon icon="application" size={22} />
+          {item.text.get()}
+        </div>
+      </Button>
     );
   }
 );
 
 export const QueryHistory = observer(() => {
-  return (
-    <div className={CONSTNATS.history}>
-      {store.ui.history.getViewed().get().length > 0 ? (
-        <section>
-          <div className="header">
-            <div>Recently Viewed</div>
-            <Button
-              text="Clear"
-              minimal
-              small
-              onClick={store.actions.history.clearViewed}
-            />
-          </div>
-          <For each={store.ui.history.getViewed()} item={RecentlyViewedItem} />
-        </section>
-      ) : null}
+  const [index, setIndex] = useState(0)
+  const data = [
+    {
+      title: "Recently Viewed",
+      list: store.ui.history.getViewed(),
+    },
+   
+  ].filter(item => item.list.peek().length > 0);
 
-      {store.ui.history.getSearch().get().length > 0 ? (
-        <section>
-          <div className="header">
-            <div>Latest search</div>
-            <Button
-              text="Clear"
-              minimal
-              small
-              onClick={store.actions.history.clearSearch}
-            />
+  return (
+    <div className={`${CONSTNATS.history}`}>
+      {store.ui.history.getSearch().length ? (
+        <div className="p-6 flex-column " style={{ gap: 12 }}>
+          <div>Search history</div>
+          <div className="flex" style={{ gap: 12 }}>
+            {store.ui.history.getSearch().map((keyword) => {
+              return <HistoryItem item={keyword}></HistoryItem>;
+            })}
           </div>
-          <div>
-            <For each={store.ui.history.getSearch()} item={HistoryItem}></For>
-          </div>
-        </section>
+        </div>
       ) : null}
+      <div className="p-6 flex-column flex-1" style={{ gap: 12 }}>
+        <div className="gap-4">
+          {data.map((item, _index) => {
+            return <div>{item.title}</div>;
+         
+          })}
+        </div>
+        <div  className="overflow-auto flex-1">
+          {(data[index]?.list || []).map((item) => {
+            return <RecentlyViewedItem item={item} />;
+          })}
+        </div>
+      </div>
     </div>
   );
 });
