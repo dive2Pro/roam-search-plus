@@ -228,7 +228,7 @@ export const QueryResult = observer(() => {
 
       // list.length > 20 ? MAX : list.length > 10 ? Math.min(MIN + 200, MAX) : MIN;
       // const height = MAX;
-      // console.log(" lahyout effect", vHeight);
+      console.log(" lahyout effect", vHeight);
       store.actions.setHeight(vHeight);
     });
   }, [list]);
@@ -285,52 +285,6 @@ const SelectedResult = observer(() => {
 export const ListContainer = observer(() => {
   return (
     <div className="result-container">
-      <div>
-        <ButtonGroup className="sub-bg">
-          <Popover
-            position={Position.BOTTOM}
-            modifiers={{
-              arrow: {
-                enabled: false,
-              },
-            }}
-            autoFocus={false}
-            usePortal={usePortal()}
-            content={
-              <Menu>
-                {store.ui.sort.selection().map((item, index) => {
-                  return (
-                    <MenuItem
-                      onClick={() => store.actions.changeSort(index)}
-                      text={item.text}
-                    />
-                  );
-                })}
-              </Menu>
-            }
-          >
-            <div>
-              <label>Sort By: </label>
-              <Button
-                rightIcon={<Icon icon="chevron-down" size={12} />}
-                minimal
-                text={store.ui.sort.selectedText()}
-              ></Button>
-            </div>
-          </Popover>
-          <Divider />
-          <Checkbox
-            checked={store.ui.isMultipleSelection()}
-            onChange={(e) => store.actions.toggleMultiple()}
-            label="Select Mode"
-          ></Checkbox>
-          <UnderMobile>
-            <Divider />
-            <MobileSidebar />
-          </UnderMobile>
-        </ButtonGroup>
-      </div>
-      <Divider />
       {store.ui.isLoading() && store.ui.result.size() === 0 ? (
         <div className="flex-row-center h-200">Searching...</div>
       ) : store.ui.hasResult() ? (

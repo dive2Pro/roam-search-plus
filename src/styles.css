@@ -309,7 +309,6 @@
 .sidebar {
   color: #828282;
   display: flex;
-  background-color: hsl(204, 33%, 97%);
   flex-direction: column;
 }
 .bp3-dark .sidebar {

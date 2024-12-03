@@ -15,6 +15,7 @@ import {
   ControlGroup,
   Intent,
   Tooltip,
+  Checkbox,
 } from "@blueprintjs/core";
 
 import { store } from "../store";
@@ -32,7 +33,7 @@ enableLegendStateReact();
 
 const LoadingGraph: FC = observer((props) => {
   return (
-    <div className={"graph-loading w-100p"}>
+    <div className={"graph-loading w-100p"} style={{ height: "100%" }}>
       {store.ui.isLoadingGraph() ? (
         <div className={`loading-view`}>
           <Button icon="lightbulb" minimal>
@@ -54,6 +55,7 @@ const copyToast = () => {
 };
 const MainView = observer(() => {
   const ref = useRef<HTMLInputElement>();
+  const [isFilterOpen, setFilterOpen] = useState(true);
   useEffect(() => {
     return store.actions.onVisibleChange((b) => {
       if (b && ref.current) {
@@ -63,164 +65,227 @@ const MainView = observer(() => {
   }, []);
   return (
     <section className="flex-column main-view">
-      <ControlGroup
-        fill
+      <div
+        className="flex-column bp3-card"
         style={{
-          padding: "4px 20px",
-          background: "white",
+          padding: "10px 20px",
+          gap: 12
         }}
       >
-        <Button
-          style={{ marginRight: 10 }}
-          icon={
-            store.ui.isLoading() ? (
-              <Icon icon="refresh" size={14} className="loading" />
-            ) : (
-              <Icon icon="search" size={14} />
-            )
-          }
-          minimal
-        />
-        <InputGroup
-          placeholder="search..."
-          inputRef={ref}
-          fill
-          style={{
-            lineHeight: "40px",
-            height: 40,
-            boxShadow: "none",
-          }}
-          className="search-input"
-          value={store.ui.getSearch()}
-          onChange={(e) => store.actions.changeSearch(e.target.value)}
-          onKeyPress={(e) => {
-            // console.log(e.key, " == key");
-            if (e.key === "Enter") {
-              store.actions.searchAgain();
-            }
-          }}
-        />
-        {store.ui.isTyped() ? (
+        <ControlGroup fill>
           <Button
-            onClick={() => {
-              store.actions.clearSearch();
-            }}
+            style={{ marginRight: 10 }}
+            icon={
+              store.ui.isLoading() ? (
+                <Icon icon="refresh" size={14} className="loading" />
+              ) : (
+                <Icon icon="search" size={14} />
+              )
+            }
             minimal
-            icon="cross"
-            className="bp3-text-muted"
-          ></Button>
-        ) : undefined}
-      </ControlGroup>
-      <div style={{ display: "flex" , flexDirection: 'row'}}>
+          />
+          <InputGroup
+            placeholder="search..."
+            inputRef={ref}
+            fill
+            style={{
+              lineHeight: "40px",
+              height: 40,
+              boxShadow: "none",
+            }}
+            className="search-input"
+            value={store.ui.getSearch()}
+            onChange={(e) => store.actions.changeSearch(e.target.value)}
+            onKeyPress={(e) => {
+              // console.log(e.key, " == key");
+              if (e.key === "Enter") {
+                store.actions.searchAgain();
+              }
+            }}
+          />
+          {store.ui.isTyped() ? (
+            <Button
+              onClick={() => {
+                store.actions.clearSearch();
+              }}
+              minimal
+              icon="cross"
+              className="bp3-text-muted"
+            ></Button>
+          ) : undefined}
+        </ControlGroup>
+        <ButtonGroup className="flex input-options">
+          <Popover
+            position={Position.BOTTOM}
+            modifiers={{
+              arrow: {
+                enabled: false,
+              },
+            }}
+            targetProps={{
+              style: {
+                flex: 0,
+              },
+            }}
+            autoFocus={false}
+            usePortal={usePortal()}
+            content={
+              <Menu>
+                {store.ui.sort.selection().map((item, index) => {
+                  return (
+                    <MenuItem
+                      onClick={() => store.actions.changeSort(index)}
+                      text={item.text}
+                    />
+                  );
+                })}
+              </Menu>
+            }
+          >
+            <div>
+              <label>Sort By: </label>
+              <Button
+                rightIcon={<Icon icon="chevron-down" size={12} />}
+                minimal
+                text={store.ui.sort.selectedText()}
+              ></Button>
+            </div>
+          </Popover>
+          <Divider />
+          <Checkbox
+            className="flex-align-self-center"
+            style={{ marginBottom: 0 }}
+            checked={store.ui.isMultipleSelection()}
+            onChange={(e) => store.actions.toggleMultiple()}
+            label="Select Mode"
+          ></Checkbox>
+          {store.ui.result.size() > 0 && store.ui.isTyped() ? (
+            store.ui.isMultipleSelection() ? (
+              <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                {store.ui.isShowSelectedTarget() ? (
+                  <Button
+                    intent="none"
+                    icon="cross"
+                    onClick={store.actions.changeShowSelectedTarget}
+                  />
+                ) : (
+                  <Button
+                    intent="success"
+                    onClick={store.actions.changeShowSelectedTarget}
+                    disabled={store.ui.selectedCount() === 0}
+                  >
+                    {store.ui.selectedCount()}
+                  </Button>
+                )}
+
+                <Popover
+                  interactionKind={popoverKind()}
+                  position="right"
+                  autoFocus={false}
+                  usePortal={usePortal()}
+                  content={
+                    <Menu>
+                      <MenuItem
+                        icon="duplicate"
+                        text="As one line"
+                        onClick={() => {
+                          store.actions.confirmMultiple(true);
+                          copyToast();
+                        }}
+                      ></MenuItem>
+                      <MenuItem
+                        icon="multi-select"
+                        text="As multiple lines"
+                        onClick={() => {
+                          store.actions.confirmMultiple();
+                          copyToast();
+                        }}
+                      ></MenuItem>
+                      <MenuItem
+                        icon="arrow-right"
+                        text="Open in sidebar"
+                        onClick={() => {
+                          store.actions.openInsidebarInMultiple();
+                        }}
+                      ></MenuItem>
+                    </Menu>
+                  }
+                >
+                  <Button
+                    disabled={store.ui.selectedCount() === 0}
+                    intent="primary"
+                  >
+                    Confirm
+                  </Button>
+                </Popover>
+              </div>
+            ) : (
+              <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                <Popover
+                  position="right"
+                  interactionKind={popoverKind()}
+                  usePortal={false}
+                  autoFocus={false}
+                  content={
+                    <Menu>
+                      <MenuItem
+                        icon="duplicate"
+                        text="As one line"
+                        onClick={() => {
+                          store.actions.confirm.copyResult(true);
+                          copyToast();
+                          store.actions.toggleDialog();
+                        }}
+                      />
+                      <MenuItem
+                        icon="multi-select"
+                        text="As multiple lines"
+                        onClick={() => {
+                          store.actions.confirm.copyResult();
+                          copyToast();
+                          store.actions.toggleDialog();
+                        }}
+                      />
+                    </Menu>
+                  }
+                >
+                  <Button rightIcon="chevron-right" intent="primary">
+                    Copy results
+                  </Button>
+                </Popover>
+              </div>
+            )
+          ) : null}
+          <div style={{ flex: 1 }} />
+          <Button
+            icon="filter"
+            intent={isFilterOpen ? "primary" : "none"}
+            active={isFilterOpen}
+            minimal
+            onClick={() => setFilterOpen(!isFilterOpen)}
+          >
+            Filters
+          </Button>
+        </ButtonGroup>
+      </div>
+      <div style={{ display: "flex", flexDirection: "row" }}>
         <ListContainer />
-        <Sidebar />
+        {isFilterOpen ? (
+          <>
+            <Divider />
+            <Sidebar />
+          </>
+        ) : null}
       </div>
 
       <div className={Classes.DIALOG_FOOTER}>
-        {store.ui.result.size() > 0 && store.ui.isTyped() ? (
-          store.ui.isMultipleSelection() ? (
-            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-              {store.ui.isShowSelectedTarget() ? (
-                <Button
-                  intent="none"
-                  icon="cross"
-                  onClick={store.actions.changeShowSelectedTarget}
-                />
-              ) : (
-                <Button
-                  intent="success"
-                  onClick={store.actions.changeShowSelectedTarget}
-                  disabled={store.ui.selectedCount() === 0}
-                >
-                  {store.ui.selectedCount()}
-                </Button>
-              )}
-
-              <Popover
-                interactionKind={popoverKind()}
-                position="right"
-                autoFocus={false}
-                usePortal={usePortal()}
-                content={
-                  <Menu>
-                    <MenuItem
-                      icon="duplicate"
-                      text="As one line"
-                      onClick={() => {
-                        store.actions.confirmMultiple(true);
-                        copyToast();
-                      }}
-                    ></MenuItem>
-                    <MenuItem
-                      icon="multi-select"
-                      text="As multiple lines"
-                      onClick={() => {
-                        store.actions.confirmMultiple();
-                        copyToast();
-                      }}
-                    ></MenuItem>
-                    <MenuItem
-                      icon="arrow-right"
-                      text="Open in sidebar"
-                      onClick={() => {
-                        store.actions.openInsidebarInMultiple();
-                      }}
-                    ></MenuItem>
-                  </Menu>
-                }
-              >
-                <Button
-                  disabled={store.ui.selectedCount() === 0}
-                  intent="primary"
-                >
-                  Confirm
-                </Button>
-              </Popover>
-            </div>
-          ) : (
-            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-              <Popover
-                position="right"
-                interactionKind={popoverKind()}
-                usePortal={false}
-                autoFocus={false}
-                content={
-                  <Menu>
-                    <MenuItem
-                      icon="duplicate"
-                      text="As one line"
-                      onClick={() => {
-                        store.actions.confirm.copyResult(true);
-                        copyToast();
-                        store.actions.toggleDialog();
-                      }}
-                    />
-                    <MenuItem
-                      icon="multi-select"
-                      text="As multiple lines"
-                      onClick={() => {
-                        store.actions.confirm.copyResult();
-                        copyToast();
-                        store.actions.toggleDialog();
-                      }}
-                    />
-                  </Menu>
-                }
-              >
-                <Button rightIcon="chevron-right" intent="primary">
-                  Copy results
-                </Button>
-              </Popover>
-            </div>
-          )
-        ) : null}
-
-        <sub className="hint">
+        <sub className="hint flex">
           {store.ui.result.listSize() > 0 ? (
             <span>
               <strong>+{store.ui.result.listSize()}</strong> results
             </span>
           ) : null}
+          <Divider />
           <UnderMobile else={<span>shift+ open in sidebar</span>}></UnderMobile>
         </sub>
       </div>
@@ -276,99 +341,111 @@ const RoamMainView: FC = observer((props) => {
 const useConfirmInputProps = (onSuccess: (title: string) => void) => {
   const [state, setState] = useState({
     open: false,
-    title: '',
-  })
+    title: "",
+  });
   const close = () => {
-    setState(prev => ({ ...prev, open: false, title: '' }))
-    store.actions.tab.toggleTabNameDialog()
-  }
+    setState((prev) => ({ ...prev, open: false, title: "" }));
+    store.actions.tab.toggleTabNameDialog();
+  };
   return {
-    state, setState, close,
+    state,
+    setState,
+    close,
     onConfirm() {
       if (state.title) {
         onSuccess(state.title);
-        close()
+        close();
       }
-
     },
     open() {
-      setState(prev => ({ ...prev, open: true }))
-      store.actions.tab.toggleTabNameDialog()
-    }
-  }
-}
+      setState((prev) => ({ ...prev, open: true }));
+      store.actions.tab.toggleTabNameDialog();
+    },
+  };
+};
 
 const ConfirmInputDialog = (props: ReturnType<typeof useConfirmInputProps>) => {
-  return <Dialog title="Tab Name"
-    isOpen={props.state.open} onClose={() => props.close()}>
-    <div className={Classes.DIALOG_BODY}>
-      <InputGroup
-        value={props.state.title}
-        onChange={e => props.setState(prev => ({ ...prev, title: e.target.value }))}
-        onKeyPress={(e) => {
-          if (e.key === "Enter") {
-            props.onConfirm()
+  return (
+    <Dialog
+      title="Tab Name"
+      isOpen={props.state.open}
+      onClose={() => props.close()}
+    >
+      <div className={Classes.DIALOG_BODY}>
+        <InputGroup
+          value={props.state.title}
+          onChange={(e) =>
+            props.setState((prev) => ({ ...prev, title: e.target.value }))
           }
-        }}
-      />
-    </div>
-    <div className={Classes.DIALOG_FOOTER}>
-      <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-        <Button text="Confirm"
-          intent="primary"
-          onClick={() => {
-            props.onConfirm()
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              props.onConfirm();
+            }
           }}
         />
       </div>
-
-    </div>
-  </Dialog>
-}
+      <div className={Classes.DIALOG_FOOTER}>
+        <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+          <Button
+            text="Confirm"
+            intent="primary"
+            onClick={() => {
+              props.onConfirm();
+            }}
+          />
+        </div>
+      </div>
+    </Dialog>
+  );
+};
 
 const AppContent = observer(() => {
   const confirmInputProps = useConfirmInputProps((title) => {
     store.actions.tab.addTab(title);
-  })
+  });
 
-  return  (
+  return (
     <LoadingGraph>
       <div className="titlebar-container bp3-dialog-header">
         <div className="bp3-heading">
           <ButtonGroup minimal className="tabs-container">
-            {
-              store.ui.tab.getTabs().map((tab, index) => {
-                const v = tab;
-                return <>
+            {store.ui.tab.getTabs().map((tab, index) => {
+              const v = tab;
+              return (
+                <>
                   {index > 0 ? <Divider /> : null}
                   <div className="s-tab flex-row-center">
                     <Button
                       key={v.id}
-                      intent={store.ui.tab.isActive(v.id) ? 'primary' : 'none'}
+                      intent={store.ui.tab.isActive(v.id) ? "primary" : "none"}
                       onClick={() => {
                         store.actions.tab.focus(tab.id);
-                      }}>
+                      }}
+                    >
                       {v.title}
                     </Button>
-                    {
-                      store.ui.tab.canDel(tab.id) ?
-                        <Button minimal small className="flex-align-start del" onClick={() => store.actions.tab.deleteTab(tab.id)}>
-                          <Icon icon="small-cross" size={12} />
-                        </Button> : null
-                    }
-
+                    {store.ui.tab.canDel(tab.id) ? (
+                      <Button
+                        minimal
+                        small
+                        className="flex-align-start del"
+                        onClick={() => store.actions.tab.deleteTab(tab.id)}
+                      >
+                        <Icon icon="small-cross" size={12} />
+                      </Button>
+                    ) : null}
                   </div>
                 </>
-              })
-            }
+              );
+            })}
             <Button
               icon={"plus"}
               onClick={() => {
-                confirmInputProps.open()
+                confirmInputProps.open();
               }}
             />
           </ButtonGroup>
-          <ConfirmInputDialog  {...confirmInputProps} />
+          <ConfirmInputDialog {...confirmInputProps} />
         </div>
         <div className="window-controls-container">
           <ButtonGroup minimal>
@@ -395,13 +472,14 @@ const AppContent = observer(() => {
       </div>
     </LoadingGraph>
   );
-})
+});
 const App = observer(() => {
-  
   if (store.ui.mode.isMaximize()) {
-    return <RoamMainView>
-      <AppContent />
-    </RoamMainView>;
+    return (
+      <RoamMainView>
+        <AppContent />
+      </RoamMainView>
+    );
   }
   return (
     <div
@@ -420,6 +498,7 @@ const App = observer(() => {
           paddingBottom: 0,
           alignItems: "flex-start",
           width: `calc(100% - 200px)`,
+          height: `calc(100vh - 100px)`,
         }}
       >
         <AppContent />
@@ -443,7 +522,9 @@ const MobileApp = observer(() => {
       isOpen={store.ui.isOpen()}
       onClose={() => store.actions.toggleDialog()}
       canOutsideClickClose={!store.ui.isFilterOpen()}
-      canEscapeKeyClose={!store.ui.isFilterOpen() && !store.ui.tab.isTabNameInputing()}
+      canEscapeKeyClose={
+        !store.ui.isFilterOpen() && !store.ui.tab.isTabNameInputing()
+      }
     >
       <div className={Classes.DRAWER_BODY}>
         <LoadingGraph>

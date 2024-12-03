@@ -1059,6 +1059,7 @@ export const store = {
           clearSelected() {
             ui.conditions.exclude.tags.set([]);
           },
+
           changeSelected(obj: BaseUiItem) {
             const selected = ui.conditions.exclude.tags.peek();
             const index = selected.findIndex((item) => item.id === obj.id);
@@ -1073,9 +1074,9 @@ export const store = {
     },
     setHeight(vHeight: number) {
       const windowHeight = document.body.getBoundingClientRect().height;
-      const MAX = windowHeight - 250;
-      const height = Math.max(MIN, Math.min(vHeight, MAX));
-      ui.height.set(height);
+      const MAX = windowHeight - 265
+      // const height = Math.max(MIN, Math.min(vHeight, MAX));
+      ui.height.set(MAX);
     },
     onVisibleChange(cb: (b: boolean) => void) {
       return windowUi.visible.onChange(cb);

@@ -252,3 +252,12 @@
 
   
 }
+
+.input-options .bp3-popover-wrapper{
+  flex: unset;
+  display: block;
+}
+
+.input-options  label {
+  font-weight: normal;
+}
