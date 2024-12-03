@@ -56,18 +56,19 @@ export const Sidebar = observer(() => {
       style={{
         display: store.ui.isTyped() ? "flex" : "none",
       }}
-      className="sidebar"
+      className="sidebar p-4"
     >
       <div>
         <Switch
           label="Case Intensive"
+          labelElement={<div />}
           onChange={(e) => {
             store.actions.conditions.toggleCaseIntensive();
           }}
           checked={store.ui.conditions.isCaseIntensive()}
           alignIndicator="right"
         />
-        <div className="sidebar-title bp3-button-text">Includes</div>
+        <div className="sidebar-title bp3-button-text font-bold">Includes</div>
         <Switch
           label="Include page"
           onChange={(e) => {
@@ -86,7 +87,7 @@ export const Sidebar = observer(() => {
           alignIndicator="right"
         />
 
-        <div className="sidebar-title bp3-button-text">Contents</div>
+        <div className="sidebar-title bp3-button-text font-bold">Contents</div>
         <Switch
           label="Block reference to string"
           onChange={(e) => {
@@ -104,7 +105,7 @@ export const Sidebar = observer(() => {
           alignIndicator="right"
         />
 
-        <div className="sidebar-title bp3-button-text">Scopes</div>
+        <div className="sidebar-title bp3-button-text font-bold">Scopes</div>
 
         {/* 
         <Switch label="Only Block" alignIndicator="right" />
@@ -116,76 +117,92 @@ export const Sidebar = observer(() => {
           const tagInclude = store.ui.conditions.filter.page.include();
           const selectedItems = tagExclude.concat(tagInclude);
           const pages = store.ui.conditions.pages.get();
-          const items = pages.filter(page => {
-            return !tagExclude.some(sItem => sItem.id === page.id) && !tagInclude.some(sItem => sItem.id === page.id)
+          const items = pages.filter((page) => {
+            return (
+              !tagExclude.some((sItem) => sItem.id === page.id) &&
+              !tagInclude.some((sItem) => sItem.id === page.id)
+            );
           });
-          return <SelectPages2
-            content={
-              <RoamPageFilter
-                header={
-                  <RoamTagFilterHeader
-                    includes={tagInclude}
-                    excludes={tagExclude}
-                    onItemAddClick={(item) => {
-                      store.actions.conditions.filter.page.include.changeSelected(item);
-                    }}
-                    onItemRemoveClick={(item => {
-                      store.actions.conditions.filter.page.exclude.changeSelected(item);
-                    })}
-                    onClearAdded={() => {
-                      store.actions.conditions.filter.page.include.clearSelected();
-                    }}
-                    onClearexcludes={() => {
-                      store.actions.conditions.filter.page.exclude.clearSelected();
-                    }}
-                  />
-                }
-                items={items}
+          return (
+            <SelectPages2
+              content={
+                <RoamPageFilter
+                  header={
+                    <RoamTagFilterHeader
+                      includes={tagInclude}
+                      excludes={tagExclude}
+                      onItemAddClick={(item) => {
+                        store.actions.conditions.filter.page.include.changeSelected(
+                          item
+                        );
+                      }}
+                      onItemRemoveClick={(item) => {
+                        store.actions.conditions.filter.page.exclude.changeSelected(
+                          item
+                        );
+                      }}
+                      onClearAdded={() => {
+                        store.actions.conditions.filter.page.include.clearSelected();
+                      }}
+                      onClearexcludes={() => {
+                        store.actions.conditions.filter.page.exclude.clearSelected();
+                      }}
+                    />
+                  }
+                  items={items}
+                  itemRenderer={(index, item) => {
+                    return (
+                      <Button
+                        minimal
+                        fill
+                        alignText="left"
+                        text={item.text}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (e.shiftKey) {
+                            store.actions.conditions.filter.page.exclude.changeSelected(
+                              item
+                            );
 
-                itemRenderer={(index, item) => {
-                  return (
-                    <Button
-
-                      minimal fill alignText="left" text={item.text} onClick={e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (e.shiftKey) {
-                          store.actions.conditions.filter.page.exclude.changeSelected(item);
-
-                          return
-                        }
-                        store.actions.conditions.filter.page.include.changeSelected(item);
-
-                      }}>
-                    </Button>
-                  );
-                }}
-              />
-            }
-
-          >
-            <Button
-              icon="document"
-              alignText="left"
-              minimal
-              style={{
-                maxWidth: '100%'
-              }}
-              outlined={!!selectedItems.length}
-              intent={selectedItems.length ? "primary" : 'none'}
-              text={
-                <span className={"ellipsis-to-left block " +
-                  (selectedItems.length ? 'primary' : '')
-                }
-                  style={{
-                    direction: 'unset',
-                    display: 'block',
+                            return;
+                          }
+                          store.actions.conditions.filter.page.include.changeSelected(
+                            item
+                          );
+                        }}
+                      ></Button>
+                    );
                   }}
-                >
-                  Page: {selectedItems.map(item => item.text).join(",")}
-                </span>
-              } />
-          </SelectPages2>
+                />
+              }
+            >
+              <Button
+                icon="document"
+                alignText="left"
+                minimal
+                style={{
+                  maxWidth: "100%",
+                }}
+                outlined={!!selectedItems.length}
+                intent={selectedItems.length ? "primary" : "none"}
+                text={
+                  <span
+                    className={
+                      "ellipsis-to-left block " +
+                      (selectedItems.length ? "primary" : "")
+                    }
+                    style={{
+                      direction: "unset",
+                      display: "block",
+                    }}
+                  >
+                    Page: {selectedItems.map((item) => item.text).join(",")}
+                  </span>
+                }
+              />
+            </SelectPages2>
+          );
         })()}
         <div className="h-1" />
         {(() => {
@@ -193,76 +210,95 @@ export const Sidebar = observer(() => {
           const tagInclude = store.ui.conditions.filter.tag.include();
           const selectedItems = tagExclude.concat(tagInclude);
           const pages = store.ui.conditions.pages.get();
-          const items = pages.filter(page => {
-            return !tagExclude.some(sItem => sItem.id === page.id) && !tagInclude.some(sItem => sItem.id === page.id)
+          const items = pages.filter((page) => {
+            return (
+              !tagExclude.some((sItem) => sItem.id === page.id) &&
+              !tagInclude.some((sItem) => sItem.id === page.id)
+            );
           });
-          return <SelectPages2
-            content={
-              <RoamPageFilter
-                header={
-                  <RoamTagFilterHeader
-                    includes={tagInclude}
-                    excludes={tagExclude}
-                    onItemAddClick={(item) => {
-                      store.actions.conditions.filter.tag.include.changeSelected(item);
-                    }}
-                    onItemRemoveClick={(item => {
-                      store.actions.conditions.filter.tag.exclude.changeSelected(item);
-                    })}
-                    onClearAdded={() => {
-                      store.actions.conditions.filter.tag.include.clearSelected();
-                    }}
-                    onClearexcludes={() => {
-                      store.actions.conditions.filter.tag.exclude.clearSelected();
-                    }}
-                  />
-                }
-                items={items}
-                itemRenderer={(index, item) => {
-                  return (
-                    <Button
-                      // rightIcon={
-                      //   <span>{item.backlinkCount}</span>
-                      // }
-                      minimal fill alignText="left" text={item.text} onClick={e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (e.shiftKey) {
-                          store.actions.conditions.filter.tag.exclude.changeSelected(item);
+          return (
+            <SelectPages2
+              content={
+                <RoamPageFilter
+                  header={
+                    <RoamTagFilterHeader
+                      includes={tagInclude}
+                      excludes={tagExclude}
+                      onItemAddClick={(item) => {
+                        store.actions.conditions.filter.tag.include.changeSelected(
+                          item
+                        );
+                      }}
+                      onItemRemoveClick={(item) => {
+                        store.actions.conditions.filter.tag.exclude.changeSelected(
+                          item
+                        );
+                      }}
+                      onClearAdded={() => {
+                        store.actions.conditions.filter.tag.include.clearSelected();
+                      }}
+                      onClearexcludes={() => {
+                        store.actions.conditions.filter.tag.exclude.clearSelected();
+                      }}
+                    />
+                  }
+                  items={items}
+                  itemRenderer={(index, item) => {
+                    return (
+                      <Button
+                        // rightIcon={
+                        //   <span>{item.backlinkCount}</span>
+                        // }
+                        minimal
+                        fill
+                        alignText="left"
+                        text={item.text}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (e.shiftKey) {
+                            store.actions.conditions.filter.tag.exclude.changeSelected(
+                              item
+                            );
 
-                          return
-                        }
-                        store.actions.conditions.filter.tag.include.changeSelected(item);
-
-                      }}>
-                    </Button>
-                  );
-                }}
-              />
-            }
-          >
-            <Button
-              icon="tag"
-              alignText="left"
-              minimal
-              style={{
-                maxWidth: '100%'
-              }}
-              outlined={!!selectedItems.length}
-              intent={selectedItems.length ? "primary" : 'none'}
-              text={
-                <span className={"ellipsis-to-left block " +
-                  (selectedItems.length ? 'primary' : '')
-                }
-                  style={{
-                    direction: 'unset',
-                    display: 'block',
+                            return;
+                          }
+                          store.actions.conditions.filter.tag.include.changeSelected(
+                            item
+                          );
+                        }}
+                      ></Button>
+                    );
                   }}
-                >
-                  Tag: {selectedItems.map(item => item.text).join(",")}
-                </span>
-              } />
-          </SelectPages2>
+                />
+              }
+            >
+              <Button
+                icon="tag"
+                alignText="left"
+                minimal
+                style={{
+                  maxWidth: "100%",
+                }}
+                outlined={!!selectedItems.length}
+                intent={selectedItems.length ? "primary" : "none"}
+                text={
+                  <span
+                    className={
+                      "ellipsis-to-left block " +
+                      (selectedItems.length ? "primary" : "")
+                    }
+                    style={{
+                      direction: "unset",
+                      display: "block",
+                    }}
+                  >
+                    Tag: {selectedItems.map((item) => item.text).join(",")}
+                  </span>
+                }
+              />
+            </SelectPages2>
+          );
         })()}
 
         {store.ui.conditions.users.getSelected().length === 0 ? null : (

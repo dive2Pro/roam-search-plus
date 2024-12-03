@@ -1075,7 +1075,7 @@ export const store = {
     },
     setHeight(vHeight: number) {
       const windowHeight = document.body.getBoundingClientRect().height;
-      const MAX = windowHeight - 265
+      const MAX = windowHeight - 280
       // const height = Math.max(MIN, Math.min(vHeight, MAX));
       ui.height.set(MAX);
     },

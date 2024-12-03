@@ -311,6 +311,10 @@
   display: flex;
   flex-direction: column;
 }
+
+.sidebar label {
+  font-weight: normal;
+}
 .bp3-dark .sidebar {
   background-color: #394b59;
 }
@@ -320,6 +324,7 @@
 
 .sidebar-title {
   margin: 10px 0;
+  font-weight: bold;
 }
 
 .as-history {

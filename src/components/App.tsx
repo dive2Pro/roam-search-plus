@@ -85,7 +85,6 @@ const MainView = observer(() => {
                 <Icon icon="search" size={14} />
               )
             }
-         
             className="search-input"
             value={store.ui.getSearch()}
             onChange={(e) => store.actions.changeSearch(e.target.value)}
@@ -97,17 +96,17 @@ const MainView = observer(() => {
             }}
             rightElement={
               store.ui.isTyped() ? (
-            <Button
-              onClick={() => {
-                store.actions.clearSearch();
-              }}
-              minimal
-              icon="cross"
-              className="bp3-text-muted"
-            ></Button>
-          ) : undefined}
+                <Button
+                  onClick={() => {
+                    store.actions.clearSearch();
+                  }}
+                  minimal
+                  icon="cross"
+                  className="bp3-text-muted"
+                ></Button>
+              ) : undefined
+            }
           />
-          
         </ControlGroup>
         {store.ui.isTyped() ? (
           <ButtonGroup className="flex input-options">
@@ -267,25 +266,28 @@ const MainView = observer(() => {
         ) : null}
       </div>
       <div style={{ display: "flex", flexDirection: "row", flex: 1 }}>
-        {store.ui.isTyped() ? <ListContainer /> : <QueryHistory />}
+        <div className="flex-column flex-1">
+          {store.ui.isTyped() ? (
+            <>
+              <ListContainer />
+                <div className="hint flex p-2">
+                  {store.ui.result.listSize() > 0 ? (
+                    <small>
+                      <strong>+{store.ui.result.listSize()}</strong> results
+                    </small>
+                  ) : null}
+                </div>
+            </>
+          ) : (
+            <QueryHistory />
+          )}
+        </div>
         {isFilterOpen ? (
           <>
             <Divider />
             <Sidebar />
           </>
         ) : null}
-      </div>
-
-      <div className={Classes.DIALOG_FOOTER}>
-        <sub className="hint flex">
-          {store.ui.result.listSize() > 0 ? (
-            <span>
-              <strong>+{store.ui.result.listSize()}</strong> results
-            </span>
-          ) : null}
-          <Divider />
-          <UnderMobile else={<span>shift+ open in sidebar</span>}></UnderMobile>
-        </sub>
       </div>
     </section>
   );
