@@ -32,7 +32,7 @@ enableLegendStateReact();
 
 const LoadingGraph: FC = observer((props) => {
   return (
-    <div className={"graph-loading"}>
+    <div className={"graph-loading w-100p"}>
       {store.ui.isLoadingGraph() ? (
         <div className={`loading-view`}>
           <Button icon="lightbulb" minimal>
@@ -63,30 +63,34 @@ const MainView = observer(() => {
   }, []);
   return (
     <section className="flex-column main-view">
-      <ControlGroup>
-        <InputGroup
-          placeholder="search..."
-          leftIcon={
+      <ControlGroup
+        fill
+        style={{
+          padding: "4px 20px",
+          background: "white",
+        }}
+      >
+        <Button
+          style={{ marginRight: 10 }}
+          icon={
             store.ui.isLoading() ? (
               <Icon icon="refresh" size={14} className="loading" />
             ) : (
-              "search"
+              <Icon icon="search" size={14} />
             )
           }
+          minimal
+        />
+        <InputGroup
+          placeholder="search..."
           inputRef={ref}
           fill
-          rightElement={
-            store.ui.isTyped() ? (
-              <Button
-                onClick={() => {
-                  store.actions.clearSearch();
-                }}
-                icon="small-cross"
-                minimal
-                small
-              />
-            ) : undefined
-          }
+          style={{
+            lineHeight: "40px",
+            height: 40,
+            boxShadow: "none",
+          }}
+          className="search-input"
           value={store.ui.getSearch()}
           onChange={(e) => store.actions.changeSearch(e.target.value)}
           onKeyPress={(e) => {
@@ -96,9 +100,21 @@ const MainView = observer(() => {
             }
           }}
         />
+        {store.ui.isTyped() ? (
+          <Button
+            onClick={() => {
+              store.actions.clearSearch();
+            }}
+            minimal
+            icon="cross"
+            className="bp3-text-muted"
+          ></Button>
+        ) : undefined}
       </ControlGroup>
-      {store.ui.isTyped() ? <ListContainer /> : <QueryHistory />}
-      <div></div>
+      <div style={{ display: "flex" , flexDirection: 'row'}}>
+        <ListContainer />
+        <Sidebar />
+      </div>
 
       <div className={Classes.DIALOG_FOOTER}>
         {store.ui.result.size() > 0 && store.ui.isTyped() ? (
@@ -376,7 +392,6 @@ const AppContent = observer(() => {
       </div>
       <div style={{ display: "flex" }} className="search-content">
         <MainView />
-        <Sidebar />
       </div>
     </LoadingGraph>
   );
@@ -390,8 +405,9 @@ const App = observer(() => {
   }
   return (
     <div
-      className={`${CONSTNATS.el} ${store.ui.isOpen() ? "visible" : "invisible"
-        }`}
+      className={`${CONSTNATS.el} ${
+        store.ui.isOpen() ? "visible" : "invisible"
+      }`}
     >
       <div
         onClickCapture={store.actions.close}
@@ -403,6 +419,7 @@ const App = observer(() => {
         style={{
           paddingBottom: 0,
           alignItems: "flex-start",
+          width: `calc(100% - 200px)`,
         }}
       >
         <AppContent />
