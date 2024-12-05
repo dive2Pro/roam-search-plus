@@ -4,12 +4,6 @@ import {
   Classes,
   Card,
   Button,
-  ButtonGroup,
-  Divider,
-  Menu,
-  MenuItem,
-  Popover,
-  Position,
   Toaster,
 } from "@blueprintjs/core";
 import { For, observer } from "@legendapp/state/react";
@@ -20,16 +14,14 @@ import {
   SelectResultItem,
 } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { date, highlightText } from "../helper";
-import { Virtuoso } from "react-virtuoso";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { UnderMobile } from "./commons/under-mobile";
-import { MobileSidebar } from "./sidebar";
 import { isAutoCloseWhenShiftClick } from "../config";
-import { usePortal } from "./commons/use-portal";
 import { isPageByUid } from "../roam";
+import { useEvent } from "../utils/useEvent";
 dayjs.extend(relativeTime);
 
 const Row = observer((props: { item: ResultItem }) => {
@@ -206,18 +198,44 @@ const TargetCheckboxAbleRow = observer(
 
 export const QueryResult = observer(() => {
   const isMultipleSelection = store.ui.isMultipleSelection();
+  const ref = useRef<VirtuosoHandle>(null);
+  const [index, setIndex] = useState(0);
+  const getList = () => {
+    const list = store.ui.result.list();
+    return list;
+  };
+  const list = getList();
+
   let Item = Row;
   if (isMultipleSelection) {
     Item = CheckboxAbleRow;
   } else {
     Item = Row;
   }
-
-  const getList = () => {
-    const list = store.ui.result.list();
-    return list;
-  };
-  const list = getList();
+  const handleResultScroll = useEvent((e: CustomEvent) => {
+    console.log(e, " = scroll");
+    let nextIndex = 0;
+    if (e.detail.direction === "up") {
+      nextIndex = Math.max(0, index - 1);
+    } else if (e.detail.direction === 'down') {
+      nextIndex = Math.min(index + 1, list.length - 1);
+    } else if(e.detail.direction === 'up-top') {
+      nextIndex = 0
+    }
+    ref.current?.scrollToIndex({
+      index: nextIndex,
+      align: 'center'
+    });
+    setIndex(nextIndex);
+  });
+  // 注册监听
+  useEffect(() => {
+    document.addEventListener("result-scroll", handleResultScroll);
+    
+    return () => {
+      document.removeEventListener("result-scroll", handleResultScroll);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const el = [...document.querySelectorAll("[data-test-id]")].find(
@@ -233,23 +251,40 @@ export const QueryResult = observer(() => {
     });
   }, [list]);
   return (
-    <Virtuoso
-      className="infinite-scroll"
-      style={store.ui.result.getListStyle()}
-      totalCount={list.length}
-      data={list}
-      itemContent={(index, data) => {
-        // console.log('index = ', index)
-        if (data.needCreate) {
-          return <PageCreator data={data} />;
-        }
+    <>
+      {index >= 5 ? <BackToTop /> : null}
+      <Virtuoso
+        className="infinite-scroll"
+        style={store.ui.result.getListStyle()}
+        totalCount={list.length}
+        data={list}
+        ref={ref}
+        
+        context={{ currentItemIndex: index }}
+        itemContent={(_index, data) => {
+          // console.log('index = ', index)
+          if (data.needCreate) {
+            return <PageCreator data={data} />;
+          }
 
-        data = findLowestParentFromResult(data);
-        return (
-          <Item key={data.text.toString() + "-" + data.editTime} item={data} />
-        );
-      }}
-    ></Virtuoso>
+          data = findLowestParentFromResult(data);
+          return (
+            <div
+              className={_index === index ? "result-item-container-active" : ""}
+              // className={"result-item-container-active"}
+              onMouseEnter={() => {
+                setIndex(_index);
+              }}
+            >
+              <Item
+                key={data.text.toString() + "-" + data.editTime}
+                item={data}
+              />
+            </div>
+          );
+        }}
+      ></Virtuoso>
+    </>
   );
 });
 
@@ -279,6 +314,34 @@ const SelectedResult = observer(() => {
     <div className="selected-result">
       <For each={store.ui.selectedTarget()} item={TargetCheckboxAbleRow} />
     </div>
+  );
+});
+
+const BackToTop = observer(() => {
+  
+  return (
+    <Button
+      className="back-to-top absolute"
+      style={{
+        right: 20,
+        bottom: 20,
+        zIndex: 10,
+        borderRadius: '50%'
+      }}
+      large
+      icon="arrow-up"
+      onClick={() => {
+        // store.actions.backToTop();
+        document.dispatchEvent(
+          new CustomEvent("result-scroll", {
+            detail: {
+              direction: "up-top",
+            },
+          })
+        );
+      }}
+    >
+    </Button>
   );
 });
 

@@ -13,8 +13,6 @@ import {
   ButtonGroup,
   Toaster,
   ControlGroup,
-  Intent,
-  Tooltip,
   Checkbox,
 } from "@blueprintjs/core";
 
@@ -27,7 +25,6 @@ import { FC, ReactNode, useEffect, useRef, useState } from "react";
 import { CONSTNATS } from "../helper";
 import { BottomPopup } from "./bottom-popup";
 import { usePortal } from "./commons/use-portal";
-import { UnderMobile } from "./commons/under-mobile";
 import { popoverKind } from "./commons/popover-kind";
 enableLegendStateReact();
 
@@ -88,8 +85,37 @@ const MainView = observer(() => {
             className="search-input"
             value={store.ui.getSearch()}
             onChange={(e) => store.actions.changeSearch(e.target.value)}
+            onKeyDown={(e) => {
+              console.log(e.key, " == key");
+              if(e.metaKey || e.shiftKey || e.ctrlKey) {
+                return
+              }
+
+              if(e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+              }
+
+              if (e.key === "ArrowDown") {
+                document.dispatchEvent(
+                  new CustomEvent("result-scroll", {
+                    detail: {
+                      direction: "down",
+                    },
+                  })
+                );
+              } else if (e.key === "ArrowUp") {
+                document.dispatchEvent(
+                  new CustomEvent("result-scroll", {
+                    detail: {
+                      direction: "up",
+                    },
+                  })
+                );
+              }
+            }}
             onKeyPress={(e) => {
               // console.log(e.key, " == key");
+
               if (e.key === "Enter") {
                 store.actions.searchAgain();
               }
@@ -270,13 +296,14 @@ const MainView = observer(() => {
           {store.ui.isTyped() ? (
             <>
               <ListContainer />
-                <div className="hint flex p-2">
-                  {store.ui.result.listSize() > 0 ? (
-                    <small>
-                      <strong>+{store.ui.result.listSize()}</strong> results
-                    </small>
-                  ) : null}
-                </div>
+              <div className="hint flex p-2 gap-2">
+                {store.ui.result.listSize() > 0 ? (
+                  <small>
+                    <strong>+{store.ui.result.listSize()}</strong> results
+                  </small>
+                ) : null}
+                <span>shift+click to open in sidebar</span>
+              </div>
             </>
           ) : (
             <QueryHistory />

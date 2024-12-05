@@ -23,7 +23,7 @@
 .result-container {
   position: relative;
   flex: 1;
-  padding: 14px;
+  /* padding: 14px; */
 }
 
 .result-item-container .bp3-icon {
@@ -106,14 +106,15 @@
 }
 
 .result-item-container {
-  padding: 4px;
+  padding: 14px;
   justify-content: flex-start;
   width: 100%;
   display: flex;
   cursor: pointer;
+  
 }
 
-.result-item-container:hover {
+.result-item-container:hover, .result-item-container-active {
   background: rgba(167, 182, 194, 0.3);
   -webkit-box-shadow: none;
   box-shadow: none;
