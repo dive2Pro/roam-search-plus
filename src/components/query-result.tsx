@@ -221,10 +221,14 @@ export const QueryResult = observer(() => {
       nextIndex = Math.min(index + 1, list.length - 1);
     } else if(e.detail.direction === 'up-top') {
       nextIndex = 0
+    } else if (e.detail.direction === "result-enter") {
+      // TODO: 
+    } else if (e.detail.direction === "result-enter-shift") {
+      // TODO:
     }
     ref.current?.scrollToIndex({
       index: nextIndex,
-      align: 'center'
+      align: 'start'
     });
     setIndex(nextIndex);
   });

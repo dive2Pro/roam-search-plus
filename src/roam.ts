@@ -90,7 +90,7 @@ function blockEnhance(
   config: { blockRefToString: boolean }
 ) {
   if (!block[":block/string"]) {
-    return block;
+    return { block, isBlock: true, page };
   }
 
   CACHE_BLOCKS_PAGES_BY_ID.set(block[":db/id"], block);
@@ -124,7 +124,7 @@ function blockEnhance(
     isBlock: true,
   };
   CACHE_BLOCKS.set(b.block[":block/uid"], b);
-  return block;
+  return b;
 }
 
 const PullStr = `
@@ -217,7 +217,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     const refs = [...(item[0][":block/refs"] || [])];
     const block = blockEnhance(item[0], item[1], config);
     // console.log(block, ' ------ block');
-    ALLBLOCK_PAGES.set(item[0][":block/uid"], block);
+    ALLBLOCK_PAGES.set(item[0][":block/uid"], block.block);
 
     refs.forEach((ref) => {
       refsSet.add(ref[":db/id"]);
@@ -259,9 +259,10 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
   // 找到今日修改过的所有 block 和 page, users
   // 将其插入到 allBlocks 中
   console.time("renew");
+  console.time("refs")
   const refsSet = new Set<number>();
 
-  (
+  const newBlocks =(
     window.roamAlphaAPI.data.fast.q(
       `
     [
@@ -277,7 +278,7 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
     `,
       lastestRenewTime.value
     ) as unknown as []
-  ).forEach((item) => {
+  ).map((item) => {
     const refs = [...(item[0][":block/refs"] || [])].map((v) => v[":db/id"]);
     // console.log(refs, ' --- refs ')
     refs.forEach((ref) => {
@@ -285,12 +286,17 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
       refsSet.add(ref);
     });
     const block = blockEnhance(item[0], item[1], config);
-    ALLBLOCK_PAGES.set(item[0][":block/uid"], block);
+    
+    ALLBLOCK_PAGES.set(item[0][":block/uid"], block.block);
+    return block
   });
+  console
+    .timeEnd("refs");
 
-  (
-    window.roamAlphaAPI.data.fast.q(
-      `
+  console.time("pages refs");
+    (
+      window.roamAlphaAPI.data.fast.q(
+        `
     [
             :find [(pull ?e [*]) ...]
             :in $ ?start_of_day 
@@ -300,9 +306,9 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
                 [?e :node/title]
         ]
     `,
-      lastestRenewTime.value
-    ) as unknown as RefsPullBlock[]
-  )
+        lastestRenewTime.value
+      ) as unknown as RefsPullBlock[]
+    )
     .map((item) => {
       CACHE_BLOCKS_PAGES_BY_ID.set(item[":db/id"], item);
       CACHE_PAGES_BY_ID.set(item[":db/id"], item);
@@ -318,6 +324,8 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
       // console.log({...b.block }, ' ====== ')
       CACHE_PAGES.set(b.block[":block/uid"], b);
     });
+  console.timeEnd("pages refs");
+
   // console.log(refsSet, " =refsSet;");
   [...refsSet.values()].forEach((id) => {
     // console.log(id, isPageId(id), " ----");
@@ -325,7 +333,10 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
       CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
     }
   });
-  findBlockAllParentsRefs();
+  console.time("findBlockAllParentsRefs");
+  findBlockAllParentsRefs(newBlocks);
+  console.timeEnd("findBlockAllParentsRefs");
+
   (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -572,8 +583,8 @@ export function getAllBlockRefs() {
   return [...CACHE_BLOCKS_REFS_BY_ID.values()];
 }
 
-function findBlockAllParentsRefs() {
-  getAllBlocks().forEach((block) => {
+function findBlockAllParentsRefs( blocks = getAllBlocks()) {
+  blocks.forEach((block) => {
     if (block.isBlock && block.block[":block/parents"]) {
       CACHE_PARENTS_REFS_BY_ID.set(
         block.block[":db/id"],
@@ -592,6 +603,8 @@ function findBlockAllParentsRefs() {
     }
   });
 }
+
+
 
 export function getParentsRefsById(id: number) {
   return CACHE_PARENTS_REFS_BY_ID.get(id) || [];

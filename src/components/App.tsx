@@ -94,7 +94,7 @@ const MainView = observer(() => {
               if(e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                 e.preventDefault();
               }
-
+              
               if (e.key === "ArrowDown") {
                 document.dispatchEvent(
                   new CustomEvent("result-scroll", {
@@ -117,7 +117,24 @@ const MainView = observer(() => {
               // console.log(e.key, " == key");
 
               if (e.key === "Enter") {
-                store.actions.searchAgain();
+                // store.actions.searchAgain();
+                if(e.shiftKey) {
+                 document.dispatchEvent(
+                   new CustomEvent("result-scroll", {
+                     detail: {
+                       direction: "result-enter-shift",
+                     },
+                   })
+                 ); 
+                 return
+                }
+                 document.dispatchEvent(
+                   new CustomEvent("result-scroll", {
+                     detail: {
+                       direction: "result-enter",
+                     },
+                   })
+                 );
               }
             }}
             rightElement={

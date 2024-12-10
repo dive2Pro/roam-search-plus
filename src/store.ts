@@ -299,16 +299,7 @@ const trigger = debounce(
     cancelPre = queryAPi.cancel;
     await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
       // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
-      console.time("promise");
-      batch(() => {
-        // query.result.set({
-        //   pages,
-        //   topBlocks,
-        //   lowBlocks,
-        // });
-      });
-      console.timeEnd("promise");
-      console.time("2222");
+      console.time("assign");
 
       const setExactPageOnFirst = (title: string) => {
         const findExactPage = (title: string) => {
@@ -393,7 +384,7 @@ const trigger = debounce(
       // _result = result;
       // console.log(" ui result = ", result);
       // ui.result.set([]);
-      console.timeEnd("2222");
+      console.timeEnd("assign");
       setResult(result);
     });
     ui.loading.set(false);
@@ -1083,6 +1074,7 @@ export const store = {
       return windowUi.visible.onChange(cb);
     },
     async loadingGraph() {
+      console.time("Loading graph")
       if (ui.graph.loading.get()) return;
       ui.graph.loading.set(true);
       await delay(10);
@@ -1094,6 +1086,8 @@ export const store = {
       ui.graph.loading.set(false);
       // ui.graph.loaded.set(true);
       setGraphLoaded(true);
+      console.timeEnd("Loading graph");
+
     },
     async renewGraph() {
       await delay();
