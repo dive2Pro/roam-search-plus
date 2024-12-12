@@ -292,10 +292,12 @@ const trigger = debounce(
       }
     }
     // console.log(search, " start search");
+    console.time("QQuery");
     const queryAPi = Query({
       ...config,
       search: keywordsBuildFrom(config.search),
     });
+    console.timeEnd("QQuery");
     cancelPre = queryAPi.cancel;
     await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
       // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
@@ -395,6 +397,15 @@ let prevSearch = "";
 
 const triggerWhenSearchChange = async (next: string) => {
   const nextStr = next.trim();
+  console.log({ nextStr, prevSearch });
+  if (nextStr === prevSearch) {
+    return;
+  }
+  prevSearch = nextStr;
+
+  if (nextStr === "") {
+    return;
+  }
   ui.loading.set(true);
   try {
     // const selectedPagesUids = ui.conditions.pages.selected.peek();
@@ -420,7 +431,7 @@ const triggerWhenSearchChange = async (next: string) => {
 };
 
 const disposeSearch = ui.search.onChange(async (next) => {
-  triggerWhenSearchChange(next);
+  if (windowUi.visible.peek()) triggerWhenSearchChange(next);
 });
 
 const getFilterExcludePageIds = (): string[] => {
@@ -614,6 +625,7 @@ extension_helper.on_uninstall(() => {
   disposeUiResult();
   disposeUiResultSort();
   disposeUiSelectablePages();
+  prevSearch = "";
 });
 
 const saveToSearchViewed = (items: ResultItem[]) => {
@@ -638,19 +650,32 @@ export const store = {
     ui,
   }),
   actions: {
-    createPage(title: string) {
-      window.roamAlphaAPI.createPage({
-        page: {
-          title: title,
+    createPage(title: string, rightSidebar = false) {
+      const uid = window.roamAlphaAPI.util.generateUID();
 
-        }
-      }).then((res) => {
-        window.roamAlphaAPI.ui.mainWindow.openPage({
+      window.roamAlphaAPI
+        .createPage({
           page: {
-            title
-          }
+            title: title,
+            uid,
+          },
         })
-      })
+        .then((res) => {
+          if (rightSidebar) {
+            window.roamAlphaAPI.ui.rightSidebar.addWindow({
+              window: {
+                "block-uid": uid,
+                type: "block",
+              },
+            });
+            return;
+          }
+          window.roamAlphaAPI.ui.mainWindow.openPage({
+            page: {
+              title,
+            },
+          });
+        });
     },
     toggleMaximize() {
       windowUi.mode.max.set((prev) => !prev);
@@ -1066,7 +1091,7 @@ export const store = {
     },
     setHeight(vHeight: number) {
       const windowHeight = document.body.getBoundingClientRect().height;
-      const MAX = windowHeight - 280
+      const MAX = windowHeight - 280;
       // const height = Math.max(MIN, Math.min(vHeight, MAX));
       ui.height.set(MAX);
     },
@@ -1074,10 +1099,10 @@ export const store = {
       return windowUi.visible.onChange(cb);
     },
     async loadingGraph() {
-      console.time("Loading graph")
+      console.time("Loading graph");
       if (ui.graph.loading.get()) return;
       ui.graph.loading.set(true);
-      await delay(10);
+      await delay(1);
       const start = Date.now();
       initCache(ui.conditions.get());
       if (Date.now() - start < 200) {
@@ -1087,7 +1112,6 @@ export const store = {
       // ui.graph.loaded.set(true);
       setGraphLoaded(true);
       console.timeEnd("Loading graph");
-
     },
     async renewGraph() {
       await delay();

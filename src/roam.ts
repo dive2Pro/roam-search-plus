@@ -1,11 +1,10 @@
 import { PullBlock } from "roamjs-components/types";
+import { worker } from "./woker";
 
 export type RefsPullBlock = PullBlock & {
   ":block/_refs": { id: number }[];
   ":block/_children": RefsPullBlock[];
   relatedRefs: number[];
-  ":block/refInstances"?: PullBlock[];
-  ":block/string-replaced": string;
 };
 
 type ReversePullBlock = {
@@ -15,6 +14,9 @@ type ReversePullBlock = {
   ":block/_children": ReversePullBlock[];
 };
 
+/**
+ * 用于在渲染时, 获取 block 的 parents 的内容
+ */
 export const getParentsStrFromBlockUid = (uid: string) => {
   const result = window.roamAlphaAPI.pull(
     `
@@ -84,6 +86,26 @@ export const getAllBlocks = () => {
   return [...CACHE_BLOCKS.values()];
 };
 
+function blockProxyRefString(block: RefsPullBlock, blockRefToString: boolean) {
+  if (!block[":block/string"]) {
+    return block;
+  }
+
+  let replacedString =  replaceBlockReference(block[":block/string"]);
+
+  block = new Proxy(block, {
+    get(target, prop, receiver) {
+      if (prop === ":block/string") {
+        if (blockRefToString) {
+          return replacedString;
+        }
+      }
+      return Reflect.get(target, prop);
+    },
+  });
+  return block
+}
+
 function blockEnhance(
   block: RefsPullBlock,
   page: string,
@@ -92,8 +114,6 @@ function blockEnhance(
   if (!block[":block/string"]) {
     return { block, isBlock: true, page };
   }
-
-  CACHE_BLOCKS_PAGES_BY_ID.set(block[":db/id"], block);
   const replacedString = replaceBlockReference(block[":block/string"]);
   block = new Proxy(block, {
     get(target, prop, receiver) {
@@ -101,29 +121,16 @@ function blockEnhance(
         if (config.blockRefToString) {
           return replacedString;
         }
-      } else if (prop === ":block/string-replaced") {
-        return replacedString;
       }
       return Reflect.get(target, prop);
     },
   });
 
-  if (block[":block/refs"]) {
-    block = new Proxy(block, {
-      get(target, prop) {
-        if (prop === ":block/refInstances") {
-          return replaceRefsIdToObj(block[":block/refs"]);
-        }
-        return Reflect.get(target, prop);
-      },
-    });
-  }
   const b = {
     block,
     page: page,
     isBlock: true,
   };
-  CACHE_BLOCKS.set(b.block[":block/uid"], b);
   return b;
 }
 
@@ -159,15 +166,15 @@ export const isUnderTag = (tags: number[], item: RefsPullBlock) => {
     );
   });
   const result = tags.some((tag) => relatedRefs.some((ref) => +ref === +tag));
-  if (result) {
-    // console.log(relatedRefs, ' ----- ', tags, {...item},
-    //   item[":block/parents"]?.map((p) => {
-    //     return { ...CACHE_BLOCKS_BY_ID.get(p[":db/id"]) };
-    //   })
-    // )
-  }
   return result;
 };
+
+function timer(name: string) {
+  console.time(name)
+  return () => {
+    console.timeEnd(name)
+  }
+}
 
 export const initCache = (config: { blockRefToString: boolean }) => {
   CACHE_BLOCKS.clear();
@@ -177,8 +184,8 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   CACHE_PAGES_BY_ID.clear();
   ALLBLOCK_PAGES.clear();
   //
-
-  // 页面在前, refs 需要指向
+  const endPageTimer = timer('init page');
+  // 页面在前处理, refs 需要有指向
   (
     window.roamAlphaAPI.data.fast.q(
       `
@@ -200,7 +207,9 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     CACHE_PAGES.set(b.block[":block/uid"], b);
     CACHE_PAGES_BY_ID.set(item[":db/id"], item);
   });
+  endPageTimer();
 
+  const endBlockTimer = timer('init block');
   const refsSet = new Set<number>();
   (
     window.roamAlphaAPI.data.fast.q(
@@ -215,20 +224,32 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     ) as unknown as []
   ).forEach((item) => {
     const refs = [...(item[0][":block/refs"] || [])];
-    const block = blockEnhance(item[0], item[1], config);
-    // console.log(block, ' ------ block');
-    ALLBLOCK_PAGES.set(item[0][":block/uid"], block.block);
-
     refs.forEach((ref) => {
       refsSet.add(ref[":db/id"]);
     });
+
+    const proxiedBlock = blockProxyRefString(item[0], config.blockRefToString);
+    const b = {
+      block: proxiedBlock,
+      page: item[1],
+      isBlock: true,
+    };
+    CACHE_BLOCKS_PAGES_BY_ID.set(b.block[":db/id"], b.block);
+    CACHE_BLOCKS.set(b.block[":block/uid"], b);
+    ALLBLOCK_PAGES.set(item[0][":block/uid"], b.block);
   });
+
+  endBlockTimer();
+  const endRefsSetCacheTimer = timer('init refs sets');
   [...refsSet.values()].forEach((id) => {
     if (!isPageId(id)) {
       CACHE_BLOCKS_REFS_BY_ID.set(id, CACHE_BLOCKS_PAGES_BY_ID.get(id));
     }
   });
+  endRefsSetCacheTimer();
+  const endFindBlockAllParentsRefs = timer('findBlockAllParentsRefs');
   findBlockAllParentsRefs();
+  endFindBlockAllParentsRefs();
 
   const userIds = window.roamAlphaAPI.data.fast.q(
     `
@@ -246,6 +267,8 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     .forEach((user) => {
       CACHE_USERS.set(user[":db/id"], user);
     });
+    console.log({ worker })
+    // worker.add(JSON.stringify(Array.from(CACHE_PAGES.entries())));
 };
 
 const lastestRenewTime = {
@@ -285,10 +308,17 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
       CACHE_BLOCKS_REFS_BY_ID.set(ref[":db/id"], ref);
       refsSet.add(ref);
     });
-    const block = blockEnhance(item[0], item[1], config);
-    
-    ALLBLOCK_PAGES.set(item[0][":block/uid"], block.block);
-    return block
+
+    const proxiedBlock = blockProxyRefString(item[0], config.blockRefToString);
+    const b = {
+      block: proxiedBlock,
+      page: item[1],
+      isBlock: true,
+    };
+    CACHE_BLOCKS_PAGES_BY_ID.set(b.block[":db/id"], b.block);
+    CACHE_BLOCKS.set(b.block[":block/uid"], b);
+    ALLBLOCK_PAGES.set(item[0][":block/uid"], b.block);
+    return b
   });
   console
     .timeEnd("refs");
@@ -564,16 +594,7 @@ function getRefStringByUid(uid: string) {
   ]);
   return block ? block[":block/string"] : "";
 }
-
-function replaceRefsIdToObj(args: { ":db/id": number }[]) {
-  const r = args.map((item) => {
-    const page = CACHE_PAGES_BY_ID.get(item[":db/id"]);
-    if (!page) debugger;
-    return page;
-  });
-
-  return r;
-}
+ 
 
 export function isPageId(id: number) {
   return CACHE_PAGES_BY_ID.get(id) !== undefined;
@@ -605,7 +626,9 @@ function findBlockAllParentsRefs( blocks = getAllBlocks()) {
 }
 
 
-
+/**
+ * 用于 inline-search 
+ */
 export function getParentsRefsById(id: number) {
   return CACHE_PARENTS_REFS_BY_ID.get(id) || [];
 }

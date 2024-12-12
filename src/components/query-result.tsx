@@ -24,6 +24,43 @@ import { isPageByUid } from "../roam";
 import { useEvent } from "../utils/useEvent";
 dayjs.extend(relativeTime);
 
+const handleClick = (item: ResultItem) => {
+  if (item.needCreate) {
+    store.actions.createPage(item.text as string);
+    store.actions.closeDialog();
+    return;
+  }
+  let opened = store.actions.confirm.openInMain(item);
+  if (opened) store.actions.closeDialog();
+
+  opened && store.actions.history.saveSearch(store.ui.getSearch());
+  !opened &&
+    Toaster.create({}).show({
+      message: `${item.isPage ? "Page" : "Block"} was deleted`,
+      intent: "warning",
+    });
+};
+
+const handleShiftClick = (item: ResultItem) => {
+  if (item.needCreate) {
+    store.actions.createPage(item.text as string, true);
+    store.actions.closeDialog();
+    return;
+  }
+  const opened = store.actions.confirm.openInSidebar(item);
+  if (opened) {
+    if (isAutoCloseWhenShiftClick() && !store.ui.mode.isMaximize()) {
+      store.actions.closeDialog();
+    }
+  }
+  opened && store.actions.history.saveSearch(store.ui.getSearch());
+  !opened &&
+    Toaster.create({}).show({
+      message: `${item.isPage ? "Page" : "Block"} was deleted`,
+      intent: "warning",
+    });
+};
+
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(<>{props.item.text}</>);
   const [children, setChildren] = useState(props.item.children);
@@ -75,24 +112,11 @@ const Row = observer((props: { item: ResultItem }) => {
   const handlerClick = (e: React.MouseEvent, item: ResultItem) => {
     e.preventDefault();
     e.stopPropagation();
-    let opened = false;
     if (e.shiftKey) {
-      opened = store.actions.confirm.openInSidebar(item);
-      if (opened) {
-        if (isAutoCloseWhenShiftClick() && !store.ui.mode.isMaximize()) {
-          store.actions.closeDialog();
-        }
-      }
-    } else {
-      opened = store.actions.confirm.openInMain(item);
-      if (opened) store.actions.closeDialog();
+      handleShiftClick(item);
+      return;
     }
-    opened && store.actions.history.saveSearch(store.ui.getSearch());
-    !opened &&
-      Toaster.create({}).show({
-        message: `${item.isPage ? "Page" : "Block"} was deleted`,
-        intent: "warning",
-      });
+    handleClick(item);
   };
 
   let content;
@@ -213,29 +237,37 @@ export const QueryResult = observer(() => {
     Item = Row;
   }
   const handleResultScroll = useEvent((e: CustomEvent) => {
-    console.log(e, " = scroll");
     let nextIndex = 0;
     if (e.detail.direction === "up") {
       nextIndex = Math.max(0, index - 1);
-    } else if (e.detail.direction === 'down') {
+      ref.current?.scrollIntoView({
+        index: nextIndex,
+        align: "start",
+      });
+    } else if (e.detail.direction === "down") {
       nextIndex = Math.min(index + 1, list.length - 1);
-    } else if(e.detail.direction === 'up-top') {
-      nextIndex = 0
+      ref.current?.scrollIntoView({
+        index: nextIndex,
+        align: "end",
+      });
+    } else if (e.detail.direction === "up-top") {
+      nextIndex = 0;
+      ref.current?.scrollIntoView({
+        index: nextIndex,
+        align: "start",
+      });
     } else if (e.detail.direction === "result-enter") {
-      // TODO: 
+      handleClick(list[index]);
     } else if (e.detail.direction === "result-enter-shift") {
-      // TODO:
+      handleShiftClick(list[index]);
     }
-    ref.current?.scrollToIndex({
-      index: nextIndex,
-      align: 'start'
-    });
+
     setIndex(nextIndex);
   });
   // 注册监听
   useEffect(() => {
     document.addEventListener("result-scroll", handleResultScroll);
-    
+
     return () => {
       document.removeEventListener("result-scroll", handleResultScroll);
     };
@@ -253,9 +285,13 @@ export const QueryResult = observer(() => {
       console.log(" lahyout effect", vHeight);
       store.actions.setHeight(vHeight);
     });
-  }, [list]);
+  }, []);
+
   return (
-    <>
+    <div
+      className={`relative ${store.ui.isLoading() ? "bp3-skeleton" : ""}
+    `}
+    >
       {index >= 5 ? <BackToTop /> : null}
       <Virtuoso
         className="infinite-scroll"
@@ -263,18 +299,36 @@ export const QueryResult = observer(() => {
         totalCount={list.length}
         data={list}
         ref={ref}
-        
         context={{ currentItemIndex: index }}
         itemContent={(_index, data) => {
-          // console.log('index = ', index)
           if (data.needCreate) {
-            return <PageCreator data={data} />;
+            return (
+              <div
+                className={`${
+                  _index === index ? "result-item-container-active" : ""
+                } `}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.shiftKey) {
+                    handleShiftClick(data);
+                    return;
+                  }
+                  handleClick(data);
+                }}
+              >
+                <PageCreator data={data} />
+              </div>
+            );
           }
-
           data = findLowestParentFromResult(data);
           return (
             <div
-              className={_index === index ? "result-item-container-active" : ""}
+              className={`${
+                _index === index ? "result-item-container-active" : ""
+              } 
+              
+              `}
               // className={"result-item-container-active"}
               onMouseEnter={() => {
                 setIndex(_index);
@@ -288,7 +342,7 @@ export const QueryResult = observer(() => {
           );
         }}
       ></Virtuoso>
-    </>
+    </div>
   );
 });
 
@@ -296,12 +350,6 @@ const PageCreator = observer((props: { data: ResultItem }) => {
   return (
     <section
       className="result-item-container"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        store.actions.createPage(props.data.text as string);
-        store.actions.closeDialog();
-      }}
     >
       <Icon icon={"application"}></Icon>
       <div style={{ width: "100%", marginLeft: 10 }}>
@@ -315,14 +363,13 @@ const PageCreator = observer((props: { data: ResultItem }) => {
 });
 const SelectedResult = observer(() => {
   return (
-    <div className="selected-result">
+    <div className="selected-result p-4">
       <For each={store.ui.selectedTarget()} item={TargetCheckboxAbleRow} />
     </div>
   );
 });
 
 const BackToTop = observer(() => {
-  
   return (
     <Button
       className="back-to-top absolute"
@@ -330,7 +377,7 @@ const BackToTop = observer(() => {
         right: 20,
         bottom: 20,
         zIndex: 10,
-        borderRadius: '50%'
+        borderRadius: "50%",
       }}
       large
       icon="arrow-up"
@@ -344,23 +391,14 @@ const BackToTop = observer(() => {
           })
         );
       }}
-    >
-    </Button>
+    ></Button>
   );
 });
 
 export const ListContainer = observer(() => {
   return (
     <div className="result-container">
-      {store.ui.isLoading() && store.ui.result.size() === 0 ? (
-        <div className="flex-row-center h-200">Searching...</div>
-      ) : store.ui.hasResult() ? (
-        <>
-          <QueryResult />
-        </>
-      ) : (
-        <div className="flex-row-center h-200">No results</div>
-      )}
+      <QueryResult />
       {store.ui.isShowSelectedTarget() ? <SelectedResult /> : null}
     </div>
   );

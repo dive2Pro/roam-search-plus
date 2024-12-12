@@ -1,25 +1,14 @@
-import { PullBlock } from "roamjs-components/types";
 import { pull } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 
-
+// TODO: 移到 webworker 中
 export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAllPagesFn = getAllPages) => {
   console.time("SSSS");
   const keywords = config.search;
   const hasKeywords = keywords.some(key => !!key);
 
-  const filterStringByKeywordsIntensive = (
-    blocks: PullBlock[],
-    keyword: string,
-    intensive = true
-  ) => { };
   const cancelRef = {
     current: false,
-  };
-  const check = () => {
-    if (cancelRef.current) {
-      throw new Error("Cancel");
-    }
   };
   const includes = (p: string, n: string) => {
     if (!p) {

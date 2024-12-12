@@ -46,8 +46,7 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  padding: 4px 0;
-  padding-left: 5px;
+  padding: 1rem;
   left: 0;
   background-color: #ebf1f5;
   min-height: 450px;
@@ -60,6 +59,7 @@
 
 .infinite-scroll .check-item {
   align-items: baseline;
+  margin: 0.5rem 1rem;
 }
 
 .bp3-dark .selected-result{
@@ -305,6 +305,11 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+
+.relative {
+  position: relative;
 }
 
 .sidebar {
