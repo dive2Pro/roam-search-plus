@@ -6,7 +6,6 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
   console.time("SSSS");
   const keywords = config.search;
   const hasKeywords = keywords.some(key => !!key);
-
   const includes = (p: string, n: string) => {
     if (!p) {
       return false;
@@ -38,10 +37,7 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
         }
       }
       if (config.exclude?.tags?.length) {
-        // console.log(config.exclude.tags, item.block[":block/refs"]?.map(item =>item[":db/id"]))
-        // if (config.exclude.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
-        // return false
-        // }
+       
         if (isUnderTag(config.exclude.tags, item.block)) {
           return false;
         }
@@ -61,12 +57,7 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
               (ref) => String(ref[":db/id"]) === String(tagId)
             )
           );
-      // console.log(
-      //     hasTagged,
-      //     config.include.tags,
-      //     item.block[":block/refs"]?.map((item) => item[":db/id"]),
-      //     "____item book"
-      //   );
+   
         if (r) {
           if (hasTagged) {
             return true;
@@ -88,9 +79,9 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
     return [result, lowBlocks];
   };
   const timemeasure = (name: string, cb: () => void) => {
-    // console.time(name);
+    console.time(name);
     cb();
-    // console.timeEnd(name);
+    console.timeEnd(name);
   };
   async function findAllRelatedBlocks(keywords: string[]) {
     let [topLevelBlocks, lowBlocks] = findBlocksContainsAllKeywords(keywords);
@@ -145,19 +136,9 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
             validateMap.set(item.page, []);
           }
           if (r) {
-            // console.log({ ...item.block }, ' ===', keyword)
             validateMap.get(item.page)[index] = r;
             result = r;
           }
-          // if (r)
-          // // console.log(
-          //     item,
-          //     item.block[":block/string"],
-          //     r,
-          //     keyword,
-          //     " --- -- - - - - ---",
-          //     config
-          //   );
         });
         return result;
       });
@@ -166,9 +147,15 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
 
     // 如果 lowBlocks 出现过的页面,
     timemeasure("2", () => {
+      const topLevelPagesMap = topLevelBlocks.reduce((p, c) => {
+        p[c.page] = 1
+        return p
+      }, {} as Record<string, number>)
+
       lowBlocks = lowBlocks.filter((block) => {
         // 如果 topLevel 和 lowBlocks 是在相同的页面, 那么即使 lowBlocks 中没有出现所有的 keywords, 它们也应该出现在结果中.
-        if (topLevelBlocks.some((tb) => tb.page === block.page)) {
+        // if(topLevelBlocks.some((tb) => tb.page === block.page)) {
+        if (topLevelPagesMap[block.page]) {
           return true;
         }
         return keywords.every((k, i) => {
