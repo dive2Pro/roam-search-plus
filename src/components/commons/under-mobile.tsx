@@ -1,6 +1,6 @@
-import React, { FC, ReactNode } from "react";
+import React, { FC, PropsWithChildren, ReactNode } from "react";
 
-export const UnderMobile: FC<{ else?: ReactNode }> = (props) => {
+export const UnderMobile: FC<PropsWithChildren<{ else?: ReactNode }>> = (props) => {
   if (window.roamAlphaAPI.platform.isMobile) {
     return <>{props.children}</>;
   }

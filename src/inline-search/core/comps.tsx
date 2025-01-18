@@ -343,7 +343,6 @@ export const OperatorsSelect = (props: {
     >
       <Button
         text={props.activeItem?.label || "Operation"}
-        placeholder=""
         disabled={props.disabled}
         rightIcon="double-caret-vertical"
       />

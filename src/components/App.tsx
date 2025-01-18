@@ -21,14 +21,14 @@ import { enableLegendStateReact, observer } from "@legendapp/state/react";
 import { ListContainer } from "./query-result";
 import { Sidebar } from "./sidebar";
 import { QueryHistory } from "./history-result";
-import { FC, ReactNode, useEffect, useRef, useState } from "react";
+import { FC, PropsWithChildren, ReactNode, useEffect, useRef, useState,  } from "react";
 import { CONSTNATS } from "../helper";
 import { BottomPopup } from "./bottom-popup";
 import { usePortal } from "./commons/use-portal";
 import { popoverKind } from "./commons/popover-kind";
 enableLegendStateReact();
 
-const LoadingGraph: FC = observer((props) => {
+const LoadingGraph: FC<PropsWithChildren> = observer((props) => {
   return (
     <div className={"graph-loading w-100p flex-column"} style={{ display: 'flex', height: "100%" }}>
       {store.ui.isLoadingGraph() ? (
@@ -337,7 +337,7 @@ const MainView = observer(() => {
   );
 });
 
-const RoamMainView: FC = observer((props) => {
+const RoamMainView: FC<PropsWithChildren> = observer((props) => {
   useEffect(() => {
     const App = observer(() => {
       useEffect(() => {

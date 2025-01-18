@@ -24,7 +24,7 @@ import {
 import { store } from "../store";
 import { isGraphLoaded } from "../loaded";
 import { getAllData } from "../roam";
-import { delay } from "../delay";
+import { delay } from "../utils/delay";
 import { allBlockRefsItems, allPageRefsItems } from "./core/allItems";
 import { SearchResultSideMenuView } from "./result/SearchResultSideMenuView";
 import { SearchResultFilter } from "./result/SearchResultFilter";

@@ -7,9 +7,6 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
   const keywords = config.search;
   const hasKeywords = keywords.some(key => !!key);
 
-  const cancelRef = {
-    current: false,
-  };
   const includes = (p: string, n: string) => {
     if (!p) {
       return false;
@@ -301,8 +298,6 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
         return result;
       }
     ),
-    cancel: () => {
-      cancelRef.current = true;
-    },
+    
   };
 };
