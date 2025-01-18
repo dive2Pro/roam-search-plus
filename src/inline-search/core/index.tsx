@@ -24,7 +24,7 @@ import { CreatedDateFilter, EditDateFilter } from "./date";
 import { ContentFilter } from "./content";
 import Fuse, { FuseResult } from "fuse.js";
 import { BlockRefFilter } from "./ref-block";
-import { delay } from "../../delay";
+import { delay } from "../../utils/delay";
 import { PullBlock } from "roamjs-components/types";
 import shuffle from "lodash.shuffle";
 import { deleteFromCacheByUid, getInfoById } from "../../roam";

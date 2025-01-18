@@ -27,15 +27,16 @@
     "mobx": "^6.11.0",
     "mobx-react-lite": "^4.0.5",
     "react-virtuoso": "^3.1.5",
-    "roamjs-components": "^0.72.9"
+    "roamjs-components": "^0.72.9",
+    "workerize": "^0.1.8"
   },
   "devDependencies": {
-    "@blueprintjs/core": "3.54.0",
+    "@blueprintjs/core": "^4.20.2",
     "@blueprintjs/datetime": "3.24.1",
-    "@blueprintjs/select": "3.19.1",
+    "@blueprintjs/select": "^4.9.24",
     "@types/arrive": "^2.4.1",
     "@types/lodash.shuffle": "^4.2.9",
-    "@types/react": "16.14.2",
+    "@types/react": "^18.3.17",
     "@types/react-dom": "16.9.10",
     "@types/react-window": "^1.8.5",
     "roamjs-scripts": "^0.21.3"

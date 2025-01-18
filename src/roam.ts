@@ -106,34 +106,6 @@ function blockProxyRefString(block: RefsPullBlock, blockRefToString: boolean) {
   return block
 }
 
-function blockEnhance(
-  block: RefsPullBlock,
-  page: string,
-  config: { blockRefToString: boolean }
-) {
-  if (!block[":block/string"]) {
-    return { block, isBlock: true, page };
-  }
-  const replacedString = replaceBlockReference(block[":block/string"]);
-  block = new Proxy(block, {
-    get(target, prop, receiver) {
-      if (prop === ":block/string") {
-        if (config.blockRefToString) {
-          return replacedString;
-        }
-      }
-      return Reflect.get(target, prop);
-    },
-  });
-
-  const b = {
-    block,
-    page: page,
-    isBlock: true,
-  };
-  return b;
-}
-
 const PullStr = `
       :block/string 
       :node/title 
@@ -267,9 +239,9 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     .forEach((user) => {
       CACHE_USERS.set(user[":db/id"], user);
     });
-    console.log({ worker })
-    // worker.add(JSON.stringify(Array.from(CACHE_PAGES.entries())));
+    worker.add(JSON.stringify(Array.from(CACHE_BLOCKS.entries())));
 };
+console.log({ worker: worker.add(), worker2: worker });
 
 const lastestRenewTime = {
   value: new Date().setHours(0, 0, 0, 0),

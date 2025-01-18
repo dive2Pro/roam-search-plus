@@ -2,8 +2,8 @@ import { Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
 import { batch, observable, observe } from "@legendapp/state";
 import dayjs from "dayjs";
-import { ReactNode } from "react";
-import { delay } from "./delay";
+import { ReactNode, startTransition } from "react";
+import { delay } from "./utils/delay";
 import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
 import { clone, CONSTNATS, debounce, extension_helper } from "./helper";
 import { isGraphLoaded, setGraphLoaded } from "./loaded";
@@ -84,7 +84,7 @@ const defaultConditions = {
   includeBlock: true,
   includeCode: true,
   blockRefToString: true,
-  caseIntensive: true,
+  caseIntensive: false,
   pages: {
     selected: [] as {
       id: string;
@@ -270,10 +270,8 @@ const getList = () => {
   return _list;
 };
 
-let cancelPre = () => {};
 const trigger = debounce(
   async (config: Omit<QueryConfig, "search"> & { search: string }) => {
-    cancelPre();
     if (!config.search) {
       let filterCount = 0;
       if (config.exclude) {
@@ -298,7 +296,6 @@ const trigger = debounce(
       search: keywordsBuildFrom(config.search),
     });
     console.timeEnd("QQuery");
-    cancelPre = queryAPi.cancel;
     await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
       // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
       console.time("assign");
@@ -397,7 +394,6 @@ let prevSearch = "";
 
 const triggerWhenSearchChange = async (next: string) => {
   const nextStr = next.trim();
-  console.log({ nextStr, prevSearch });
   if (nextStr === prevSearch) {
     return;
   }

@@ -111,10 +111,7 @@ export const SearchResultGridView = observer(
             overscan={200}
             data={source}
             components={{
-              List: ListContainer,
-              // ScrollSeekPlaceholder: ({ height, width, index }) => (
-              //   <Card interactive className="grid-item" elevation={1}></Card>
-              // ),
+              List: ListContainer as any,
             }}
             itemContent={(_index, item) => {
               // const item = data[index];

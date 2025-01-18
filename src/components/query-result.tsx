@@ -14,7 +14,7 @@ import {
   SelectResultItem,
 } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { date, highlightText } from "../helper";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import dayjs from "dayjs";
@@ -279,10 +279,6 @@ export const QueryResult = observer(() => {
     ) as HTMLElement;
     setTimeout(() => {
       const vHeight = el.getBoundingClientRect().height;
-
-      // list.length > 20 ? MAX : list.length > 10 ? Math.min(MIN + 200, MAX) : MIN;
-      // const height = MAX;
-      console.log(" lahyout effect", vHeight);
       store.actions.setHeight(vHeight);
     });
   }, []);
@@ -293,55 +289,57 @@ export const QueryResult = observer(() => {
     `}
     >
       {index >= 5 ? <BackToTop /> : null}
-      <Virtuoso
-        className="infinite-scroll"
-        style={store.ui.result.getListStyle()}
-        totalCount={list.length}
-        data={list}
-        ref={ref}
-        context={{ currentItemIndex: index }}
-        itemContent={(_index, data) => {
-          if (data.needCreate) {
+      <Suspense fallback={null}>
+        <Virtuoso
+          className="infinite-scroll"
+          style={store.ui.result.getListStyle()}
+          totalCount={list.length}
+          data={list}
+          ref={ref}
+          context={{ currentItemIndex: index }}
+          itemContent={(_index, data) => {
+            if (data.needCreate) {
+              return (
+                <div
+                  className={`${
+                    _index === index ? "result-item-container-active" : ""
+                  } `}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.shiftKey) {
+                      handleShiftClick(data);
+                      return;
+                    }
+                    handleClick(data);
+                  }}
+                >
+                  <PageCreator data={data} />
+                </div>
+              );
+            }
+            data = findLowestParentFromResult(data);
             return (
               <div
                 className={`${
                   _index === index ? "result-item-container-active" : ""
-                } `}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (e.shiftKey) {
-                    handleShiftClick(data);
-                    return;
-                  }
-                  handleClick(data);
-                }}
-              >
-                <PageCreator data={data} />
-              </div>
-            );
-          }
-          data = findLowestParentFromResult(data);
-          return (
-            <div
-              className={`${
-                _index === index ? "result-item-container-active" : ""
-              } 
+                } 
               
               `}
-              // className={"result-item-container-active"}
-              onMouseEnter={() => {
-                setIndex(_index);
-              }}
-            >
-              <Item
-                key={data.text.toString() + "-" + data.editTime}
-                item={data}
-              />
-            </div>
-          );
-        }}
-      ></Virtuoso>
+                // className={"result-item-container-active"}
+                onMouseEnter={() => {
+                  setIndex(_index);
+                }}
+              >
+                <Item
+                  key={data.text.toString() + "-" + data.editTime}
+                  item={data}
+                />
+              </div>
+            );
+          }}
+        ></Virtuoso>
+      </Suspense>
     </div>
   );
 });
@@ -398,7 +396,7 @@ const BackToTop = observer(() => {
 export const ListContainer = observer(() => {
   return (
     <div className="result-container">
-      <QueryResult />
+        <QueryResult />
       {store.ui.isShowSelectedTarget() ? <SelectedResult /> : null}
     </div>
   );

@@ -1,9 +1,7 @@
-import classNames from "classnames";
 import moment from "dayjs";
 import * as React from "react";
 
-import { Icon, Intent, Props, Tag } from "@blueprintjs/core";
-import { DateRange } from "@blueprintjs/datetime";
+import { Intent, Tag } from "@blueprintjs/core";
 
 import { DateFormatProps } from "@blueprintjs/datetime";
 const FORMAT = "dddd, LL";
