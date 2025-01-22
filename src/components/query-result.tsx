@@ -14,7 +14,13 @@ import {
   SelectResultItem,
 } from "../store";
 import { ObservableObject, observe } from "@legendapp/state";
-import React, { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { date, highlightText } from "../helper";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import dayjs from "dayjs";
@@ -346,9 +352,7 @@ export const QueryResult = observer(() => {
 
 const PageCreator = observer((props: { data: ResultItem }) => {
   return (
-    <section
-      className="result-item-container"
-    >
+    <section className="result-item-container">
       <Icon icon={"application"}></Icon>
       <div style={{ width: "100%", marginLeft: 10 }}>
         <Button small style={{ marginRight: 10 }}>
@@ -396,7 +400,7 @@ const BackToTop = observer(() => {
 export const ListContainer = observer(() => {
   return (
     <div className="result-container">
-        <QueryResult />
+      <QueryResult />
       {store.ui.isShowSelectedTarget() ? <SelectedResult /> : null}
     </div>
   );

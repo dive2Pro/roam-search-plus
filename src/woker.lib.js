@@ -1,10 +1,22 @@
 export default function QueryWorker() {
-  const cache = {};
   var utils = {
     log: (v) => {
-      console.log(`from worker: ${v}`);
+      console.log(`from worker: `, v);
     },
   };
+ const request = indexedDB.open("MyDatabase", 1);
+ let roamData
+ request.onsuccess = function (event) {
+   const db = event.target.result;
+   const transaction = db.transaction("data", "readonly");
+   const store = transaction.objectStore("data");
+   const getRequest = store.get("all");
+
+   getRequest.onsuccess = function (event) {
+    console.log(event.target.result, ' ---@@-')
+     roamData = event.target.result.value;
+   };
+ };
   function woker_gameon() {}
 
   function woker_add(json) {
@@ -12,11 +24,19 @@ export default function QueryWorker() {
     return 1;
   }
 
-  function woker_query(config, allBlocks, allPages) {
-    const getAllBlocksFn = () => allBlocks;
-    const getAllPagesFn = () => allPages;
-    const isUnderTag = (tags, item) => {
-      const relatedRefs =
+  function entries(mapData) {
+    var map = [];
+    mapData.forEach((value, key) => {
+      map.push([key, value]);
+    });
+    return map;
+  }
+
+  function woker_query(configStr, allBlocksStr, allPagesStr, idMapStr) {
+    var getAllBlocksFn = () => allBlocks;
+    var getAllPagesFn = () => allPages;
+    var isUnderTag = (tags, item) => {
+      var relatedRefs =
         item[":block/refs"]?.map((item) => item[":db/id"]) || [];
 
       item[":block/parents"]?.forEach((p) => {
@@ -26,17 +46,31 @@ export default function QueryWorker() {
           ) || [])
         );
       });
-      const result = tags.some((tag) =>
+      var result = tags.some((tag) =>
         relatedRefs.some((ref) => +ref === +tag)
       );
       return result;
     };
+   
+    var config = roamData.config
+    var allBlocks = roamData.allBlocks
+    var allPages = roamData.allPages
+    var idMap = roamData.idMap
+    var pull = (() => {
+      
+      return (id) => {
+        return idMap[id]
+      }
+    })()
+    utils.log({
+      config,
+      allBlocks,
+      allPages
+    });
+    var keywords = config.search;
+    var hasKeywords = keywords.some((key) => !!key);
 
-    console.time("SSSS");
-    const keywords = config.search;
-    const hasKeywords = keywords.some((key) => !!key);
-
-    const includes = (p, n) => {
+    var includes = (p, n) => {
       if (!p) {
         return false;
       }
@@ -48,9 +82,9 @@ export default function QueryWorker() {
       }
     };
 
-    const findBlocksContainsAllKeywords = (keywords) => {
-      const lowBlocks = [];
-      const result = getAllBlocksFn().filter((item) => {
+    var findBlocksContainsAllKeywords = (keywords) => {
+      var lowBlocks = [];
+      var result = getAllBlocksFn().filter((item) => {
         if (config.include?.pages?.length) {
           if (
             !config.include.pages.some((pageUid) => {
@@ -75,7 +109,7 @@ export default function QueryWorker() {
             return false;
           }
         }
-        const r = keywords.every((keyword) => {
+        var r = keywords.every((keyword) => {
           return (
             item.block[":block/string"] &&
             includes(item.block[":block/string"], keyword)
@@ -83,7 +117,7 @@ export default function QueryWorker() {
         });
 
         if (config.include?.tags?.length) {
-          const hasTagged =
+          var hasTagged =
             item.block[":block/refs"] &&
             config.include.tags.some((tagId) =>
               item.block[":block/refs"].some(
@@ -116,14 +150,14 @@ export default function QueryWorker() {
       });
       return [result, lowBlocks];
     };
-    const timemeasure = (name, cb) => {
+    var timemeasure = (name, cb) => {
       // console.time(name);
       cb();
       // console.timeEnd(name);
     };
     function findAllRelatedBlocks(keywords) {
-      let [topLevelBlocks, lowBlocks] = findBlocksContainsAllKeywords(keywords);
-
+      let result = findBlocksContainsAllKeywords(keywords);
+      var topLevelBlocks = result[0], lowBlocks = result[1];
       // if (keywords.length <= 1) {
       //   return [topLevelBlocks, lowBlocks?.map(block => {
       //     return {
@@ -132,7 +166,7 @@ export default function QueryWorker() {
       //     }
       //   })] as const;
       // }
-      // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
+      // var allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
       // console.log("find low");
 
       // let lowBlocks: CacheBlockType[] = [];
@@ -162,12 +196,12 @@ export default function QueryWorker() {
       //   });
       // });
 
-      const validateMap = new Map();
+      var validateMap = new Map();
       timemeasure("1", () => {
         lowBlocks = lowBlocks.filter((item) => {
           let result = !hasKeywords;
           keywords.forEach((keyword, index) => {
-            const r = includes(item.block[":block/string"], keyword);
+            var r = includes(item.block[":block/string"], keyword);
 
             if (!validateMap.has(item.page)) {
               validateMap.set(item.page, []);
@@ -194,9 +228,13 @@ export default function QueryWorker() {
 
       // 如果 lowBlocks 出现过的页面,
       timemeasure("2", () => {
+        var topLevelPagesMap = topLevelBlocks.reduce((p, c) => {
+          p[c.page] = 1;
+          return p;
+        }, {});
         lowBlocks = lowBlocks.filter((block) => {
           // 如果 topLevel 和 lowBlocks 是在相同的页面, 那么即使 lowBlocks 中没有出现所有的 keywords, 它们也应该出现在结果中.
-          if (topLevelBlocks.some((tb) => tb.page === block.page)) {
+          if (topLevelPagesMap[block.page]) {
             return true;
           }
           return keywords.every((k, i) => {
@@ -205,7 +243,7 @@ export default function QueryWorker() {
         });
         // console.log(keywords, validateMap, lowBlocks, "@@@----");
       });
-      const map = new Map();
+      var map = new Map();
 
       timemeasure("3", () => {
         lowBlocks.forEach((b) => {
@@ -217,7 +255,7 @@ export default function QueryWorker() {
         });
       });
 
-      const lowBlocksResult = [...map.entries()].map((item) => {
+      var lowBlocksResult = entries(map).map((item) => {
         return {
           page: item[0],
           children: item[1],
@@ -289,23 +327,26 @@ export default function QueryWorker() {
             }
           }
         }
-        const r = keywords.every((keyword) => {
+        var r = keywords.every((keyword) => {
           return includes(page.block[":node/title"], keyword);
         });
         return r;
       });
     }
     // console.log(config, " ---- config");
-    // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
-    const promise = Promise.all([
+    // var ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
+    var promise = Promise.all([
       findAllRelatedPageUids(keywords),
       findAllRelatedBlocks(keywords),
     ]);
-
-    return {
-      promise: promise.then(
-        ([pageUids, [topLevelBlocks, lowLevelBlocks = []]]) => {
-          const result = [
+    return promise.then(
+        (response) => {
+          // [pageUids, [topLevelBlocks, (lowLevelBlocks = [])]];
+          const pageUids = response[0]
+          const topLevelBlocks = response[1][0]
+          const lowLevelBlocks = response[1][0] || []
+          utils.log({ topLevelBlocks, lowLevelBlocks})
+          var result = [
             // pull_many(pageUids),
             pageUids,
             // pull_many(topLevelBlocks),
@@ -332,17 +373,15 @@ export default function QueryWorker() {
 
           return result;
         }
-      ),
-    };
-  }
-  function woker_updateBlocks(blocks) {}
+      )
+    }
 }
-// const Demo = `
+// var Demo = `
 // let CACHE = {}
 // export function add(a, b) {
 //     console.log({ a, b })
 // }
 // `;
 
-// const v = Demo.toString().split("\n").slice(0, -1);
+// var v = Demo.toString().split("\n").slice(0, -1);
 // console.log({ v: v.join("\n") });

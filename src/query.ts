@@ -1,11 +1,116 @@
-import { pull } from "./helper";
+// @ts-nocheck
+import { transaction } from "mobx";
+import { pull, timer } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
+import { worker } from "./woker";
+import { ResultItem } from "./store";
+const request = indexedDB.open("MyDatabase", 1);
+let db;
+request.onsuccess = async function (event) {
+  console.log(`req success`, event.target);
+  db = event.target.result;
+};
 
-// TODO: 移到 webworker 中
-export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAllPagesFn = getAllPages) => {
+request.onerror = function (event) {
+  console.log("数据库打开报错");
+};
+
+request.onupgradeneeded = function (event) {
+  const db = event.target.result;
+  console.log(` upgradeden`);
+  if (!db.objectStoreNames.contains("data")) {
+    db.createObjectStore("data", { keyPath: "id", autoIncrement: true });
+  }
+};
+
+class ChunkProcessor {
+  constructor() {
+    this.isRunning = false;
+  }
+
+  start(items, processItem, chunkSize = 2500) {
+    return new Promise((resolve) => {
+      this.isRunning = true;
+      let index = 0;
+
+      const process = () => {
+        if (!this.isRunning) return;
+
+        const chunk = items.slice(index, index + chunkSize);
+        chunk.forEach(processItem);
+
+        index += chunkSize;
+
+        if (index < items.length) {
+          setTimeout(process);
+        } else {
+          resolve(1);
+        }
+      };
+
+      setTimeout(process);
+    });
+  }
+
+  stop() {
+    console.warn("find all stop!!!!");
+    this.isRunning = false;
+  }
+}
+
+export const Query2 = (
+  config: QueryConfig,
+  getAllBlocksFn = getAllBlocks,
+  getAllPagesFn = getAllPages
+) => {
+  return {
+    promise: new Promise<ReturnType<typeof Query2>>(async (resolve) => {
+      // console.log({ getAllBlocksFn()})
+      const endJson = timer("json");
+
+      console.log("------------", db);
+
+      const transaction = db.transaction("data", "readwrite");
+
+      const store = transaction.objectStore("data");
+      store.put({
+        id: "all",
+        value: {
+          config,
+          allBlocks: getAllBlocksFn(),
+          allPages: getAllPagesFn(),
+        },
+      });
+
+      const pass = [
+        JSON.stringify(config),
+
+        [],
+        [],
+        {},
+        // JSON.stringify(getAllPagesFn()),
+        // JSON.stringify(getIdMap()),
+      ];
+      // const result = await worker.query(...pass);
+      // console.log({ result });
+      // resolve(result);
+
+      endJson();
+    }),
+  };
+};
+export const Query = (
+  config: QueryConfig,
+  getAllBlocksFn = getAllBlocks,
+  getAllPagesFn = getAllPages
+) => {
   console.time("SSSS");
+
+  // 使用示例
+  const processor = new ChunkProcessor();
+
   const keywords = config.search;
-  const hasKeywords = keywords.some(key => !!key);
+  const hasKeywords = keywords.some((key) => !!key);
   const includes = (p: string, n: string) => {
     if (!p) {
       return false;
@@ -18,65 +123,81 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
     }
   };
 
-  const findBlocksContainsAllKeywords = (keywords: string[]) => {
+  const findBlocksContainsAllKeywords = async (
+    keywords: string[]
+  ): [ResultItem[], CacheBlockType[]] => {
     const lowBlocks: CacheBlockType[] = [];
-    const result = getAllBlocksFn().filter((item) => {
-      if (config.include?.pages?.length) {
-        if (
-          !config.include.pages.some((pageUid) => {
-            return pageUid === item.page;
-          })
-        ) {
-          return false;
-        }
-      }
-
-      if (config.exclude?.pages?.length) {
-        if (config.exclude.pages.some((pageUid) => pageUid === item.page)) {
-          return false;
-        }
-      }
-      if (config.exclude?.tags?.length) {
-       
-        if (isUnderTag(config.exclude.tags, item.block)) {
-          return false;
-        }
-      }
-      const r = keywords.every((keyword) => {
-        return (
-          item.block[":block/string"] &&
-          includes(item.block[":block/string"], keyword)
-        );
-      });
-
-      if (config.include?.tags?.length) {
-        const hasTagged =
-          item.block[":block/refs"] &&
-          config.include.tags.some((tagId) =>
-            item.block[":block/refs"].some(
-              (ref) => String(ref[":db/id"]) === String(tagId)
-            )
-          );
-   
-        if (r) {
-          if (hasTagged) {
-            return true;
-          } else {
-            lowBlocks.push(item);
+    const topBlocks: ResultItem[] = [];
+    const items = getAllBlocksFn();
+    console.log({ items })
+    await processor.start(items, (item) => {
+      const isTopBlock = () => {
+        if (config.include?.pages?.length) {
+          if (
+            !config.include.pages.some((pageUid) => {
+              return pageUid === item.page;
+            })
+          ) {
             return false;
           }
-        } else {
-          lowBlocks.push(item);
-          return false;
         }
-      }
 
-      if (!r) {
+        if (config.exclude?.pages?.length) {
+          if (config.exclude.pages.some((pageUid) => pageUid === item.page)) {
+            return false;
+          }
+        }
+        if (config.exclude?.tags?.length) {
+          if (isUnderTag(config.exclude.tags, item.block)) {
+            return false;
+          }
+        }
+        const r = keywords.every((keyword) => {
+          return (
+            item.block[":block/string"] &&
+            includes(item.block[":block/string"], keyword)
+          );
+        });
+
+        if (config.include?.tags?.length) {
+          const hasTagged =
+            item.block[":block/refs"] &&
+            config.include.tags.some((tagId) =>
+              item.block[":block/refs"].some(
+                (ref) => String(ref[":db/id"]) === String(tagId)
+              )
+            );
+
+          if (r) {
+            if (hasTagged) {
+              return true;
+            } else {
+              return false;
+            }
+          } else {
+            return false;
+          }
+        }
+        return r;
+      };
+      if (isTopBlock()) {
+        topBlocks.push({
+          id: item.block[":block/uid"],
+          text: item.block[":block/string"],
+          editTime: item.block[":edit/time"] || item.block[":create/time"],
+          createTime: item.block[":create/time"],
+          isPage: false,
+          createUser: item.block[":create/user"]?.[":db/id"],
+          paths: [] as string[],
+          isSelected: false,
+          children: [],
+        });
+      } else {
         lowBlocks.push(item);
       }
-      return r;
-    });
-    return [result, lowBlocks];
+    }, 500);
+
+    return [topBlocks, lowBlocks];
   };
   const timemeasure = (name: string, cb: () => void) => {
     console.time(name);
@@ -84,20 +205,12 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
     console.timeEnd(name);
   };
   async function findAllRelatedBlocks(keywords: string[]) {
-    let [topLevelBlocks, lowBlocks] = findBlocksContainsAllKeywords(keywords);
+    const endkeywordTimer = timer("find all keywords");
+    let [topLevelBlocks, lowBlocks] = await findBlocksContainsAllKeywords(
+      keywords
+    );
+    endkeywordTimer();
 
-    // if (keywords.length <= 1) {
-    //   return [topLevelBlocks, lowBlocks?.map(block => {
-    //     return {
-    //       page: block.page,
-    //       children: [block]
-    //     }
-    //   })] as const;
-    // }
-    // const allRelatedGenerator = timeSlice_(findAllRelatedBlockGroupByPages);
-    // console.log("find low");
-
-    // let lowBlocks: CacheBlockType[] = [];
     timemeasure("0", () => {
       if (config.include?.pages?.length) {
         lowBlocks = lowBlocks.filter((block) => {
@@ -106,24 +219,11 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
       }
 
       if (config.include?.tags.length) {
-        // console.log(config.exclude.tags, item.block[":block/refs"]?.map(item => item[":db/id"]))
-        // if (!config.include.tags.some(tagId => item.block[":block/refs"].some(ref => String(ref[":db/id"]) === String(tagId)))) {
-        //   return false
-        // }
-
-        lowBlocks = lowBlocks.filter(item => {
-          return isUnderTag(config.include.tags, item.block)
-        })
-      // console.log(lowBlocks, ' --- ', config.include.tags, topLevelBlocks)
-
+        lowBlocks = lowBlocks.filter((item) => {
+          return isUnderTag(config.include.tags, item.block);
+        });
       }
     });
-
-    // keywords.forEach((keyword) => {
-    //   lowBlocks.filter((item) => {
-    //     return includes(item[":block/uid"], keyword);
-    //   });
-    // });
 
     const validateMap = new Map<string, boolean[]>();
     timemeasure("1", () => {
@@ -142,19 +242,17 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
         });
         return result;
       });
-      // console.log(lowBlocks, " lowblocks", validateMap);
     });
 
     // 如果 lowBlocks 出现过的页面,
     timemeasure("2", () => {
       const topLevelPagesMap = topLevelBlocks.reduce((p, c) => {
-        p[c.page] = 1
-        return p
-      }, {} as Record<string, number>)
+        p[c.id] = 1;
+        return p;
+      }, {} as Record<string, number>);
 
       lowBlocks = lowBlocks.filter((block) => {
         // 如果 topLevel 和 lowBlocks 是在相同的页面, 那么即使 lowBlocks 中没有出现所有的 keywords, 它们也应该出现在结果中.
-        // if(topLevelBlocks.some((tb) => tb.page === block.page)) {
         if (topLevelPagesMap[block.page]) {
           return true;
         }
@@ -176,25 +274,32 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
       });
     });
 
-    const lowBlocksResult = [...map.entries()].map((item) => {
-      return {
-        page: item[0],
-        children: item[1],
+    const lowBlocksResult = [...map.entries()].map((_item) => {
+      const item = {
+        page: pull(_item[0]),
+        children: _item[1],
       };
+
+      return {
+        id: item.page.block[":block/uid"],
+        text: item.page.block[":node/title"],
+        editTime:
+          item.page.block[":edit/time"] || item.page.block[":create/time"],
+        createTime: item.page.block[":create/time"],
+        createUser: item.page.block[":create/user"]?.[":db/id"],
+        isPage: false,
+        paths: [] as string[],
+        isSelected: false,
+        children: item.children,
+      } as ResultItem;
     });
 
-    return [
-      topLevelBlocks,
-      lowBlocksResult,
-      // (await allRelatedGenerator(keywords, topLevelBlocks)) as {
-      //   page: string;
-      //   children: string[];
-      // }[],
-    ] as const;
+    return [topLevelBlocks, lowBlocksResult] as const;
   }
 
-  function findAllRelatedPageUids(keywords: string[]) {
-    return getAllPagesFn().filter((page) => {
+  async function findAllRelatedPageUids(keywords: string[]) {
+    const endTimer = timer("find all related pageuids");
+    const result = getAllPagesFn().filter((page) => {
       // 过滤掉非选中页面
       if (config.exclude) {
         if (config.exclude.pages?.length) {
@@ -246,8 +351,9 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
       });
       return r;
     });
+    endTimer();
+    return result;
   }
-// console.log(config, " ---- config");
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const promise = Promise.all([
     findAllRelatedPageUids(keywords),
@@ -255,36 +361,15 @@ export const Query = (config: QueryConfig, getAllBlocksFn = getAllBlocks, getAll
   ]);
 
   return {
-    promise: promise.then(
-      ([pageUids, [topLevelBlocks, lowLevelBlocks = []]]) => {
-        const result = [
-          // pull_many(pageUids),
-          pageUids,
-          // pull_many(topLevelBlocks),
-          topLevelBlocks,
-          //   .map((item) => {
-          //   return {
-          //     ...item,
-          //     parents: getParentsInfoOfBlockUid(item[":block/uid"]),
-          //   };
-          // }),
-          lowLevelBlocks
-            .map((item) => {
-              return {
-                page: pull(item.page),
-                children: item.children,
-              };
-            })
-            .filter((item) => item.page),
-
-          // lowLevelBlocks,
-        ] as const;
+    promise: promise.then(([pages, [topLevelBlocks, lowLevelBlocks = []]]) => {
+      const result = [pages, topLevelBlocks, lowLevelBlocks] as const;
       // console.log("end!!!!!!", result);
-        console.timeEnd("SSSS");
+      console.timeEnd("SSSS");
 
-        return result;
-      }
-    ),
-    
+      return result;
+    }),
+    stop: () => {
+      processor.stop();
+    },
   };
 };

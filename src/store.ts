@@ -2,13 +2,14 @@ import { Toaster } from "@blueprintjs/core";
 import { DateRange } from "@blueprintjs/datetime";
 import { batch, observable, observe } from "@legendapp/state";
 import dayjs from "dayjs";
-import { ReactNode, startTransition } from "react";
+import { ReactNode, startTransition as _startTransition } from "react";
 import { delay } from "./utils/delay";
 import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
 import { clone, CONSTNATS, debounce, extension_helper } from "./helper";
 import { isGraphLoaded, setGraphLoaded } from "./loaded";
 import { Query } from "./query";
 import {
+  CacheBlockType,
   deleteFromCacheByUid,
   findLowestParentFromBlocks,
   getAllPages,
@@ -270,6 +271,11 @@ const getList = () => {
   return _list;
 };
 
+let prevOperator = {
+  stop: () => {
+    // 
+  }
+};
 const trigger = debounce(
   async (config: Omit<QueryConfig, "search"> & { search: string }) => {
     if (!config.search) {
@@ -290,103 +296,66 @@ const trigger = debounce(
       }
     }
     // console.log(search, " start search");
-    console.time("QQuery");
+    console.time("Full Query");
     const queryAPi = Query({
       ...config,
       search: keywordsBuildFrom(config.search),
     });
-    console.timeEnd("QQuery");
-    await queryAPi.promise.then(([pages, topBlocks, lowBlocks]) => {
-      // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
-      console.time("assign");
+    console.timeEnd("Full Query");
+    prevOperator = queryAPi;
+    return queryAPi.promise
+      .then(([pages, topBlocks, lowBlocks]) => {
+        // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
+        console.time("assign");
 
-      const setExactPageOnFirst = (title: string) => {
-        const findExactPage = (title: string) => {
-          return pages.findIndex((item) => item.block[":node/title"] === title);
+        const setExactPageOnFirst = (title: string) => {
+          const findExactPage = (title: string) => {
+            return pages.findIndex(
+              (item) => item.block[":node/title"] === title
+            );
+          };
+
+          const placeExactPageOnFirst = (index: number) => {
+            if (index === -1) {
+              return;
+            }
+            const item = pages[index];
+            pages.splice(index, 1);
+            pages.unshift(item);
+          };
+          const index = findExactPage(title);
+          placeExactPageOnFirst(index);
         };
 
-        const placeExactPageOnFirst = (index: number) => {
-          if (index === -1) {
-            return;
-          }
-          const item = pages[index];
-          pages.splice(index, 1);
-          pages.unshift(item);
-        };
-        const index = findExactPage(title);
-        placeExactPageOnFirst(index);
-      };
+        setExactPageOnFirst(config.search);
 
-      setExactPageOnFirst(config.search);
-
-      const result: ResultItem[] = [
-        ...pages.map((block) => {
-          return {
-            id: block.block[":block/uid"],
-            text: block.block[":node/title"],
-            editTime: block.block[":edit/time"] || block.block[":create/time"],
-            createTime: block.block[":create/time"],
-            isPage: true,
-            paths: [],
-            isSelected: false,
-            children: [],
-            createUser: block.block[":create/user"] as unknown as number,
-          };
-        }),
-        ...topBlocks.map((block) => {
-          return {
-            id: block.block[":block/uid"],
-            text: block.block[":block/string"],
-            editTime: block.block[":edit/time"] || block.block[":create/time"],
-            createTime: block.block[":create/time"],
-            isPage: false,
-            createUser: block.block[":create/user"]?.[":db/id"],
-            // paths: block.parents.map(
-            //   (item) => item[":block/string"] || item[":node/title"]
-            // ),
-            paths: [],
-            isSelected: false,
-            children: [],
-          };
-        }),
-        ...(lowBlocks || []).map((item) => {
-          return {
-            id: item.page.block[":block/uid"],
-            text: item.page.block[":node/title"],
-            editTime:
-              item.page.block[":edit/time"] || item.page.block[":create/time"],
-            createTime: item.page.block[":create/time"],
-            createUser: item.page.block[":create/user"]?.[":db/id"],
-            isPage: false,
-            paths: [],
-            isSelected: false,
-            children: item.children.map((block) => {
-              return {
-                id: block.block[":block/uid"],
-                text: block.block[":block/string"],
-                editTime:
-                  block.block[":edit/time"] || block.block[":create/time"],
-                createTime: block.block[":create/time"],
-                isPage: false,
-                // paths: block.parents.map(
-                //   (item) => item[":block/string"] || item[":node/title"]
-                // ),
-                paths: [],
-                isSelected: false,
-                children: [],
-                createUser: block.block[":create/user"]?.[":db/id"],
-              };
-            }),
-          };
-        }),
-      ];
-      // _result = result;
-      // console.log(" ui result = ", result);
-      // ui.result.set([]);
-      console.timeEnd("assign");
-      setResult(result);
-    });
-    ui.loading.set(false);
+        const result: ResultItem[] = [
+          ...pages.map((block) => {
+            return {
+              id: block.block[":block/uid"],
+              text: block.block[":node/title"],
+              editTime:
+                block.block[":edit/time"] || block.block[":create/time"],
+              createTime: block.block[":create/time"],
+              isPage: true,
+              paths: [] as string[],
+              isSelected: false,
+              children: [] as any[] ,
+              createUser: block.block[":create/user"] as unknown as number,
+            };
+          }),
+          ...topBlocks,
+          ...(lowBlocks || []),
+        ];
+        // _result = result;
+        // console.log(" ui result = ", result);
+        // ui.result.set([]);
+        console.timeEnd("assign");
+        setResult(result);
+      })
+      .finally(() => {
+        ui.loading.set(false);
+      });
   },
   500
 );
@@ -398,10 +367,13 @@ const triggerWhenSearchChange = async (next: string) => {
     return;
   }
   prevSearch = nextStr;
-
+  if (prevOperator) {
+    prevOperator.stop();
+  }
   if (nextStr === "") {
     return;
   }
+
   ui.loading.set(true);
   try {
     // const selectedPagesUids = ui.conditions.pages.selected.peek();
@@ -421,13 +393,13 @@ const triggerWhenSearchChange = async (next: string) => {
     });
   } catch (e) {
     console.error(e);
-  } finally {
-    ui.loading.set(false);
-  }
+  } 
 };
 
 const disposeSearch = ui.search.onChange(async (next) => {
-  if (windowUi.visible.peek()) triggerWhenSearchChange(next);
+  if (windowUi.visible.peek()) {
+    triggerWhenSearchChange(next);
+  }
 });
 
 const getFilterExcludePageIds = (): string[] => {
@@ -468,6 +440,9 @@ const dispose = observe(async () => {
   // const exclude = ui.conditions.exclude.get();
   ui.loading.set(!!search);
   try {
+    if (prevOperator) {
+      prevOperator.stop();
+    }
     await trigger({
       search,
       caseIntensive,

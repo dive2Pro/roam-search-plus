@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { makeAutoObservable } from "mobx";
 import { Empty, RegexInput, TextInput } from "./comps";
 import type { Block, IFilterField, IOperator } from "./type";

@@ -1,4 +1,4 @@
-import { getCacheByUid } from "./roam";
+import { CacheBlockType, getCacheByUid } from "./roam";
 import dayjs from "dayjs";
 
 export const CONSTNATS = {
@@ -138,3 +138,29 @@ export function simulateClick(a: Element) {
     a.dispatchEvent(new MouseEvent(type, { view: window, bubbles: true, cancelable: true, buttons: 1 }));
   });
 }
+
+export function timer(name: string) {
+  console.time(name)
+  return () => {
+    console.timeEnd(name)
+  }
+}
+
+
+
+// export function cacheBlockToUiResult(block: CacheBlockType) {
+//   return {
+//     id: block.block[":block/uid"],
+//     text: block.block[":block/string"],
+//     editTime: block.block[":edit/time"] || block.block[":create/time"],
+//     createTime: block.block[":create/time"],
+//     isPage: false,
+//     // paths: block.parents.map(
+//     //   (item) => item[":block/string"] || item[":node/title"]
+//     // ),
+//     paths: [],
+//     isSelected: false,
+//     children: [],
+//     createUser: block.block[":create/user"]?.[":db/id"],
+//   };
+// }
