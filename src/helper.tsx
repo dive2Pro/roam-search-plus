@@ -1,5 +1,6 @@
 import { CacheBlockType, getCacheByUid } from "./roam";
 import dayjs from "dayjs";
+import { ResultItem } from "./store";
 
 export const CONSTNATS = {
   el: "advanced-search-el",
@@ -71,6 +72,26 @@ export const pull_many = (uids: string[]) => {
 
 function escapeRegExpChars(text: string) {
   return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+}
+
+export function toResultItem(item: ResultItem | CacheBlockType): ResultItem {
+  if('page' in item) {
+    
+    return {
+      id: item.block[":block/uid"],
+      text: item.block[":block/string"],
+      editTime:
+        item.block[":edit/time"] || item.block[":create/time"],
+      createTime: item.block[":create/time"],
+      createUser: item.block[":create/user"]?.[":db/id"],
+      isPage: false,
+      paths: [] as string[],
+      isSelected: false,
+      children: [],
+    };
+  }
+
+  return item
 }
 
 export function highlightText(text: string, query: string) {

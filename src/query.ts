@@ -4,6 +4,7 @@ import { pull, timer } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 import { worker } from "./woker";
 import { ResultItem } from "./store";
+import { queryResult } from "./result";
 const request = indexedDB.open("MyDatabase", 1);
 let db;
 request.onsuccess = async function (event) {
@@ -125,77 +126,81 @@ export const Query = (
 
   const findBlocksContainsAllKeywords = async (
     keywords: string[]
-  ): [ResultItem[], CacheBlockType[]] => {
+  ): Promise<[ResultItem[], CacheBlockType[]]> => {
     const lowBlocks: CacheBlockType[] = [];
     const topBlocks: ResultItem[] = [];
     const items = getAllBlocksFn();
-    console.log({ items })
-    await processor.start(items, (item) => {
-      const isTopBlock = () => {
-        if (config.include?.pages?.length) {
-          if (
-            !config.include.pages.some((pageUid) => {
-              return pageUid === item.page;
-            })
-          ) {
-            return false;
+    console.log({ items });
+    await processor.start(
+      items,
+      (item) => {
+        const isTopBlock = () => {
+          if (config.include?.pages?.length) {
+            if (
+              !config.include.pages.some((pageUid) => {
+                return pageUid === item.page;
+              })
+            ) {
+              return false;
+            }
           }
-        }
 
-        if (config.exclude?.pages?.length) {
-          if (config.exclude.pages.some((pageUid) => pageUid === item.page)) {
-            return false;
+          if (config.exclude?.pages?.length) {
+            if (config.exclude.pages.some((pageUid) => pageUid === item.page)) {
+              return false;
+            }
           }
-        }
-        if (config.exclude?.tags?.length) {
-          if (isUnderTag(config.exclude.tags, item.block)) {
-            return false;
+          if (config.exclude?.tags?.length) {
+            if (isUnderTag(config.exclude.tags, item.block)) {
+              return false;
+            }
           }
-        }
-        const r = keywords.every((keyword) => {
-          return (
-            item.block[":block/string"] &&
-            includes(item.block[":block/string"], keyword)
-          );
-        });
-
-        if (config.include?.tags?.length) {
-          const hasTagged =
-            item.block[":block/refs"] &&
-            config.include.tags.some((tagId) =>
-              item.block[":block/refs"].some(
-                (ref) => String(ref[":db/id"]) === String(tagId)
-              )
+          const r = keywords.every((keyword) => {
+            return (
+              item.block[":block/string"] &&
+              includes(item.block[":block/string"], keyword)
             );
+          });
 
-          if (r) {
-            if (hasTagged) {
-              return true;
+          if (config.include?.tags?.length) {
+            const hasTagged =
+              item.block[":block/refs"] &&
+              config.include.tags.some((tagId) =>
+                item.block[":block/refs"].some(
+                  (ref) => String(ref[":db/id"]) === String(tagId)
+                )
+              );
+
+            if (r) {
+              if (hasTagged) {
+                return true;
+              } else {
+                return false;
+              }
             } else {
               return false;
             }
-          } else {
-            return false;
           }
+          return r;
+        };
+        if (isTopBlock()) {
+          topBlocks.push({
+            id: item.block[":block/uid"],
+            text: item.block[":block/string"],
+            editTime: item.block[":edit/time"] || item.block[":create/time"],
+            createTime: item.block[":create/time"],
+            isPage: false,
+            createUser: item.block[":create/user"]?.[":db/id"],
+            paths: [] as string[],
+            isSelected: false,
+            children: [],
+          });
+        } else {
+          lowBlocks.push(item);
         }
-        return r;
-      };
-      if (isTopBlock()) {
-        topBlocks.push({
-          id: item.block[":block/uid"],
-          text: item.block[":block/string"],
-          editTime: item.block[":edit/time"] || item.block[":create/time"],
-          createTime: item.block[":create/time"],
-          isPage: false,
-          createUser: item.block[":create/user"]?.[":db/id"],
-          paths: [] as string[],
-          isSelected: false,
-          children: [],
-        });
-      } else {
-        lowBlocks.push(item);
-      }
-    }, 500);
+      },
+      1000
+    );
 
     return [topBlocks, lowBlocks];
   };
@@ -208,7 +213,10 @@ export const Query = (
     const endkeywordTimer = timer("find all keywords");
     let [topLevelBlocks, lowBlocks] = await findBlocksContainsAllKeywords(
       keywords
-    );
+    ).then(([t, l]) => {
+      queryResult.pushToResult(t)
+      return [t, l]
+    });
     endkeywordTimer();
 
     timemeasure("0", () => {
@@ -293,13 +301,14 @@ export const Query = (
         children: item.children,
       } as ResultItem;
     });
-
-    return [topLevelBlocks, lowBlocksResult] as const;
+    queryResult.pushToResult(lowBlocksResult)
+    return [topLevelBlocks as ResultItem[], lowBlocksResult] as const;
   }
 
   async function findAllRelatedPageUids(keywords: string[]) {
     const endTimer = timer("find all related pageuids");
-    const result = getAllPagesFn().filter((page) => {
+    const result: ResultItem[] = [];
+    getAllPagesFn().forEach((page) => {
       // 过滤掉非选中页面
       if (config.exclude) {
         if (config.exclude.pages?.length) {
@@ -346,17 +355,47 @@ export const Query = (
           }
         }
       }
-      const r = keywords.every((keyword) => {
+      const containsAll = keywords.every((keyword) => {
         return includes(page.block[":node/title"], keyword);
       });
-      return r;
+
+      if (containsAll) {
+        if (page.block[":node/title"] === config.search) {
+          result.unshift({
+            id: page.block[":block/uid"],
+            text: page.block[":node/title"],
+            editTime: page.block[":edit/time"] || page.block[":create/time"],
+            createTime: page.block[":create/time"],
+            isPage: true,
+            paths: [] as string[],
+            isSelected: false,
+            children: [] as any[],
+            createUser: page.block[":create/user"] as unknown as number,
+          });
+          return;
+        }
+        result.push({
+          id: page.block[":block/uid"],
+          text: page.block[":node/title"],
+          editTime: page.block[":edit/time"] || page.block[":create/time"],
+          createTime: page.block[":create/time"],
+          isPage: true,
+          paths: [] as string[],
+          isSelected: false,
+          children: [] as any[],
+          createUser: page.block[":create/user"] as unknown as number,
+        });
+      }
     });
     endTimer();
     return result;
   }
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const promise = Promise.all([
-    findAllRelatedPageUids(keywords),
+    findAllRelatedPageUids(keywords).then((result) => {
+      queryResult.setResult(result)
+      return result
+    }),
     findAllRelatedBlocks(keywords),
   ]);
 

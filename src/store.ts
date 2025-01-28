@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import { ReactNode, startTransition as _startTransition } from "react";
 import { delay } from "./utils/delay";
 import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
-import { clone, CONSTNATS, debounce, extension_helper } from "./helper";
+import { clone, CONSTNATS, debounce, extension_helper, toResultItem } from "./helper";
 import { isGraphLoaded, setGraphLoaded } from "./loaded";
 import { Query } from "./query";
 import {
@@ -22,11 +22,12 @@ import {
   opens,
   renewCache2,
 } from "./roam";
+import { queryResult } from "./result";
 
 export function findLowestParentFromResult(block: ResultItem) {
   if (block.children?.length) {
     let lowestParent = findLowestParentFromBlocks(
-      block.children.map((item) => ({ uid: item.id }))
+      block.children.map((item) => ({ uid: toResultItem(item).id }))
     );
     lowestParent = lowestParent
       ? getCacheByUid(lowestParent[":block/uid"])?.block
@@ -43,7 +44,7 @@ export function findLowestParentFromResult(block: ResultItem) {
         paths: [] as string[],
         isSelected: false,
         children: block.children.filter(
-          (block) => block.id !== lowestParent[":block/uid"]
+          (block) => (block as ResultItem).id !== lowestParent[":block/uid"]
         ),
       };
       return result;
@@ -61,7 +62,7 @@ export type ResultItem = {
   isPage: boolean;
   paths: string[];
   isSelected: boolean;
-  children: ResultItem[];
+  children: (ResultItem | CacheBlockType)[];
   createUser: string | number;
   needCreate?: boolean;
 };
@@ -240,16 +241,6 @@ const keywordsBuildFrom = (search: string) => {
   return keywords;
 };
 
-let _result: ResultItem[] = [];
-const setResult = (result: ResultItem[]) => {
-  _result = result;
-  query.result.set([]);
-};
-
-const getResult = () => {
-  query.result.get();
-  return _result;
-};
 
 let _list: ResultItem[] = [];
 const setList = (result: ResultItem[]) => {
@@ -307,43 +298,8 @@ const trigger = debounce(
       .then(([pages, topBlocks, lowBlocks]) => {
         // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
         console.time("assign");
-
-        const setExactPageOnFirst = (title: string) => {
-          const findExactPage = (title: string) => {
-            return pages.findIndex(
-              (item) => item.block[":node/title"] === title
-            );
-          };
-
-          const placeExactPageOnFirst = (index: number) => {
-            if (index === -1) {
-              return;
-            }
-            const item = pages[index];
-            pages.splice(index, 1);
-            pages.unshift(item);
-          };
-          const index = findExactPage(title);
-          placeExactPageOnFirst(index);
-        };
-
-        setExactPageOnFirst(config.search);
-
         const result: ResultItem[] = [
-          ...pages.map((block) => {
-            return {
-              id: block.block[":block/uid"],
-              text: block.block[":node/title"],
-              editTime:
-                block.block[":edit/time"] || block.block[":create/time"],
-              createTime: block.block[":create/time"],
-              isPage: true,
-              paths: [] as string[],
-              isSelected: false,
-              children: [] as any[] ,
-              createUser: block.block[":create/user"] as unknown as number,
-            };
-          }),
+          ...pages,
           ...topBlocks,
           ...(lowBlocks || []),
         ];
@@ -351,7 +307,7 @@ const trigger = debounce(
         // console.log(" ui result = ", result);
         // ui.result.set([]);
         console.timeEnd("assign");
-        setResult(result);
+        // queryResult.setResult(result);
       })
       .finally(() => {
         ui.loading.set(false);
@@ -374,7 +330,7 @@ const triggerWhenSearchChange = async (next: string) => {
     return;
   }
 
-  ui.loading.set(true);
+  // ui.loading.set(true);
   try {
     // const selectedPagesUids = ui.conditions.pages.selected.peek();
     const caseIntensive = ui.conditions.caseIntensive.peek();
@@ -467,7 +423,7 @@ const dispose = observe(async () => {
 });
 
 const disposeUiResult = observe(async () => {
-  let uiResult = getResult();
+  let uiResult = queryResult.getResult();
 
   const includePage = ui.conditions.includePage.get();
   const includeBlock = ui.conditions.includeBlock.get();
@@ -509,7 +465,6 @@ const disposeUiResult = observe(async () => {
     });
   }
 
-  // console.log(ui.conditions.includeCode.get(), " - get render");
   if (!ui.conditions.includeCode.get()) {
     uiResult = uiResult
       .filter((item) => {
@@ -521,7 +476,7 @@ const disposeUiResult = observe(async () => {
           return {
             ...item,
             children: item.children.filter((oi) => {
-              const childText = oi.text as string;
+              const childText = toResultItem(oi).text as string;
               return !(
                 childText.startsWith("```") && childText.endsWith("```")
               );
@@ -1383,7 +1338,7 @@ export const store = {
 
     result: {
       size() {
-        return getResult().length;
+        return queryResult.getResult().length;
       },
       list() {
         return getList();
@@ -1401,7 +1356,7 @@ export const store = {
     },
 
     hasExactPage() {
-      const first = getResult()[0];
+      const first = queryResult.getResult()[0];
 
       return first && first.isPage && first.text === ui.search.get();
     },

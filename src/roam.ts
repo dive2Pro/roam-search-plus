@@ -16,18 +16,6 @@ type ReversePullBlock = {
   ":block/_children": ReversePullBlock[];
 };
 
-export type ResultItem = {
-  id: string;
-  text: string | ReactNode;
-  editTime?: number;
-  createTime: number;
-  isPage: boolean;
-  paths: string[];
-  isSelected: boolean;
-  children: ResultItem[];
-  createUser: string | number;
-  needCreate?: boolean;
-};
 
 /**
  * 用于在渲染时, 获取 block 的 parents 的内容
@@ -266,9 +254,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
     .forEach((user) => {
       CACHE_USERS.set(user[":db/id"], user);
     });
-  worker.add(JSON.stringify(Array.from(CACHE_BLOCKS.entries())));
 };
-console.log({ worker: worker.add(), worker2: worker });
 
 const lastestRenewTime = {
   value: new Date().setHours(0, 0, 0, 0),

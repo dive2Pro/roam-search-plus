@@ -21,12 +21,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { date, highlightText } from "../helper";
+import { date, highlightText, toResultItem } from "../helper";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { isAutoCloseWhenShiftClick } from "../config";
-import { isPageByUid } from "../roam";
+import { CacheBlockType, isPageByUid } from "../roam";
 import { useEvent } from "../utils/useEvent";
 dayjs.extend(relativeTime);
 
@@ -69,7 +69,7 @@ const handleShiftClick = (item: ResultItem) => {
 
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(<>{props.item.text}</>);
-  const [children, setChildren] = useState(props.item.children);
+  const [children, setChildren] = useState(() => props.item.children.map(toResultItem));
   const [path, setPath] = useState<string[]>([]);
 
   useEffect(() => {
@@ -90,9 +90,10 @@ const Row = observer((props: { item: ResultItem }) => {
           setText(highlightText(props.item.text as string, search));
           setChildren(
             children.map((child) => {
+              const r = toResultItem(child)
               return {
-                ...child,
-                text: highlightText(child.text as string, search),
+                ...r,
+                text: highlightText(r.text as string, search),
               };
             })
           );
@@ -126,7 +127,8 @@ const Row = observer((props: { item: ResultItem }) => {
   };
 
   let content;
-  const mappedChildren = children.map((child) => {
+  const mappedChildren = children.map((_child) => {
+    const child = toResultItem(_child)
     return (
       <Card
         interactive
