@@ -275,6 +275,22 @@ const setList = (result: ResultItem[]) => {
             string: store.ui.getSearch()
           }
         })
+        store.actions.closeDialog();
+        store.actions.changeSearch("")
+        Toaster.create({
+          position: 'bottom',
+          
+        }).show({
+          intent: 'success',
+          message: "Added content to daily note",
+          action: {
+            text: 'open',
+            intent: 'primary',
+            onClick: () => {
+              window.roamAlphaAPI.ui.mainWindow.openDailyNotes()
+            }
+          }
+        })
       }
     } as ResultItem;
     _list = [..._list, addToDN];

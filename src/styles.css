@@ -628,3 +628,8 @@
 .page-select .bp3-input-group {
   padding: 8px;
 }
+
+
+.bp3-dark .bp3-dialog-header {
+  border-bottom:  none;
+}

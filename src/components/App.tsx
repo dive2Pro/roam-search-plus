@@ -314,6 +314,9 @@ const MainView = observer(() => {
               active={isFilterOpen}
               minimal
               onClick={() => setFilterOpen(!isFilterOpen)}
+              style={{
+                zIndex: 0
+              }}
             >
               Filters
             </Button>

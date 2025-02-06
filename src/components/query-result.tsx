@@ -31,8 +31,8 @@ import { useEvent } from "../utils/useEvent";
 dayjs.extend(relativeTime);
 
 const handleClick = (item: ResultItem) => {
-  if(item.onClick) {
-    return item.onClick()
+  if (item.onClick) {
+    return item.onClick();
   }
   if (item.needCreate) {
     store.actions.createPage(item.text as string);
@@ -253,13 +253,14 @@ export const QueryResult = observer(() => {
   const handleResultScroll = useEvent((e: CustomEvent) => {
     let nextIndex = 0;
     if (e.detail.direction === "up") {
-      nextIndex = Math.max(0, index - 1);
+      nextIndex = index - 1 < 0 ? list.length - 1 : Math.max(0, index - 1);
       ref.current?.scrollIntoView({
         index: nextIndex,
         align: "start",
       });
     } else if (e.detail.direction === "down") {
-      nextIndex = Math.min(index + 1, list.length - 1);
+      nextIndex =
+        index + 1 >= list.length ? 0 : Math.min(index + 1, list.length - 1);
       ref.current?.scrollIntoView({
         index: nextIndex,
         align: "end",
@@ -333,21 +334,21 @@ export const QueryResult = observer(() => {
               );
             }
 
-            if(data.addToDN) {
-               return (
-                 <div
-                   className={`${
-                     _index === index ? "result-item-container-active" : ""
-                   } `}
-                   onClick={(e) => {
-                     e.preventDefault();
-                     e.stopPropagation();
-                     handleClick(data);
-                   }}
-                 >
-                   <AddToDN data={data} />
-                 </div>
-               );
+            if (data.addToDN) {
+              return (
+                <div
+                  className={`${
+                    _index === index ? "result-item-container-active" : ""
+                  } `}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleClick(data);
+                  }}
+                >
+                  <AddToDN data={data} />
+                </div>
+              );
             }
             data = findLowestParentFromResult(data);
             return (
@@ -389,7 +390,6 @@ const PageCreator = observer((props: { data: ResultItem }) => {
   );
 });
 
-
 const AddToDN = observer((props: { data: ResultItem }) => {
   return (
     <section className="result-item-container">
@@ -401,7 +401,7 @@ const AddToDN = observer((props: { data: ResultItem }) => {
       </div>
     </section>
   );
-})
+});
 
 const SelectedResult = observer(() => {
   return (
