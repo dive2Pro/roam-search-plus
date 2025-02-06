@@ -151,14 +151,23 @@ const MainView = observer(() => {
             }}
             rightElement={
               store.ui.isTyped() ? (
-                <Button
-                  onClick={() => {
-                    store.actions.clearSearch();
-                  }}
-                  minimal
-                  icon="cross"
-                  className="bp3-text-muted"
-                ></Button>
+                <>
+                  <Button
+                    icon="refresh"
+                    minimal
+                    onClick={() => {
+                      store.actions.searchAgain();
+                    }}
+                  ></Button>
+                  <Button
+                    onClick={() => {
+                      store.actions.clearSearch();
+                    }}
+                    minimal
+                    icon="cross"
+                    className="bp3-text-muted"
+                  ></Button>
+                </>
               ) : undefined
             }
           />
@@ -315,7 +324,7 @@ const MainView = observer(() => {
               minimal
               onClick={() => setFilterOpen(!isFilterOpen)}
               style={{
-                zIndex: 0
+                zIndex: 0,
               }}
             >
               Filters

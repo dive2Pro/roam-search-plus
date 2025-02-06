@@ -5,7 +5,13 @@ import dayjs from "dayjs";
 import { ReactNode, startTransition as _startTransition } from "react";
 import { delay } from "./utils/delay";
 import { recentlyViewed, searchHistory, Tab } from "./extentionApi";
-import { clone, CONSTNATS, debounce, extension_helper, toResultItem } from "./helper";
+import {
+  clone,
+  CONSTNATS,
+  debounce,
+  extension_helper,
+  toResultItem,
+} from "./helper";
 import { isGraphLoaded, setGraphLoaded } from "./loaded";
 import { Query } from "./query";
 import {
@@ -67,7 +73,7 @@ export type ResultItem = {
   createUser: string | number;
   needCreate?: boolean;
   addToDN?: boolean;
-  onClick?: () => void
+  onClick?: () => void;
 };
 
 export type SelectResultItem = ResultItem & {
@@ -244,7 +250,6 @@ const keywordsBuildFrom = (search: string) => {
   return keywords;
 };
 
-
 let _list: ResultItem[] = [];
 const setList = (result: ResultItem[]) => {
   _list = result;
@@ -265,33 +270,32 @@ const setList = (result: ResultItem[]) => {
       addToDN: true,
       children: [],
       onClick: () => {
-        const uid = window.roamAlphaAPI.util.dateToPageUid(new Date())
+        const uid = window.roamAlphaAPI.util.dateToPageUid(new Date());
         window.roamAlphaAPI.createBlock({
           location: {
             "parent-uid": uid,
-            order: Number.MAX_SAFE_INTEGER
+            order: Number.MAX_SAFE_INTEGER,
           },
           block: {
-            string: store.ui.getSearch()
-          }
-        })
+            string: store.ui.getSearch(),
+          },
+        });
         store.actions.closeDialog();
-        store.actions.changeSearch("")
+        store.actions.changeSearch("");
         Toaster.create({
-          position: 'bottom',
-          
+          position: "bottom",
         }).show({
-          intent: 'success',
+          intent: "success",
           message: "Added content to daily note",
           action: {
-            text: 'open',
-            intent: 'primary',
+            text: "open",
+            intent: "primary",
             onClick: () => {
-              window.roamAlphaAPI.ui.mainWindow.openDailyNotes()
-            }
-          }
-        })
-      }
+              window.roamAlphaAPI.ui.mainWindow.openDailyNotes();
+            },
+          },
+        });
+      },
     } as ResultItem;
     _list = [..._list, addToDN];
   }
@@ -306,8 +310,8 @@ const getList = () => {
 
 let prevOperator = {
   stop: () => {
-    // 
-  }
+    //
+  },
 };
 const trigger = debounce(
   async (config: Omit<QueryConfig, "search"> & { search: string }) => {
@@ -359,17 +363,24 @@ const trigger = debounce(
 );
 let prevSearch = "";
 
-const triggerWhenSearchChange = async (next: string) => {
+const triggerWhenSearchChange = async (next: string, force = false) => {
   const nextStr = next.trim();
-  if (nextStr === prevSearch) {
-    return;
-  }
-  prevSearch = nextStr;
-  if (prevOperator) {
-    prevOperator.stop();
-  }
-  if (nextStr === "") {
-    return;
+  if (!force) {
+    if (nextStr === prevSearch) {
+      return;
+    }
+    prevSearch = nextStr;
+    if (prevOperator) {
+      prevOperator.stop();
+    }
+    if (nextStr === "") {
+      return;
+    }
+  } else {
+    prevSearch = nextStr;
+    if (prevOperator) {
+      prevOperator.stop();
+    }
   }
 
   // ui.loading.set(true);
@@ -391,7 +402,7 @@ const triggerWhenSearchChange = async (next: string) => {
     });
   } catch (e) {
     console.error(e);
-  } 
+  }
 };
 
 const disposeSearch = ui.search.onChange(async (next) => {
@@ -551,48 +562,10 @@ const disposeUiResult = observe(async () => {
   setList(uiResult);
 });
 
-const disposeUiResultSort = observe(() => {
-  // TODO:
-});
-
-const disposeUiSelectablePages = observe(() => {
-  // const list = getResult();
-  // const pages = list
-  //   .filter((item) => item.isPage)
-  //   .map((item) => ({
-  //     id: item.id,
-  //     text: item.text as string,
-  //   }));
-  // const pageBlocks = pull_many(
-  //   getPageUidsFromUids(
-  //     list.filter((item) => !item.isPage).map((item) => item.id)
-  //   )
-  // );
-  // console.log(
-  //   [...pages,
-  //   ...pageBlocks.map((item) => ({
-  //     id: item[":block/uid"],
-  //     text: item[":node/title"],
-  //   }))].filter(item => item.text),
-  //   " ----"
-  // );
-  // ui.conditions.pages.items.set(
-  //   [
-  //     ...pages,
-  //     ...pageBlocks.map((item) => ({
-  //       id: item.block[":block/uid"],
-  //       text: item.block[":node/title"],
-  //     })),
-  //   ].filter((item) => item.text)
-  // );
-});
-
 extension_helper.on_uninstall(() => {
   dispose();
   disposeSearch();
   disposeUiResult();
-  disposeUiResultSort();
-  disposeUiSelectablePages();
   prevSearch = "";
 });
 
@@ -608,7 +581,9 @@ const saveToSearchViewed = (items: ResultItem[]) => {
       )
       .map((item) => ({
         id: item.id,
-        text:  React.isValidElement( item.text) ? item.text.props.children : item.text,
+        text: React.isValidElement(item.text)
+          ? item.text.props.children
+          : item.text,
         isPage: item.isPage,
       }))
   );
@@ -735,7 +710,7 @@ export const store = {
       ui.search.set(s);
     },
     searchAgain() {
-      triggerWhenSearchChange(ui.search.peek());
+      triggerWhenSearchChange(ui.search.peek(), true);
     },
     clearSearch() {
       store.actions.changeSearch("");
@@ -1457,7 +1432,6 @@ export const initStore = () => {
     focusInTabs(Tabs[0].id);
   }
 
-  console.log(recentlyViewed.getAll(), ' ___')
   windowUi.history.viewed.set(recentlyViewed.getAll());
   windowUi.history.search.set(searchHistory.getAll());
 };
