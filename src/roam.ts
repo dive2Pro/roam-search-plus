@@ -186,7 +186,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   ).map((item) => {
     const b = {
       block: item,
-      page: item[":node/title"],
+      page: item[":block/uid"],
       isBlock: false,
     };
     ALLBLOCK_PAGES.set(item[":block/uid"], item);

@@ -32,6 +32,9 @@ import { queryResult } from "./result";
 import React from "react";
 
 export function findLowestParentFromResult(block: ResultItem) {
+  if(block.isPage) {
+    return block
+  }
   if (block.children?.length) {
     let lowestParent = findLowestParentFromBlocks(
       block.children.map((item) => ({ uid: toResultItem(item).id }))
@@ -39,7 +42,7 @@ export function findLowestParentFromResult(block: ResultItem) {
     lowestParent = lowestParent
       ? getCacheByUid(lowestParent[":block/uid"])?.block
       : null;
-
+    console.log({ lowestParent: JSON.stringify(lowestParent), s: JSON.stringify(block )})
     if (lowestParent) {
       const result = {
         id: lowestParent[":block/uid"],

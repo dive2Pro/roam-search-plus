@@ -72,7 +72,7 @@ const handleShiftClick = (item: ResultItem) => {
 };
 
 const Row = observer((props: { item: ResultItem }) => {
-  const [text, setText] = useState(<>{props.item.text}</>);
+  const [text, setText] = useState(props.item.text);
   const [children, setChildren] = useState(() =>
     props.item.children.map(toResultItem)
   );
@@ -88,7 +88,7 @@ const Row = observer((props: { item: ResultItem }) => {
         return;
       }
       if (!search) {
-        setText(props.item.text as JSX.Element);
+        setText(props.item.text);
         return;
       }
       window.requestIdleCallback(() => {
@@ -181,6 +181,8 @@ const Row = observer((props: { item: ResultItem }) => {
       </>
     );
   }
+
+  console.log({ s: JSON.stringify(props.item)})
   return (
     <section
       className="result-item-container"

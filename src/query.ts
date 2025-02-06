@@ -5,9 +5,8 @@ import { worker } from "./woker";
 import { ResultItem } from "./store";
 import { queryResult } from "./result";
 class ChunkProcessor {
-  isRunning = false
-  constructor() {
-  }
+  isRunning = false;
+  constructor() {}
 
   start<T>(
     items: T[],
@@ -71,7 +70,7 @@ class NotifyProgress {
   }
 
   isFinished() {
-    return this._percent === 100
+    return this._percent === 100;
   }
 }
 
@@ -100,6 +99,7 @@ export const Query = (
     }
   };
 
+  // 要把那些
   const findBlocksContainsAllKeywords = async (
     keywords: string[]
   ): Promise<[ResultItem[], CacheBlockType[]]> => {
@@ -107,6 +107,7 @@ export const Query = (
     const topBlocks: ResultItem[] = [];
     const items = getAllBlocksFn();
     console.log({ items });
+    const endTimer = timer("find blocks contains all")
     await processor.start(
       items,
       (item) => {
@@ -175,12 +176,12 @@ export const Query = (
           lowBlocks.push(item);
         }
       },
-      1000,
+      1500,
       (index) => {
         notifier.notify(Math.ceil((index / items.length) * 40) + 20);
       }
     );
-
+    endTimer()
     return [topBlocks, lowBlocks];
   };
   const timemeasure = (name: string, cb: () => void) => {
@@ -188,17 +189,13 @@ export const Query = (
     cb();
     console.timeEnd(name);
   };
-  async function findAllRelatedBlocks(keywords: string[]) {
-    const endkeywordTimer = timer("find all keywords");
-    let [topLevelBlocks, lowBlocks] = await findBlocksContainsAllKeywords(
-      keywords
-    ).then(([t, l]) => {
-      queryResult.pushToResult(t);
-      notifier.notify(60);
-      return [t, l] as const;
-    });
-    endkeywordTimer();
-
+  async function findAllRelatedBlocks(
+    // lowerPages: CacheBlockType[],
+    topLevelBlocks: ResultItem[],
+    lowLevelBlocks: CacheBlockType[]
+  ) {
+    console.log({ lowLevelBlocks: lowLevelBlocks.map( v => ({...v, block: {...v.block}})) })
+    let lowBlocks = lowLevelBlocks
     timemeasure("0", () => {
       if (config.include?.pages?.length) {
         lowBlocks = lowBlocks.filter((block) => {
@@ -218,7 +215,7 @@ export const Query = (
       lowBlocks = lowBlocks.filter((item) => {
         let result = !hasKeywords;
         keywords.forEach((keyword, index) => {
-          const r = includes(item.block[":block/string"], keyword);
+          const r = includes( item.block[":node/title"] || item.block[":block/string"], keyword);
 
           if (!validateMap.has(item.page)) {
             validateMap.set(item.page, []);
@@ -270,17 +267,17 @@ export const Query = (
       }
       const item = {
         page: pull(_item[0]),
-        children: _item[1],
+        children: _item[1].filter( v => v.isBlock),
       };
 
       return {
         id: item.page.block[":block/uid"],
-        text: item.page.block[":node/title"],
+        text: item.page.block[":block/string"] || item.page.block[":node/title"],
         editTime:
           item.page.block[":edit/time"] || item.page.block[":create/time"],
         createTime: item.page.block[":create/time"],
         createUser: item.page.block[":create/user"]?.[":db/id"],
-        isPage: false,
+        isPage: !item.page.isBlock,
         paths: [] as string[],
         isSelected: false,
         children: item.children,
@@ -288,16 +285,17 @@ export const Query = (
     });
     queryResult.pushToResult(lowBlocksResult);
     notifier.finish();
-    return [topLevelBlocks as ResultItem[], lowBlocksResult] as const;
+    return lowBlocksResult
   }
 
   async function findAllRelatedPageUids(keywords: string[]) {
     const endTimer = timer("find all related pageuids");
     const result: ResultItem[] = [];
+    const lowPages: CacheBlockType[] = [];
     notifier.notify(5);
 
     getAllPagesFn().forEach((page, index, arr) => {
-      if (Number.isInteger(index / arr.length) && index/arr.length > 5) {
+      if (Number.isInteger(index / arr.length) && index / arr.length > 5) {
         notifier.notify(Math.ceil((index / arr.length) * 20));
       }
 
@@ -352,7 +350,7 @@ export const Query = (
       });
 
       if (containsAll) {
-        if (page.block[":node/title"] === (config.search.join(""))) {
+        if (page.block[":node/title"] === config.search.join("")) {
           result.unshift({
             id: page.block[":block/uid"],
             text: page.block[":node/title"],
@@ -377,27 +375,35 @@ export const Query = (
           children: [] as any[],
           createUser: page.block[":create/user"] as unknown as number,
         });
+      } else {
+        lowPages.push(page);
       }
     });
     endTimer();
-    return result;
+    return [result, lowPages] as const;
   }
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const promise = Promise.all([
     findAllRelatedPageUids(keywords).then((result) => {
-      queryResult.setResult(result);
-
+      queryResult.setResult(result[0]);
       return result;
     }),
-    findAllRelatedBlocks(keywords),
-  ]);
+    findBlocksContainsAllKeywords(keywords).then((res) => {
+      queryResult.pushToResult(res[0]);
+      notifier.notify(60);
+      return res;
+    }),
+  ]).then(([[pages, lowerPages], [topLevelBlocks, lowBlocks]]) => {
+    return findAllRelatedBlocks(topLevelBlocks, [...lowerPages, ...lowBlocks]).then(
+      (res) => {
+        return [pages, topLevelBlocks, res] as const;
+      }
+    );
+  });
 
   return {
-    promise: promise.then(([pages, [topLevelBlocks, lowLevelBlocks = []]]) => {
-      const result = [pages, topLevelBlocks, lowLevelBlocks] as const;
-      // console.log("end!!!!!!", result);
+    promise: promise.then((result) => {
       console.timeEnd("SSSS");
-
       return result;
     }),
     stop: () => {
