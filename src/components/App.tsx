@@ -14,6 +14,7 @@ import {
   Toaster,
   ControlGroup,
   Checkbox,
+  ProgressBar,
 } from "@blueprintjs/core";
 
 import { store } from "../store";
@@ -21,16 +22,27 @@ import { enableLegendStateReact, observer } from "@legendapp/state/react";
 import { ListContainer } from "./query-result";
 import { Sidebar } from "./sidebar";
 import { QueryHistory } from "./history-result";
-import { FC, PropsWithChildren, ReactNode, useEffect, useRef, useState,  } from "react";
+import {
+  FC,
+  PropsWithChildren,
+  ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { CONSTNATS } from "../helper";
 import { BottomPopup } from "./bottom-popup";
 import { usePortal } from "./commons/use-portal";
 import { popoverKind } from "./commons/popover-kind";
+import { notifier } from "../query";
 enableLegendStateReact();
 
 const LoadingGraph: FC<PropsWithChildren> = observer((props) => {
   return (
-    <div className={"graph-loading w-100p flex-column"} style={{ display: 'flex', height: "100%" }}>
+    <div
+      className={"graph-loading w-100p flex-column"}
+      style={{ display: "flex", height: "100%" }}
+    >
       {store.ui.isLoadingGraph() ? (
         <div className={`loading-view`}>
           <Button icon="lightbulb" minimal>
@@ -87,14 +99,14 @@ const MainView = observer(() => {
             onChange={(e) => store.actions.changeSearch(e.target.value)}
             onKeyDown={(e) => {
               console.log(e.key, " == key");
-              if(e.metaKey || e.shiftKey || e.ctrlKey) {
-                return
+              if (e.metaKey || e.shiftKey || e.ctrlKey) {
+                return;
               }
 
-              if(e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                 e.preventDefault();
               }
-              
+
               if (e.key === "ArrowDown") {
                 document.dispatchEvent(
                   new CustomEvent("result-scroll", {
@@ -118,23 +130,23 @@ const MainView = observer(() => {
 
               if (e.key === "Enter") {
                 // store.actions.searchAgain();
-                if(e.shiftKey) {
-                 document.dispatchEvent(
-                   new CustomEvent("result-scroll", {
-                     detail: {
-                       direction: "result-enter-shift",
-                     },
-                   })
-                 ); 
-                 return
+                if (e.shiftKey) {
+                  document.dispatchEvent(
+                    new CustomEvent("result-scroll", {
+                      detail: {
+                        direction: "result-enter-shift",
+                      },
+                    })
+                  );
+                  return;
                 }
-                 document.dispatchEvent(
-                   new CustomEvent("result-scroll", {
-                     detail: {
-                       direction: "result-enter",
-                     },
-                   })
-                 );
+                document.dispatchEvent(
+                  new CustomEvent("result-scroll", {
+                    detail: {
+                      direction: "result-enter",
+                    },
+                  })
+                );
               }
             }}
             rightElement={
@@ -308,6 +320,7 @@ const MainView = observer(() => {
           </ButtonGroup>
         ) : null}
       </div>
+      <PercentLine />
       <div style={{ display: "flex", flexDirection: "row", flex: 1 }}>
         <div className="flex-column flex-1">
           {store.ui.isTyped() ? (
@@ -336,6 +349,29 @@ const MainView = observer(() => {
     </section>
   );
 });
+
+function PercentLine() {
+  const forceUpdate = useState(0)[1];
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    notifier.on((p) => forceUpdate(p));
+  }, []);
+
+  useEffect(() => {
+    if (notifier._percent === 100) {
+      setTimeout(() => {
+        setVisible(false);
+      }, 200);
+    } else if (notifier._percent !== 100) {
+      setVisible(true)
+    }
+  }, [notifier._percent]);
+  if(!visible) {
+    return null
+  }
+  return <div>{<ProgressBar value={notifier._percent / 100} />}</div>;
+}
 
 const RoamMainView: FC<PropsWithChildren> = observer((props) => {
   useEffect(() => {

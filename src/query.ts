@@ -1,35 +1,20 @@
-// @ts-nocheck
 import { transaction } from "mobx";
 import { pull, timer } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 import { worker } from "./woker";
 import { ResultItem } from "./store";
 import { queryResult } from "./result";
-const request = indexedDB.open("MyDatabase", 1);
-let db;
-request.onsuccess = async function (event) {
-  console.log(`req success`, event.target);
-  db = event.target.result;
-};
-
-request.onerror = function (event) {
-  console.log("数据库打开报错");
-};
-
-request.onupgradeneeded = function (event) {
-  const db = event.target.result;
-  console.log(` upgradeden`);
-  if (!db.objectStoreNames.contains("data")) {
-    db.createObjectStore("data", { keyPath: "id", autoIncrement: true });
-  }
-};
-
 class ChunkProcessor {
+  isRunning = false
   constructor() {
-    this.isRunning = false;
   }
 
-  start(items, processItem, chunkSize = 2500) {
+  start<T>(
+    items: T[],
+    processItem: (v: T) => void,
+    chunkSize = 2500,
+    onChunkCallback: (p: number) => void
+  ) {
     return new Promise((resolve) => {
       this.isRunning = true;
       let index = 0;
@@ -41,7 +26,7 @@ class ChunkProcessor {
         chunk.forEach(processItem);
 
         index += chunkSize;
-
+        onChunkCallback(index);
         if (index < items.length) {
           setTimeout(process);
         } else {
@@ -59,54 +44,37 @@ class ChunkProcessor {
   }
 }
 
-export const Query2 = (
-  config: QueryConfig,
-  getAllBlocksFn = getAllBlocks,
-  getAllPagesFn = getAllPages
-) => {
-  return {
-    promise: new Promise<ReturnType<typeof Query2>>(async (resolve) => {
-      // console.log({ getAllBlocksFn()})
-      const endJson = timer("json");
+class NotifyProgress {
+  _percent = 0;
+  callback = (p: number) => {};
 
-      console.log("------------", db);
+  on(callback: (p: number) => void) {
+    this.callback = callback;
+  }
 
-      const transaction = db.transaction("data", "readwrite");
+  reset() {
+    this.notify(0);
+  }
 
-      const store = transaction.objectStore("data");
-      store.put({
-        id: "all",
-        value: {
-          config,
-          allBlocks: getAllBlocksFn(),
-          allPages: getAllPagesFn(),
-        },
-      });
+  notify(percent: number) {
+    this._percent = percent;
+    this.callback(this._percent);
+  }
 
-      const pass = [
-        JSON.stringify(config),
+  finish() {
+    this._percent = 100;
+    this.callback(100);
+  }
+}
 
-        [],
-        [],
-        {},
-        // JSON.stringify(getAllPagesFn()),
-        // JSON.stringify(getIdMap()),
-      ];
-      // const result = await worker.query(...pass);
-      // console.log({ result });
-      // resolve(result);
-
-      endJson();
-    }),
-  };
-};
+export const notifier = new NotifyProgress();
 export const Query = (
   config: QueryConfig,
   getAllBlocksFn = getAllBlocks,
   getAllPagesFn = getAllPages
 ) => {
   console.time("SSSS");
-
+  notifier.reset();
   // 使用示例
   const processor = new ChunkProcessor();
 
@@ -199,7 +167,10 @@ export const Query = (
           lowBlocks.push(item);
         }
       },
-      1000
+      1000,
+      (index) => {
+        notifier.notify(Math.ceil((index / items.length) * 40) + 20);
+      }
     );
 
     return [topBlocks, lowBlocks];
@@ -214,8 +185,9 @@ export const Query = (
     let [topLevelBlocks, lowBlocks] = await findBlocksContainsAllKeywords(
       keywords
     ).then(([t, l]) => {
-      queryResult.pushToResult(t)
-      return [t, l]
+      queryResult.pushToResult(t);
+      notifier.notify(60);
+      return [t, l] as const;
     });
     endkeywordTimer();
 
@@ -281,8 +253,13 @@ export const Query = (
         }
       });
     });
+    notifier.notify(70);
 
-    const lowBlocksResult = [...map.entries()].map((_item) => {
+    const lowBlocksResult = [...map.entries()].map((_item, index, arr) => {
+      const p = Math.ceil((index / arr.length) * 30);
+      if (Number.isInteger(p)) {
+        notifier.notify(70 + p);
+      }
       const item = {
         page: pull(_item[0]),
         children: _item[1],
@@ -301,14 +278,19 @@ export const Query = (
         children: item.children,
       } as ResultItem;
     });
-    queryResult.pushToResult(lowBlocksResult)
+    queryResult.pushToResult(lowBlocksResult);
+    notifier.finish();
     return [topLevelBlocks as ResultItem[], lowBlocksResult] as const;
   }
 
   async function findAllRelatedPageUids(keywords: string[]) {
     const endTimer = timer("find all related pageuids");
     const result: ResultItem[] = [];
-    getAllPagesFn().forEach((page) => {
+    getAllPagesFn().forEach((page, index, arr) => {
+      if (Number.isInteger(index / arr.length)) {
+        notifier.notify(Math.ceil((index / arr.length) * 20));
+      }
+
       // 过滤掉非选中页面
       if (config.exclude) {
         if (config.exclude.pages?.length) {
@@ -360,7 +342,7 @@ export const Query = (
       });
 
       if (containsAll) {
-        if (page.block[":node/title"] === config.search) {
+        if (page.block[":node/title"] === (config.search.join(""))) {
           result.unshift({
             id: page.block[":block/uid"],
             text: page.block[":node/title"],
@@ -393,8 +375,9 @@ export const Query = (
   // const ary = search.map(k => getBlocksContainsStr(k)).sort((a, b) => a.length - b.length);
   const promise = Promise.all([
     findAllRelatedPageUids(keywords).then((result) => {
-      queryResult.setResult(result)
-      return result
+      queryResult.setResult(result);
+
+      return result;
     }),
     findAllRelatedBlocks(keywords),
   ]);
