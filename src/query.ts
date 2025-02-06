@@ -45,7 +45,7 @@ class ChunkProcessor {
 }
 
 class NotifyProgress {
-  _percent = 0;
+  _percent = -1;
   callback = (p: number) => {};
 
   on(callback: (p: number) => void) {
@@ -64,6 +64,14 @@ class NotifyProgress {
   finish() {
     this._percent = 100;
     this.callback(100);
+  }
+
+  started() {
+    return this._percent !== -1;
+  }
+
+  isFinished() {
+    return this._percent === 100
   }
 }
 
@@ -276,7 +284,7 @@ export const Query = (
         paths: [] as string[],
         isSelected: false,
         children: item.children,
-      } as ResultItem;
+      } as ResultItem; 
     });
     queryResult.pushToResult(lowBlocksResult);
     notifier.finish();
@@ -286,8 +294,10 @@ export const Query = (
   async function findAllRelatedPageUids(keywords: string[]) {
     const endTimer = timer("find all related pageuids");
     const result: ResultItem[] = [];
+    notifier.notify(5);
+
     getAllPagesFn().forEach((page, index, arr) => {
-      if (Number.isInteger(index / arr.length)) {
+      if (Number.isInteger(index / arr.length) && index/arr.length > 5) {
         notifier.notify(Math.ceil((index / arr.length) * 20));
       }
 
