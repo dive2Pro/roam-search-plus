@@ -35,6 +35,7 @@ const HistoryItem = observer(({ item }: { item: Item }) => {
 
 const RecentlyViewedItem = observer(
   ({ item }: { item: ObservableObject<RecentlyViewedItem> }) => {
+    console.log({ item: item.text.get()})
     return (
       <Button
         minimal
@@ -90,7 +91,7 @@ export const QueryHistory = observer(() => {
     },
    
   ].filter(item => item.list.peek().length > 0);
-
+  console.log({ data: data[index]?.list })
   return (
     <div className={`${CONSTNATS.history}`}>
       {store.ui.history.getSearch().length ? (

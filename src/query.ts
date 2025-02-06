@@ -284,7 +284,7 @@ export const Query = (
         paths: [] as string[],
         isSelected: false,
         children: item.children,
-      } as ResultItem; 
+      } as ResultItem;
     });
     queryResult.pushToResult(lowBlocksResult);
     notifier.finish();

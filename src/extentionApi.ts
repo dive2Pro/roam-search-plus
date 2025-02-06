@@ -73,6 +73,7 @@ export const Tab = {
   read: () => {
     try {
       const json = extentionAPI.settings.get(KEYS["tab"]) as string;
+      console.log({ json })
       return JSON.parse(json) as any;
     } catch (e) {
       console.log(e, ' = error')

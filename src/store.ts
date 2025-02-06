@@ -23,6 +23,7 @@ import {
   renewCache2,
 } from "./roam";
 import { queryResult } from "./result";
+import React from "react";
 
 export function findLowestParentFromResult(block: ResultItem) {
   if (block.children?.length) {
@@ -65,6 +66,8 @@ export type ResultItem = {
   children: (ResultItem | CacheBlockType)[];
   createUser: string | number;
   needCreate?: boolean;
+  addToDN?: boolean;
+  onClick?: () => void
 };
 
 export type SelectResultItem = ResultItem & {
@@ -252,8 +255,31 @@ const setList = (result: ResultItem[]) => {
       needCreate: true,
       children: [],
     } as ResultItem;
-    _list = [createPage, ..._list];
+    _list = [..._list, createPage];
   }
+
+  if (store && !store.ui?.isMultipleSelection()) {
+    const addToDN = {
+      text: store.ui.getSearch(),
+      isPage: true,
+      addToDN: true,
+      children: [],
+      onClick: () => {
+        const uid = window.roamAlphaAPI.util.dateToPageUid(new Date())
+        window.roamAlphaAPI.createBlock({
+          location: {
+            "parent-uid": uid,
+            order: Number.MAX_SAFE_INTEGER
+          },
+          block: {
+            string: store.ui.getSearch()
+          }
+        })
+      }
+    } as ResultItem;
+    _list = [..._list, addToDN];
+  }
+
   query.list.set([]);
 };
 
@@ -556,6 +582,7 @@ extension_helper.on_uninstall(() => {
 
 const saveToSearchViewed = (items: ResultItem[]) => {
   const viewed = windowUi.history.viewed.peek();
+
   windowUi.history.viewed.push(
     ...items
       .filter(
@@ -565,7 +592,7 @@ const saveToSearchViewed = (items: ResultItem[]) => {
       )
       .map((item) => ({
         id: item.id,
-        text: item.text as string,
+        text:  React.isValidElement( item.text) ? item.text.props.children : item.text,
         isPage: item.isPage,
       }))
   );
@@ -1413,6 +1440,8 @@ export const initStore = () => {
     windowUi.tab.tabs.set(clone(tabConfig));
     focusInTabs(Tabs[0].id);
   }
+
+  console.log(recentlyViewed.getAll(), ' ___')
   windowUi.history.viewed.set(recentlyViewed.getAll());
   windowUi.history.search.set(searchHistory.getAll());
 };

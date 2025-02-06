@@ -31,11 +31,15 @@ import { useEvent } from "../utils/useEvent";
 dayjs.extend(relativeTime);
 
 const handleClick = (item: ResultItem) => {
+  if(item.onClick) {
+    return item.onClick()
+  }
   if (item.needCreate) {
     store.actions.createPage(item.text as string);
     store.actions.closeDialog();
     return;
   }
+
   let opened = store.actions.confirm.openInMain(item);
   if (opened) store.actions.closeDialog();
 
@@ -328,6 +332,23 @@ export const QueryResult = observer(() => {
                 </div>
               );
             }
+
+            if(data.addToDN) {
+               return (
+                 <div
+                   className={`${
+                     _index === index ? "result-item-container-active" : ""
+                   } `}
+                   onClick={(e) => {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     handleClick(data);
+                   }}
+                 >
+                   <AddToDN data={data} />
+                 </div>
+               );
+            }
             data = findLowestParentFromResult(data);
             return (
               <div
@@ -367,6 +388,21 @@ const PageCreator = observer((props: { data: ResultItem }) => {
     </section>
   );
 });
+
+
+const AddToDN = observer((props: { data: ResultItem }) => {
+  return (
+    <section className="result-item-container">
+      <Icon icon={"calendar"}></Icon>
+      <div style={{ width: "100%", marginLeft: 10 }}>
+        <Button small style={{ marginRight: 10 }}>
+          Add "{props.data.text}" to daily note
+        </Button>
+      </div>
+    </section>
+  );
+})
+
 const SelectedResult = observer(() => {
   return (
     <div className="selected-result p-4">
