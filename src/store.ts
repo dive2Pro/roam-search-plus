@@ -31,6 +31,7 @@ import {
 } from "./roam";
 import { queryResult } from "./result";
 import React from "react";
+import { isAutoSearch } from "./config";
 
 export function findLowestParentFromResult(block: ResultItem) {
   if (block.isPage) {
@@ -394,7 +395,7 @@ const triggerWhenSearchChange = async (next: string, force = false) => {
 };
 
 const disposeSearch = ui.search.onChange(async (next) => {
-  if (windowUi.visible.peek()) {
+  if (windowUi.visible.peek() && isAutoSearch()) {
     triggerWhenSearchChange(next);
   }
 });
@@ -435,6 +436,7 @@ const dispose = observe(async () => {
   const search = ui.search.peek().trim();
   const caseIntensive = ui.conditions.caseIntensive.get();
   // const exclude = ui.conditions.exclude.get();
+  console.log({ search })
   ui.loading.set(!!search);
   try {
     if (prevOperator) {
@@ -1405,12 +1407,6 @@ windowUi.visible.onChange(async (next) => {
         text: page[":node/title"],
       });
     }
-  }
-});
-windowUi.open.onChange((next) => {
-  if (next !== true) {
-    // ui.search.set("");
-  } else {
   }
 });
 

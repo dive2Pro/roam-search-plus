@@ -15,6 +15,7 @@ import {
   ControlGroup,
   Checkbox,
   ProgressBar,
+  Tooltip,
 } from "@blueprintjs/core";
 
 import { store } from "../store";
@@ -35,6 +36,7 @@ import { BottomPopup } from "./bottom-popup";
 import { usePortal } from "./commons/use-portal";
 import { popoverKind } from "./commons/popover-kind";
 import { notifier } from "../query";
+import { isAutoSearch } from "../config";
 enableLegendStateReact();
 
 const LoadingGraph: FC<PropsWithChildren> = observer((props) => {
@@ -83,7 +85,7 @@ const MainView = observer(() => {
       >
         <ControlGroup fill>
           <InputGroup
-            placeholder="search..."
+            placeholder="Press Ctrl + Enter to start the search"
             inputRef={ref}
             fill
             large
@@ -98,7 +100,7 @@ const MainView = observer(() => {
             value={store.ui.getSearch()}
             onChange={(e) => store.actions.changeSearch(e.target.value)}
             onKeyDown={(e) => {
-              console.log(e.key, " == key");
+              console.log(e.key, " == key", e.ctrlKey);
               if (e.metaKey || e.shiftKey || e.ctrlKey) {
                 return;
               }
@@ -126,10 +128,13 @@ const MainView = observer(() => {
               }
             }}
             onKeyPress={(e) => {
-              // console.log(e.key, " == key");
-
               if (e.key === "Enter") {
-                // store.actions.searchAgain();
+                if (e.ctrlKey) {
+                  store.actions.searchAgain();
+                  e.stopPropagation();
+                  e.preventDefault();
+                  return;
+                }
                 if (e.shiftKey) {
                   document.dispatchEvent(
                     new CustomEvent("result-scroll", {
@@ -152,13 +157,27 @@ const MainView = observer(() => {
             rightElement={
               store.ui.isTyped() ? (
                 <>
-                  <Button
-                    icon="refresh"
-                    minimal
-                    onClick={() => {
-                      store.actions.searchAgain();
-                    }}
-                  ></Button>
+                  {!isAutoSearch() ? (
+                    <Tooltip content={"Ctrl + Enter "}>
+                      <Button
+                        intent="primary"
+                        small
+                        onClick={() => {
+                          store.actions.searchAgain();
+                        }}
+                      >
+                        Search
+                      </Button>
+                    </Tooltip>
+                  ) : (
+                    <Button
+                      icon={"refresh"}
+                      minimal
+                      onClick={() => {
+                        store.actions.searchAgain();
+                      }}
+                    ></Button>
+                  )}
                   <Button
                     onClick={() => {
                       store.actions.clearSearch();
@@ -376,11 +395,11 @@ function PercentLine() {
         setVisible(false);
       }, 200);
     } else if (notifier._percent !== 100) {
-      setVisible(true)
+      setVisible(true);
     }
   }, [notifier._percent]);
-  if(!visible) {
-    return null
+  if (!visible) {
+    return null;
   }
   return <div>{<ProgressBar value={notifier._percent / 100} />}</div>;
 }
