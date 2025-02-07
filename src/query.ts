@@ -1,7 +1,6 @@
 import { transaction } from "mobx";
 import { pull, timer } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
-import { worker } from "./woker";
 import { ResultItem } from "./store";
 import { queryResult } from "./result";
 class ChunkProcessor {
@@ -106,7 +105,6 @@ export const Query = (
     const lowBlocks: CacheBlockType[] = [];
     const topBlocks: ResultItem[] = [];
     const items = getAllBlocksFn();
-    console.log({ items });
     const endTimer = timer("find blocks contains all")
     await processor.start(
       items,
@@ -176,7 +174,7 @@ export const Query = (
           lowBlocks.push(item);
         }
       },
-      1500,
+      800,
       (index) => {
         notifier.notify(Math.ceil((index / items.length) * 40) + 20);
       }
@@ -194,7 +192,6 @@ export const Query = (
     topLevelBlocks: ResultItem[],
     lowLevelBlocks: CacheBlockType[]
   ) {
-    console.log({ lowLevelBlocks: lowLevelBlocks.map( v => ({...v, block: {...v.block}})) })
     let lowBlocks = lowLevelBlocks
     timemeasure("0", () => {
       if (config.include?.pages?.length) {

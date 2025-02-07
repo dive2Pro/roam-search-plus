@@ -182,7 +182,6 @@ const Row = observer((props: { item: ResultItem }) => {
     );
   }
 
-  console.log({ s: JSON.stringify(props.item)})
   return (
     <section
       className="result-item-container"

@@ -10,6 +10,7 @@ import {
   CONSTNATS,
   debounce,
   extension_helper,
+  timer,
   toResultItem,
 } from "./helper";
 import { isGraphLoaded, setGraphLoaded } from "./loaded";
@@ -32,8 +33,8 @@ import { queryResult } from "./result";
 import React from "react";
 
 export function findLowestParentFromResult(block: ResultItem) {
-  if(block.isPage) {
-    return block
+  if (block.isPage) {
+    return block;
   }
   if (block.children?.length) {
     let lowestParent = findLowestParentFromBlocks(
@@ -42,7 +43,6 @@ export function findLowestParentFromResult(block: ResultItem) {
     lowestParent = lowestParent
       ? getCacheByUid(lowestParent[":block/uid"])?.block
       : null;
-    console.log({ lowestParent: JSON.stringify(lowestParent), s: JSON.stringify(block )})
     if (lowestParent) {
       const result = {
         id: lowestParent[":block/uid"],
@@ -343,24 +343,9 @@ const trigger = debounce(
     });
     console.timeEnd("Full Query");
     prevOperator = queryAPi;
-    return queryAPi.promise
-      .then(([pages, topBlocks, lowBlocks]) => {
-        // console.log(pages.map( item => item[':block/uid']), topBlocks, " - set result-- " + search, lowBlocks);
-        console.time("assign");
-        const result: ResultItem[] = [
-          ...pages,
-          ...topBlocks,
-          ...(lowBlocks || []),
-        ];
-        // _result = result;
-        // console.log(" ui result = ", result);
-        // ui.result.set([]);
-        console.timeEnd("assign");
-        // queryResult.setResult(result);
-      })
-      .finally(() => {
-        ui.loading.set(false);
-      });
+    return queryAPi.promise.finally(() => {
+      ui.loading.set(false);
+    });
   },
   500
 );
@@ -479,6 +464,7 @@ const dispose = observe(async () => {
 });
 
 const disposeUiResult = observe(async () => {
+  const endUiResultTimer = timer("ui result")
   let uiResult = queryResult.getResult();
 
   const includePage = ui.conditions.includePage.get();
@@ -562,6 +548,7 @@ const disposeUiResult = observe(async () => {
   // console.log("sorted-", uiResult);
   // _list = uiResult;
   // ui.list.set([]);
+  endUiResultTimer()
   setList(uiResult);
 });
 
