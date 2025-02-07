@@ -20,6 +20,7 @@ import { PageIcon } from "../core/PageIcon";
 import { BlockIcon } from "../core/BlockIcon";
 import "./result.css";
 import dayjs from "dayjs";
+import { getPageById } from "../../roam";
 
 const ListContainer = forwardRef<HTMLDivElement, any>((props, ref) => {
   return <div className="grid-list" {...props} ref={ref} />;
@@ -211,12 +212,23 @@ export const SearchResultGridView = observer(
                       <PageContent uid={item.item[":block/uid"]} />
                     </div>
                     <div className="footer">
-                      <BlockIcon />
-                      <small className="">
-                        {dayjs(item.item[":edit/time"]).format(
-                          "YYYY-MM-DD hh:mm"
-                        )}
-                      </small>
+                      <div className="flex gap-1.5">
+                        <PageIcon size={36} />
+                        <div>
+                          <div className="bold">
+                            {
+                              getPageById(item.item[":block/page"][":db/id"])[
+                                ":node/title"
+                              ]
+                            }
+                          </div>
+                          <small className="flex-reverse-row">
+                            {dayjs(item.item[":edit/time"]).format(
+                              "YYYY-MM-DD hh:mm"
+                            )}
+                          </small>
+                        </div>
+                      </div>
                     </div>
                   </Card>
                 );
@@ -256,9 +268,16 @@ export const SearchResultGridView = observer(
                     <PageContent uid={item.item[":block/uid"]} />
                   </div>
                   <div className="footer">
-                    <div className="flex">
-                      <PageIcon size={20} />
-                      <div className="bold">{item.item[":node/title"]}</div>
+                    <div className="flex gap-1.5">
+                      <PageIcon size={36} />
+                      <div>
+                        <div className="bold">{item.item[":node/title"]}</div>
+                        <small className="flex-reverse-row">
+                          {dayjs(item.item[":edit/time"]).format(
+                            "YYYY-MM-DD hh:mm"
+                          )}
+                        </small>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -287,7 +306,7 @@ function PageContent({ uid }: { uid: string }) {
       window.roamAlphaAPI.ui.components.renderBlock({
         uid,
         // @ts-ignore
-        "zoom-path?": false,
+        "zoom-path?": true,
         "hide-mentions?": true,
         el: ref.current,
       });

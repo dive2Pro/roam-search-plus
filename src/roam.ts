@@ -1,5 +1,4 @@
 import { PullBlock } from "roamjs-components/types";
-import { worker } from "./woker";
 import { timer } from "./helper";
 import { ReactNode } from "react";
 

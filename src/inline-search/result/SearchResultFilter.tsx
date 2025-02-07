@@ -77,6 +77,9 @@ export const SearchResultFilter = observer(
             }}
           />
         </Tooltip>
+        <Switch label="show path" onChange={e => {
+          
+        }} />
         <div style={{ flex: 1 }} />
         <small>
           {data.length}/{props.model.totalCount}
