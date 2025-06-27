@@ -78,7 +78,6 @@ export type ResultItem = {
   needCreate?: boolean;
   addToDN?: boolean;
   onClick?: () => void;
-  pageUid?: string; // Added for block items to store their parent page UID
 };
 
 export type SelectResultItem = ResultItem & {

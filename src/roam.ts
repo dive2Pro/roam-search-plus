@@ -88,43 +88,24 @@ export const getAllBlocks = () => {
   return [...CACHE_BLOCKS.values()];
 };
 
-const rawStringKey = Symbol('rawBlockString');
-const replacedStringKey = Symbol('replacedBlockString');
-
-function blockProxyRefString(block: RefsPullBlock, blockRefToString: boolean): RefsPullBlock {
+function blockProxyRefString(block: RefsPullBlock, blockRefToString: boolean) {
   if (!block[":block/string"]) {
     return block;
   }
 
-  // Ensure original string is stored on the block object itself using the symbol key.
-  // This is done before creating the proxy.
-  if (!(block as any)[rawStringKey] && block[":block/string"]) {
-    (block as any)[rawStringKey] = block[":block/string"];
-  }
+  let replacedString =  replaceBlockReference(block[":block/string"]);
 
-  return new Proxy(block, {
+  block = new Proxy(block, {
     get(target, prop, receiver) {
       if (prop === ":block/string") {
-        const originalString = (target as any)[rawStringKey] || target[":block/string"]; // Fallback
-
         if (blockRefToString) {
-          let cachedReplacedString = (target as any)[replacedStringKey];
-          if (cachedReplacedString === undefined) {
-            // console.log(`Cache miss for UID: ${target[":block/uid"]}, replacing string.`);
-            cachedReplacedString = replaceBlockReference(originalString);
-            (target as any)[replacedStringKey] = cachedReplacedString;
-          } else {
-            // console.log(`Cache hit for UID: ${target[":block/uid"]}`);
-          }
-          return cachedReplacedString;
-        } else {
-          // console.log(`Returning original string for UID: ${target[":block/uid"]}`);
-          return originalString;
+          return replacedString;
         }
       }
-      return Reflect.get(target, prop, receiver);
+      return Reflect.get(target, prop);
     },
   });
+  return block;
 }
 
 const PullStr = `
@@ -424,7 +405,7 @@ export const deleteFromCacheByUid = (uid: string) => {
 // TODO: if api available 如果 graph 没有变化, 则 cache 不清空
 const saveToCache = (k: string, blocks: PullBlock[]) => {
   cache.set(k, blocks);
-  // cleanCache(); // Removed to make caching effective
+  cleanCache();
 };
 const getFromCache = (k: string) => {
   return cache.get(k);
@@ -440,7 +421,7 @@ export const getBlocksContainsStr = (s: string) => {
             :find [(pull ?e [*]) ...]
             :where
                 [?e :block/uid ?uid]
-                [?e :block/string ?s] 
+                [?b :block/string ?s]
                 [(clojure.string/includes? ?s  "${s}")]
         ]
     `) as unknown as PullBlock[];
@@ -638,285 +619,4 @@ export function getParentsRefsById(id: number) {
 
 export const getInfoById = (id: number) => {
   return { ...CACHE_BLOCKS_PAGES_BY_ID.get(id) };
-};
-
-export type QueryConfig = {
-  search: string[];
-  caseIntensive: boolean;
-  include?: {
-    pages?: string[];
-    tags?: number[];
-  };
-  exclude?: {
-    pages?: string[];
-    tags?: number[];
-  };
-};
-
-export const fetchPagesByCriteria = (
-  keywords: string[],
-  config: QueryConfig
-) => {
-  let DatalogQuery = `[
-  :find [(pull ?p [${PullStr}]) ...]
-  :where
-    [?p :node/title ?title]
-`;
-
-  // Keyword Matching
-  keywords.forEach((keyword) => {
-    if (config.caseIntensive) {
-      DatalogQuery += `
-        [(clojure.string/includes? ?title "${keyword}")]`;
-    } else {
-      DatalogQuery += `
-        [(clojure.string/includes? (clojure.string/lower-case ?title) "${keyword.toLowerCase()}")]`;
-    }
-  });
-
-  // Page UID Filtering
-  if (config.include?.pages?.length) {
-    let pageConditions = "";
-    config.include.pages.forEach((uid, index) => {
-      if (index === 0) {
-        pageConditions += `(or [?p :block/uid "${uid}"]`;
-      } else {
-        pageConditions += ` [?p :block/uid "${uid}"]`;
-      }
-    });
-    pageConditions += ")";
-    DatalogQuery += `
-        ${pageConditions}`;
-  }
-
-  if (config.exclude?.pages?.length) {
-    config.exclude.pages.forEach((uid) => {
-      DatalogQuery += `
-        (not [?p :block/uid "${uid}"])`;
-    });
-  }
-
-  // Tag Filtering (Direct Tags on Page only)
-  if (config.include?.tags?.length) {
-    let tagConditions = "";
-    config.include.tags.forEach((tagId, index) => {
-      if (index === 0) {
-        tagConditions += `(or (and [?p :block/refs ?tag_entity_${tagId}] [?tag_entity_${tagId} :db/id ${tagId}])`;
-      } else {
-        tagConditions += ` (and [?p :block/refs ?tag_entity_${tagId}] [?tag_entity_${tagId} :db/id ${tagId}])`;
-      }
-    });
-    tagConditions += ")";
-    DatalogQuery += `
-        ${tagConditions}`;
-  }
-
-  if (config.exclude?.tags?.length) {
-    config.exclude.tags.forEach((tagId) => {
-      DatalogQuery += `
-        (not (and [?p :block/refs ?ex_tag_entity_${tagId}] [?ex_tag_entity_${tagId} :db/id ${tagId}]))`;
-    });
-  }
-
-  DatalogQuery += `
-]`;
-
-  // console.log("DatalogQuery ---- ", DatalogQuery);
-  const results = window.roamAlphaAPI.data.fast.q(DatalogQuery) as unknown as RefsPullBlock[];
-  return results.map(item => ({
-    uid: item[":block/uid"],
-    title: item[":node/title"],
-    editTime: item[":edit/time"],
-    createTime: item[":create/time"],
-    createUser: item[":create/user"],
-    refs: item[":block/refs"], // Keep refs for potential future use or consistency
-    // Potentially map other fields from PullStr if needed for ResultItem
-  }));
-};
-
-export const fetchBlocksByCriteria = (
-  keywords: string[],
-  config: QueryConfig
-) => {
-  let DatalogQuery = `[
-  :find [(pull ?b [${PullStr} :block/page]) ...]
-  :where
-    [?b :block/string ?string]
-`;
-
-  // Keyword Matching
-  keywords.forEach((keyword) => {
-    if (config.caseIntensive) {
-      DatalogQuery += `
-        [(clojure.string/includes? ?string "${keyword}")]`;
-    } else {
-      DatalogQuery += `
-        [(clojure.string/includes? (clojure.string/lower-case ?string) "${keyword.toLowerCase()}")]`;
-    }
-  });
-
-  // Page UID Filtering
-  DatalogQuery += `
-    [?b :block/page ?p_entity]
-    [?p_entity :block/uid ?page_uid] 
-  `; // Ensure ?p_entity and ?page_uid are bound
-
-  if (config.include?.pages?.length) {
-    let pageConditions = "";
-    config.include.pages.forEach((uid, index) => {
-      if (index === 0) {
-        pageConditions += `(or [?p_entity :block/uid "${uid}"]`;
-      } else {
-        pageConditions += ` [?p_entity :block/uid "${uid}"]`;
-      }
-    });
-    pageConditions += ")";
-    DatalogQuery += `
-        ${pageConditions}`;
-  }
-
-  if (config.exclude?.pages?.length) {
-    config.exclude.pages.forEach((uid) => {
-      DatalogQuery += `
-        (not [?p_entity :block/uid "${uid}"])`;
-    });
-  }
-
-  // Tag Filtering (Direct Tags on Block)
-  if (config.include?.tags?.length) {
-    let tagConditions = "";
-    config.include.tags.forEach((tagId, index) => {
-      if (index === 0) {
-        // Ensure each tag condition is a complete clause within the 'or'
-        tagConditions += `(or (and [?b :block/refs ?tag_entity_${tagId}] [?tag_entity_${tagId} :db/id ${tagId}])`;
-      } else {
-        tagConditions += ` (and [?b :block/refs ?tag_entity_${tagId}] [?tag_entity_${tagId} :db/id ${tagId}])`;
-      }
-    });
-    tagConditions += ")";
-    DatalogQuery += `
-        ${tagConditions}`;
-  }
-
-  if (config.exclude?.tags?.length) {
-    config.exclude.tags.forEach((tagId) => {
-      DatalogQuery += `
-        (not (and [?b :block/refs ?ex_tag_entity_${tagId}] [?ex_tag_entity_${tagId} :db/id ${tagId}]))`;
-    });
-  }
-
-  DatalogQuery += `
-]`;
-
-  // console.log("Block DatalogQuery ---- ", DatalogQuery);
-  const results = window.roamAlphaAPI.data.fast.q(DatalogQuery) as unknown as RefsPullBlock[];
-
-  return results.map(block => {
-    // The page information is nested under :block/page
-    const pageInfo = block[":block/page"] as PullBlock | null; // Type assertion
-    return {
-      uid: block[":block/uid"],
-      string: block[":block/string"],
-      editTime: block[":edit/time"],
-      createTime: block[":create/time"],
-      createUser: block[":create/user"],
-      pageUid: pageInfo ? pageInfo[":block/uid"] : null, // Extract page UID
-      refs: block[":block/refs"],
-      // Map other fields from PullStr if needed
-    };
-  });
-};
-
-export type QueryConfig = {
-  search: string[];
-  caseIntensive: boolean;
-  include?: {
-    pages?: string[];
-    tags?: number[];
-  };
-  exclude?: {
-    pages?: string[];
-    tags?: number[];
-  };
-};
-
-export const fetchPagesByCriteria = (
-  keywords: string[],
-  config: QueryConfig
-) => {
-  let DatalogQuery = `[
-  :find [(pull ?p [${PullStr}]) ...]
-  :where
-    [?p :node/title ?title]
-`;
-
-  // Keyword Matching
-  keywords.forEach((keyword) => {
-    if (config.caseIntensive) {
-      DatalogQuery += `
-        [(clojure.string/includes? ?title "${keyword}")]`;
-    } else {
-      DatalogQuery += `
-        [(clojure.string/includes? (clojure.string/lower-case ?title) "${keyword.toLowerCase()}")]`;
-    }
-  });
-
-  // Page UID Filtering
-  if (config.include?.pages?.length) {
-    let pageConditions = "";
-    config.include.pages.forEach((uid, index) => {
-      if (index === 0) {
-        pageConditions += `(or [?p :block/uid "${uid}"]`;
-      } else {
-        pageConditions += ` [?p :block/uid "${uid}"]`;
-      }
-    });
-    pageConditions += ")";
-    DatalogQuery += `
-        ${pageConditions}`;
-  }
-
-  if (config.exclude?.pages?.length) {
-    config.exclude.pages.forEach((uid) => {
-      DatalogQuery += `
-        (not [?p :block/uid "${uid}"])`;
-    });
-  }
-
-  // Tag Filtering (Direct Tags on Page only)
-  if (config.include?.tags?.length) {
-    let tagConditions = "";
-    config.include.tags.forEach((tagId, index) => {
-      if (index === 0) {
-        tagConditions += `(or (and [?p :block/refs ?tag_entity_${tagId}] [?tag_entity_${tagId} :db/id ${tagId}])`;
-      } else {
-        tagConditions += ` (and [?p :block/refs ?tag_entity_${tagId}] [?tag_entity_${tagId} :db/id ${tagId}])`;
-      }
-    });
-    tagConditions += ")";
-    DatalogQuery += `
-        ${tagConditions}`;
-  }
-
-  if (config.exclude?.tags?.length) {
-    config.exclude.tags.forEach((tagId) => {
-      DatalogQuery += `
-        (not (and [?p :block/refs ?ex_tag_entity_${tagId}] [?ex_tag_entity_${tagId} :db/id ${tagId}]))`;
-    });
-  }
-
-  DatalogQuery += `
-]`;
-
-  // console.log("DatalogQuery ---- ", DatalogQuery);
-  const results = window.roamAlphaAPI.data.fast.q(DatalogQuery) as unknown as RefsPullBlock[];
-  return results.map(item => ({
-    uid: item[":block/uid"],
-    title: item[":node/title"],
-    editTime: item[":edit/time"],
-    createTime: item[":create/time"],
-    createUser: item[":create/user"],
-    refs: item[":block/refs"], // Keep refs for potential future use or consistency
-    // Potentially map other fields from PullStr if needed for ResultItem
-  }));
 };
