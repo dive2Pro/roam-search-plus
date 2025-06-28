@@ -1,43 +1,107 @@
-import { transaction } from "mobx";
 import { pull, timer } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 import { ResultItem } from "./store";
 import { queryResult } from "./result";
-class ChunkProcessor {
+class ChunkProcessorV3 {
   isRunning = false;
-  constructor() {}
+  private handle: number | null = null;
 
   start<T>(
     items: T[],
     processItem: (v: T) => void,
-    chunkSize = 2500,
-    onChunkCallback: (p: number) => void
+    onChunkCallback: (p: number) => void,
   ) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.isRunning = true;
-      let index = 0;
+      let currentIndex = 0;
+      const totalItems = items.length;
 
-      const process = () => {
-        if (!this.isRunning) return;
+      const processChunk = (deadline: IdleDeadline) => {
+        if (!this.isRunning) {
+          reject(new Error("Processing stopped."));
+          return;
+        }
 
-        const chunk = items.slice(index, index + chunkSize);
-        chunk.forEach(processItem);
+        // 只要有空闲时间并且还有任务，就继续处理
+        while (deadline.timeRemaining() > 0 && currentIndex < totalItems) {
+          // 每次处理一个项目，而不是一个固定的 chunk
+          processItem(items[currentIndex]);
+          currentIndex++;
+        }
 
-        index += chunkSize;
-        onChunkCallback(index);
-        if (index < items.length) {
-          setTimeout(process);
+        onChunkCallback(currentIndex);
+
+        if (currentIndex < totalItems) {
+          // 如果任务未完成，请求下一个空闲回调
+          this.handle = requestIdleCallback(processChunk);
         } else {
+          this.isRunning = false;
           resolve(1);
         }
       };
 
-      setTimeout(process);
+      this.handle = requestIdleCallback(processChunk);
     });
   }
 
   stop() {
     console.warn("find all stop!!!!");
+    if (this.handle) {
+      cancelIdleCallback(this.handle);
+      this.handle = null;
+    }
+    this.isRunning = false;
+  }
+}
+
+class ChunkProcessorV2 {
+  isRunning = false;
+
+  start<T>(
+    items: T[],
+    processItem: (v: T) => void,
+    chunkSize = 2500,
+    onChunkCallback: (p: number) => void,
+  ) {
+    return new Promise((resolve) => {
+      this.isRunning = true;
+      let currentIndex = 0;
+      const totalItems = items.length;
+
+      const process = () => {
+        if (!this.isRunning) {
+          // If stopped externally, we might not resolve, or maybe we should reject.
+          // For now, we just stop.
+          return;
+        }
+
+        // Calculate the end index for the current chunk
+        const endIndex = Math.min(currentIndex + 2000, totalItems);
+
+        // Process items in the chunk using a direct loop
+        for (let i = currentIndex; i < endIndex; i++) {
+          processItem(items[i]);
+        }
+
+        currentIndex = endIndex;
+        onChunkCallback(currentIndex);
+
+        if (currentIndex < totalItems) {
+          // Yield to the main thread and schedule the next chunk
+          setTimeout(process, 0); // Using 0 for fastest possible re-scheduling
+        } else {
+          this.isRunning = false; // Mark as finished
+          resolve(1);
+        }
+      };
+
+      // Start the first chunk
+      setTimeout(process, 0);
+    });
+  }
+
+  stop() {
+    console.warn("Chunk processing stopped.");
     this.isRunning = false;
   }
 }
@@ -77,12 +141,12 @@ export const notifier = new NotifyProgress();
 export const Query = (
   config: QueryConfig,
   getAllBlocksFn = getAllBlocks,
-  getAllPagesFn = getAllPages
+  getAllPagesFn = getAllPages,
 ) => {
   console.time("SSSS");
   notifier.reset();
   // 使用示例
-  const processor = new ChunkProcessor();
+  const processor = new ChunkProcessorV3();
 
   const keywords = config.search;
   const hasKeywords = keywords.some((key) => !!key);
@@ -100,63 +164,60 @@ export const Query = (
 
   // 要把那些
   const findBlocksContainsAllKeywords = async (
-    keywords: string[]
+    keywords: string[],
   ): Promise<[ResultItem[], CacheBlockType[]]> => {
+    // ================== 性能优化关键点 ==================
+    // 在循环外将配置数组转换为 Set 以实现 O(1) 查找
+    const includePagesSet = new Set(config.include?.pages || []);
+    const excludePagesSet = new Set(config.exclude?.pages || []);
+    const includeTagsSet = new Set(config.include?.tags?.map(String) || []); // 确保是字符串以供比较
+    const excludeTagsSet = new Set(config.exclude?.tags?.map(Number) || []);
+    // =======================================================
+
     const lowBlocks: CacheBlockType[] = [];
     const topBlocks: ResultItem[] = [];
     const items = getAllBlocksFn();
-    const endTimer = timer("find blocks contains all")
+    const endTimer = timer("find blocks contains all");
     await processor.start(
       items,
       (item) => {
         const isTopBlock = () => {
-          if (config.include?.pages?.length) {
-            if (
-              !config.include.pages.some((pageUid) => {
-                return pageUid === item.page;
-              })
-            ) {
-              return false;
-            }
+          // 使用 Set.has() 进行 O(1) 查找
+          if (includePagesSet.size > 0 && !includePagesSet.has(item.page)) {
+            return false;
+          }
+          if (excludePagesSet.size > 0 && excludePagesSet.has(item.page)) {
+            return false;
+          }
+          if (
+            excludeTagsSet.size > 0 &&
+            isUnderTag(Array.from(excludeTagsSet), item.block)
+          ) {
+            // isUnderTag 可能也需要优化，如果它内部也是循环的话
+            // 假设 isUnderTag 无法直接用 Set，我们保持原样，但已经减少了其他检查
+            return false;
           }
 
-          if (config.exclude?.pages?.length) {
-            if (config.exclude.pages.some((pageUid) => pageUid === item.page)) {
-              return false;
-            }
-          }
-          if (config.exclude?.tags?.length) {
-            if (isUnderTag(config.exclude.tags, item.block)) {
-              return false;
-            }
-          }
-          const r = keywords.every((keyword) => {
-            return (
-              item.block[":block/string"] &&
-              includes(item.block[":block/string"], keyword)
-            );
+          const blockString = item?.block?.[":block/string"];
+          if (!blockString) return false;
+
+          const containsAllKeywords = keywords.every((keyword) => {
+            return includes(blockString, keyword);
           });
 
-          if (config.include?.tags?.length) {
-            const hasTagged =
-              item.block[":block/refs"] &&
-              config.include.tags.some((tagId) =>
-                item.block[":block/refs"].some(
-                  (ref) => String(ref[":db/id"]) === String(tagId)
-                )
-              );
+          if (!containsAllKeywords) return false;
 
-            if (r) {
-              if (hasTagged) {
-                return true;
-              } else {
-                return false;
-              }
-            } else {
+          // 处理 include.tags
+          if (includeTagsSet.size > 0) {
+            const hasIncludedTag = item.block[":block/refs"]?.some((ref) =>
+              includeTagsSet.has(String(ref[":db/id"])),
+            );
+            if (!hasIncludedTag) {
               return false;
             }
           }
-          return r;
+
+          return true; // 所有检查都通过
         };
         if (isTopBlock()) {
           topBlocks.push({
@@ -171,15 +232,19 @@ export const Query = (
             children: [],
           });
         } else {
+          if (!item) {
+            debugger;
+          }
           lowBlocks.push(item);
         }
       },
-      800,
+      // 2000,
       (index) => {
         notifier.notify(Math.ceil((index / items.length) * 40) + 20);
-      }
+      },
     );
-    endTimer()
+    endTimer();
+
     return [topBlocks, lowBlocks];
   };
   const timemeasure = (name: string, cb: () => void) => {
@@ -190,9 +255,9 @@ export const Query = (
   async function findAllRelatedBlocks(
     // lowerPages: CacheBlockType[],
     topLevelBlocks: ResultItem[],
-    lowLevelBlocks: CacheBlockType[]
+    lowLevelBlocks: CacheBlockType[],
   ) {
-    let lowBlocks = lowLevelBlocks
+    let lowBlocks = lowLevelBlocks;
     timemeasure("0", () => {
       if (config.include?.pages?.length) {
         lowBlocks = lowBlocks.filter((block) => {
@@ -208,30 +273,50 @@ export const Query = (
     });
 
     const validateMap = new Map<string, boolean[]>();
-    timemeasure("1", () => {
-      lowBlocks = lowBlocks.filter((item) => {
-        let result = !hasKeywords;
-        keywords.forEach((keyword, index) => {
-          const r = includes( item.block[":node/title"] || item.block[":block/string"], keyword);
+    await new Promise((resolve) => {
+      const newLowBlocks: CacheBlockType[] = [];
+      timemeasure("1", async () => {
+        processor.start(
+          lowBlocks,
+          (item) => {
+            keywords.forEach((keyword, index) => {
+              const r = includes(
+                item.block[":node/title"] || item.block[":block/string"],
+                keyword,
+              );
 
-          if (!validateMap.has(item.page)) {
-            validateMap.set(item.page, []);
-          }
-          if (r) {
-            validateMap.get(item.page)[index] = r;
-            result = r;
-          }
-        });
-        return result;
+              if (!validateMap.has(item.page)) {
+                validateMap.set(item.page, []);
+              }
+              if (r) {
+                validateMap.get(item.page)[index] = r;
+                // result = r;
+                newLowBlocks.push(item);
+              }
+            });
+          },
+          // lowBlocks.length,
+          () => {
+            //
+          },
+        );
+        // lowBlocks = lowBlocks.filter((item) => {
+        //   return result;
+        // });
+        lowBlocks = newLowBlocks;
+        resolve(1);
       });
     });
 
     // 如果 lowBlocks 出现过的页面,
     timemeasure("2", () => {
-      const topLevelPagesMap = topLevelBlocks.reduce((p, c) => {
-        p[c.id] = 1;
-        return p;
-      }, {} as Record<string, number>);
+      const topLevelPagesMap = topLevelBlocks.reduce(
+        (p, c) => {
+          p[c.id] = 1;
+          return p;
+        },
+        {} as Record<string, number>,
+      );
 
       lowBlocks = lowBlocks.filter((block) => {
         // 如果 topLevel 和 lowBlocks 是在相同的页面, 那么即使 lowBlocks 中没有出现所有的 keywords, 它们也应该出现在结果中.
@@ -264,12 +349,13 @@ export const Query = (
       }
       const item = {
         page: pull(_item[0]),
-        children: _item[1].filter( v => v.isBlock),
+        children: _item[1].filter((v) => v.isBlock),
       };
 
       return {
         id: item.page.block[":block/uid"],
-        text: item.page.block[":block/string"] || item.page.block[":node/title"],
+        text:
+          item.page.block[":block/string"] || item.page.block[":node/title"],
         editTime:
           item.page.block[":edit/time"] || item.page.block[":create/time"],
         createTime: item.page.block[":create/time"],
@@ -282,7 +368,7 @@ export const Query = (
     });
     queryResult.pushToResult(lowBlocksResult);
     notifier.finish();
-    return lowBlocksResult
+    return lowBlocksResult;
   }
 
   async function findAllRelatedPageUids(keywords: string[]) {
@@ -310,8 +396,8 @@ export const Query = (
           if (
             config.exclude.tags.some((tagId) =>
               page.block[":block/refs"].some(
-                (ref) => String(ref[":db/id"]) === String(tagId)
-              )
+                (ref) => String(ref[":db/id"]) === String(tagId),
+              ),
             )
           ) {
             return false;
@@ -334,8 +420,8 @@ export const Query = (
           if (
             !config.include.tags.some((tagId) =>
               page.block[":block/refs"].some(
-                (ref) => String(ref[":db/id"]) === String(tagId)
-              )
+                (ref) => String(ref[":db/id"]) === String(tagId),
+              ),
             )
           ) {
             return false;
@@ -391,17 +477,22 @@ export const Query = (
       return res;
     }),
   ]).then(([[pages, lowerPages], [topLevelBlocks, lowBlocks]]) => {
-    return findAllRelatedBlocks(topLevelBlocks, [...lowerPages, ...lowBlocks]).then(
-      (res) => {
-        return [pages, topLevelBlocks, res] as const;
-      }
-    );
+    return findAllRelatedBlocks(topLevelBlocks, [
+      ...lowerPages,
+      ...lowBlocks,
+    ]).then((res) => {
+      return [pages, topLevelBlocks, res] as const;
+    });
   });
 
   return {
     promise: promise.then((result) => {
-      console.timeEnd("SSSS");
-      return result;
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(result);
+        }, 200);
+      });
+      // return result;
     }),
     stop: () => {
       processor.stop();
