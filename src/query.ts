@@ -2,6 +2,57 @@ import { pull, timer } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 import { ResultItem } from "./store";
 import { queryResult } from "./result";
+class ChunkProcessorV3 {
+  isRunning = false;
+  private handle: number | null = null;
+
+  start<T>(
+    items: T[],
+    processItem: (v: T) => void,
+    onChunkCallback: (p: number) => void,
+  ) {
+    return new Promise((resolve, reject) => {
+      this.isRunning = true;
+      let currentIndex = 0;
+      const totalItems = items.length;
+
+      const processChunk = (deadline: IdleDeadline) => {
+        if (!this.isRunning) {
+          reject(new Error("Processing stopped."));
+          return;
+        }
+
+        // 只要有空闲时间并且还有任务，就继续处理
+        while (deadline.timeRemaining() > 0 && currentIndex < totalItems) {
+          // 每次处理一个项目，而不是一个固定的 chunk
+          processItem(items[currentIndex]);
+          currentIndex++;
+        }
+
+        onChunkCallback(currentIndex);
+
+        if (currentIndex < totalItems) {
+          // 如果任务未完成，请求下一个空闲回调
+          this.handle = requestIdleCallback(processChunk);
+        } else {
+          this.isRunning = false;
+          resolve(1);
+        }
+      };
+
+      this.handle = requestIdleCallback(processChunk);
+    });
+  }
+
+  stop() {
+    console.warn("find all stop!!!!");
+    if (this.handle) {
+      cancelIdleCallback(this.handle);
+      this.handle = null;
+    }
+    this.isRunning = false;
+  }
+}
 
 class ChunkProcessorV2 {
   isRunning = false;
@@ -95,7 +146,7 @@ export const Query = (
   console.time("SSSS");
   notifier.reset();
   // 使用示例
-  const processor = new ChunkProcessorV2();
+  const processor = new ChunkProcessorV3();
 
   const keywords = config.search;
   const hasKeywords = keywords.some((key) => !!key);
@@ -187,7 +238,7 @@ export const Query = (
           lowBlocks.push(item);
         }
       },
-      2000,
+      // 2000,
       (index) => {
         notifier.notify(Math.ceil((index / items.length) * 40) + 20);
       },
@@ -244,7 +295,7 @@ export const Query = (
               }
             });
           },
-          lowBlocks.length,
+          // lowBlocks.length,
           () => {
             //
           },

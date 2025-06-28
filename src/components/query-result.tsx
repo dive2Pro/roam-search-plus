@@ -74,7 +74,7 @@ const handleShiftClick = (item: ResultItem) => {
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(props.item.text);
   const [children, setChildren] = useState(() =>
-    props.item.children.map(toResultItem)
+    props.item.children.map(toResultItem),
   );
   const [path, setPath] = useState<string[]>([]);
 
@@ -82,7 +82,7 @@ const Row = observer((props: { item: ResultItem }) => {
     let timeout: any;
     const textDispose = observe(() => {
       const search = store.ui.getSearch();
-      const isLoading = store.ui.isLoading();
+      const isLoading = store.ui.isProcessing();
       clearTimeout(timeout);
       if (isLoading) {
         return;
@@ -101,9 +101,9 @@ const Row = observer((props: { item: ResultItem }) => {
                 ...r,
                 text: highlightText(r.text as string, search),
               };
-            })
+            }),
           );
-        }, 50);
+        }, 500);
       });
     });
 
@@ -232,7 +232,7 @@ const TargetCheckboxAbleRow = observer(
         <Row item={props.item.get()} />
       </Checkbox>
     );
-  }
+  },
 );
 
 export const QueryResult = observer(() => {
@@ -291,7 +291,7 @@ export const QueryResult = observer(() => {
 
   useLayoutEffect(() => {
     const el = [...document.querySelectorAll("[data-test-id]")].find(
-      (el) => el.getAttribute("data-test-id") === "virtuoso-item-list"
+      (el) => el.getAttribute("data-test-id") === "virtuoso-item-list",
     ) as HTMLElement;
     setTimeout(() => {
       const vHeight = el.getBoundingClientRect().height;
@@ -356,8 +356,8 @@ export const QueryResult = observer(() => {
               <div
                 className={`${
                   _index === index ? "result-item-container-active" : ""
-                } 
-              
+                }
+
               `}
                 // className={"result-item-container-active"}
                 onMouseEnter={() => {
@@ -431,7 +431,7 @@ const BackToTop = observer(() => {
             detail: {
               direction: "up-top",
             },
-          })
+          }),
         );
       }}
     ></Button>

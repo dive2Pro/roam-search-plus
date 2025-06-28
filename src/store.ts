@@ -39,7 +39,7 @@ export function findLowestParentFromResult(block: ResultItem) {
   }
   if (block.children?.length) {
     let lowestParent = findLowestParentFromBlocks(
-      block.children.map((item) => ({ uid: toResultItem(item).id }))
+      block.children.map((item) => ({ uid: toResultItem(item).id })),
     );
     lowestParent = lowestParent
       ? getCacheByUid(lowestParent[":block/uid"])?.block
@@ -55,7 +55,7 @@ export function findLowestParentFromResult(block: ResultItem) {
         paths: [] as string[],
         isSelected: false,
         children: block.children.filter(
-          (block) => (block as ResultItem).id !== lowestParent[":block/uid"]
+          (block) => (block as ResultItem).id !== lowestParent[":block/uid"],
         ),
       };
       return result;
@@ -157,6 +157,7 @@ const defaultTab = () => ({
   conditions: clone(defaultConditions),
   loading: false,
   height: MIN,
+  isProcessing: false,
 });
 
 type ITab = ReturnType<typeof defaultTab>;
@@ -209,6 +210,7 @@ const windowUi = observable({
     active: Tabs[0].id,
     tabs: clone(Tabs),
     nameInputing: false,
+    isProcessing: false,
   },
   select: {
     open: false,
@@ -231,13 +233,13 @@ ui.conditions.blockRefToString.onChange(async (v) => {
 extension_helper.on_uninstall(
   windowUi.history.viewed.onChange((items) => {
     recentlyViewed.save(items);
-  })
+  }),
 );
 
 extension_helper.on_uninstall(
   windowUi.history.search.onChange((items) => {
     searchHistory.save(items);
-  })
+  }),
 );
 
 const keywordsBuildFrom = (search: string) => {
@@ -333,6 +335,7 @@ const trigger = debounce(
       }
       if (filterCount === 0 && !ui.conditions.modificationDate.peek()) {
         // console.log("return search", config);
+        ui.isProcessing.set(false);
         return;
       }
     }
@@ -346,9 +349,10 @@ const trigger = debounce(
     prevOperator = queryAPi;
     return queryAPi.promise.finally(() => {
       ui.loading.set(false);
+      ui.isProcessing.set(false);
     });
   },
-  500
+  1500,
 );
 let prevSearch = "";
 
@@ -436,7 +440,7 @@ const dispose = observe(async () => {
   const search = ui.search.peek().trim();
   const caseIntensive = ui.conditions.caseIntensive.get();
   // const exclude = ui.conditions.exclude.get();
-  console.log({ search })
+  console.log({ search });
   ui.loading.set(!!search);
   try {
     if (prevOperator) {
@@ -466,7 +470,7 @@ const dispose = observe(async () => {
 });
 
 const disposeUiResult = observe(async () => {
-  const endUiResultTimer = timer("ui result")
+  const endUiResultTimer = timer("ui result");
   let uiResult = queryResult.getResult();
 
   const includePage = ui.conditions.includePage.get();
@@ -484,7 +488,7 @@ const disposeUiResult = observe(async () => {
     if (result && users.length) {
       // console.log(users, {...item}, typeof item.createUser, typeof users[0])
       result = users.some(
-        (user) => user.id === item.createUser || !item.createUser
+        (user) => user.id === item.createUser || !item.createUser,
       );
     }
     return result;
@@ -550,7 +554,7 @@ const disposeUiResult = observe(async () => {
   // console.log("sorted-", uiResult);
   // _list = uiResult;
   // ui.list.set([]);
-  endUiResultTimer()
+  endUiResultTimer();
   setList(uiResult);
 });
 
@@ -569,7 +573,7 @@ const saveToSearchViewed = (items: ResultItem[]) => {
       .filter(
         (item) =>
           viewed.findIndex((vItem) => item.id === vItem.id) === -1 ||
-          !!item.text
+          !!item.text,
       )
       .map((item) => ({
         id: item.id,
@@ -577,7 +581,7 @@ const saveToSearchViewed = (items: ResultItem[]) => {
           ? item.text.props.children
           : item.text,
         isPage: item.isPage,
-      }))
+      })),
   );
 };
 
@@ -700,6 +704,7 @@ export const store = {
     },
     changeSearch(s: string) {
       ui.search.set(s);
+      ui.isProcessing.set(true);
     },
     searchAgain() {
       triggerWhenSearchChange(ui.search.peek(), true);
@@ -1103,6 +1108,9 @@ export const store = {
       isMaximize() {
         return windowUi.mode.max.get();
       },
+    },
+    isProcessing() {
+      return ui.isProcessing.get();
     },
     isLoadingGraph() {
       return ui.graph.loading.get();
