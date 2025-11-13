@@ -5,8 +5,8 @@ import { ResultItem } from "./store";
 export const CONSTNATS = {
   el: "advanced-search-el",
   history: "as-history",
-  leftSidebarMenu: 'roam-sidebar-content',
-  sidebarEl: 'as-sidebar-el'
+  leftSidebarMenu: "roam-sidebar-content",
+  sidebarEl: "as-sidebar-el",
 };
 let uninstalls: Function[] = [];
 
@@ -74,14 +74,37 @@ function escapeRegExpChars(text: string) {
   return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
 }
 
+/**
+ * 判断字符串是否包含中文字符
+ */
+function containsChinese(str: string): boolean {
+  return /[\u4e00-\u9fa5]/.test(str);
+}
+
+/**
+ * 判断 keyword 是否是一个完整的单词
+ * - 对于中文：每个字符通常就是一个词，所以判断是否是一个字符
+ * - 对于拉丁语系：判断是否只包含字母（可能包含连字符等）
+ */
+function isCompleteWord(keyword: string): boolean {
+  if (!keyword) return false;
+
+  // 如果包含中文字符，判断是否只有一个字符（中文通常一个字就是一个词）
+  if (containsChinese(keyword)) {
+    return keyword.length === 1;
+  }
+
+  // 对于拉丁语系，判断是否只包含字母、数字、连字符、下划线等单词字符
+  // 如果 keyword 只包含这些字符，则认为可能是完整单词
+  return /^[\w-]+$/.test(keyword);
+}
+
 export function toResultItem(item: ResultItem | CacheBlockType): ResultItem {
-  if('page' in item) {
-    
+  if ("page" in item) {
     return {
       id: item.block[":block/uid"],
       text: item.block[":block/string"],
-      editTime:
-        item.block[":edit/time"] || item.block[":create/time"],
+      editTime: item.block[":edit/time"] || item.block[":create/time"],
       createTime: item.block[":create/time"],
       createUser: item.block[":create/user"]?.[":db/id"],
       isPage: false,
@@ -91,23 +114,62 @@ export function toResultItem(item: ResultItem | CacheBlockType): ResultItem {
     };
   }
 
-  return item
+  return item;
 }
 
-export function highlightText(text: string, query: string) {
-  if (text.indexOf("![](data:image") > -1) {
-    return <>{text}</>
+export function highlightText(
+  text: string,
+  query: string,
+  options?: {
+    matchWholeWord?: boolean;
+    caseIntensive?: boolean;
   }
+) {
+  if (text.indexOf("![](data:image") > -1) {
+    return <>{text}</>;
+  }
+
+  const matchWholeWord = options?.matchWholeWord || false;
+  const caseIntensive = options?.caseIntensive || false;
+
   let lastIndex = 0;
-  const words = query
-    .split(/\s+/)
-    .filter((word) => word.length > 0)
-    .map(escapeRegExpChars);
+  const words = query.split(/\s+/).filter((word) => word.length > 0);
+
   if (words.length === 0) {
     return <>{text}</>;
   }
-  const regexp = new RegExp(words.join("|"), "gi");
+
+  // 构建正则表达式模式
+  const patterns: string[] = [];
+
+  for (const word of words) {
+    const escapedWord = escapeRegExpChars(word);
+
+    if (matchWholeWord) {
+      const isKeywordCompleteWord = isCompleteWord(word);
+
+      if (isKeywordCompleteWord) {
+        if (containsChinese(word)) {
+          // 中文：直接匹配字符
+          patterns.push(escapedWord);
+        } else {
+          // 拉丁语系：使用单词边界
+          patterns.push(`\\b${escapedWord}\\b`);
+        }
+      } else {
+        // 如果不是完整单词，使用普通匹配
+        patterns.push(escapedWord);
+      }
+    } else {
+      // 普通匹配
+      patterns.push(escapedWord);
+    }
+  }
+
+  const flags = caseIntensive ? "g" : "gi";
+  const regexp = new RegExp(patterns.join("|"), flags);
   const tokens: React.ReactNode[] = [];
+
   while (true) {
     const match = regexp.exec(text);
     if (!match) {
@@ -149,25 +211,29 @@ export const date = {
   },
 };
 
-
 export const clone = <T,>(obj: T) => {
-  return JSON.parse(JSON.stringify(obj)) as T
-}
+  return JSON.parse(JSON.stringify(obj)) as T;
+};
 
 export function simulateClick(a: Element) {
-  'mouseover mousedown mouseup click'.split(' ').forEach(type => {
-    a.dispatchEvent(new MouseEvent(type, { view: window, bubbles: true, cancelable: true, buttons: 1 }));
+  "mouseover mousedown mouseup click".split(" ").forEach((type) => {
+    a.dispatchEvent(
+      new MouseEvent(type, {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+        buttons: 1,
+      })
+    );
   });
 }
 
 export function timer(name: string) {
-  console.time(name)
+  console.time(name);
   return () => {
-    console.timeEnd(name)
-  }
+    console.timeEnd(name);
+  };
 }
-
-
 
 // export function cacheBlockToUiResult(block: CacheBlockType) {
 //   return {

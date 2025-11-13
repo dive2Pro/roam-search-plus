@@ -29,8 +29,8 @@ function SelectMenuItem(props: { selected: boolean } & MenuItemProps) {
       {...props}
       {...(props.selected
         ? {
-          icon: "small-tick",
-        }
+            icon: "small-tick",
+          }
         : {})}
     />
   );
@@ -68,6 +68,17 @@ export const Sidebar = observer(() => {
           checked={store.ui.conditions.isCaseIntensive()}
           alignIndicator="right"
         />
+
+        <Switch
+          label="Match Whole Word"
+          labelElement={<div />}
+          onChange={(e) => {
+            store.actions.conditions.toggleMatchWholeWord();
+          }}
+          checked={store.ui.conditions.isMatchWholeWord()}
+          alignIndicator="right"
+        />
+
         <div className="sidebar-title bp3-button-text font-bold">Includes</div>
         <Switch
           label="Include page"
@@ -468,21 +479,31 @@ export const Sidebar = observer(() => {
   );
 });
 
-const SelectPages2 = observer(({ children, content, ...rest }: { children: ReactNode, content: JSX.Element }) => {
-  return (
-    <Popover
-      onOpened={() => {
-        store.actions.conditions.toggleSelect(true)
-      }}
-      onClosed={() => {
-        store.actions.conditions.toggleSelect(false)
-      }}
-      autoFocus={false}
-      content={content}>
-      {children}
-    </Popover >
-  );
-});
+const SelectPages2 = observer(
+  ({
+    children,
+    content,
+    ...rest
+  }: {
+    children: ReactNode;
+    content: JSX.Element;
+  }) => {
+    return (
+      <Popover
+        onOpened={() => {
+          store.actions.conditions.toggleSelect(true);
+        }}
+        onClosed={() => {
+          store.actions.conditions.toggleSelect(false);
+        }}
+        autoFocus={false}
+        content={content}
+      >
+        {children}
+      </Popover>
+    );
+  }
+);
 
 const SelectCreateUsers = observer((props: { children: ReactNode }) => {
   return (

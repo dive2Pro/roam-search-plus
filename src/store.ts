@@ -100,6 +100,7 @@ const defaultConditions = {
   includeCode: true,
   blockRefToString: true,
   caseIntensive: false,
+  matchWholeWord: true,
   pages: {
     selected: [] as {
       id: string;
@@ -352,7 +353,7 @@ const trigger = debounce(
       ui.isProcessing.set(false);
     });
   },
-  50,
+  250,
 );
 let prevSearch = "";
 
@@ -380,9 +381,11 @@ const triggerWhenSearchChange = async (next: string, force = false) => {
   try {
     // const selectedPagesUids = ui.conditions.pages.selected.peek();
     const caseIntensive = ui.conditions.caseIntensive.peek();
+    const matchWholeWord = ui.conditions.matchWholeWord.peek();
     await trigger({
       search: nextStr,
       caseIntensive,
+      matchWholeWord,
       // uids: selectedPagesUids.map((item) => item.id),
       exclude: {
         pages: getFilterExcludePageIds(),
@@ -439,6 +442,7 @@ const getFilterExcludeTags = (): number[] => {
 const dispose = observe(async () => {
   const search = ui.search.peek().trim();
   const caseIntensive = ui.conditions.caseIntensive.get();
+  const matchWholeWord = ui.conditions.matchWholeWord.get();
   // const exclude = ui.conditions.exclude.get();
   console.log({ search });
   ui.loading.set(!!search);
@@ -449,6 +453,7 @@ const dispose = observe(async () => {
     await trigger({
       search,
       caseIntensive,
+      matchWholeWord,
       // uids: selectedPagesUids.map((item) => item.id),
       exclude: {
         pages: getFilterExcludePageIds(),
@@ -972,6 +977,9 @@ export const store = {
       toggleCaseIntensive() {
         ui.conditions.caseIntensive.toggle();
       },
+      toggleMatchWholeWord() {
+        ui.conditions.matchWholeWord.toggle();
+      },
       clearSelectedPages() {
         ui.conditions.pages.selected.set([]);
       },
@@ -1225,6 +1233,9 @@ export const store = {
       isCaseIntensive() {
         return ui.conditions.caseIntensive.get();
       },
+      isMatchWholeWord() {
+        return ui.conditions.matchWholeWord.get();
+      },
       isIncludePage() {
         return ui.conditions.includePage.get();
       },
@@ -1337,6 +1348,7 @@ export const store = {
           nowConditions.includeBlock !== defaultConditions.includeBlock,
           nowConditions.includePage !== defaultConditions.includePage,
           nowConditions.includeCode !== defaultConditions.includeCode,
+          nowConditions.matchWholeWord !== defaultConditions.matchWholeWord,
           nowConditions.pages.selected.length !==
             defaultConditions.pages.selected.length,
           nowConditions.sort.selected !== defaultConditions.sort.selected,

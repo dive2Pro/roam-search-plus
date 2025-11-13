@@ -74,7 +74,7 @@ const handleShiftClick = (item: ResultItem) => {
 const Row = observer((props: { item: ResultItem }) => {
   const [text, setText] = useState(props.item.text);
   const [children, setChildren] = useState(() =>
-    props.item.children.map(toResultItem),
+    props.item.children.map(toResultItem)
   );
   const [path, setPath] = useState<string[]>([]);
 
@@ -93,15 +93,25 @@ const Row = observer((props: { item: ResultItem }) => {
       }
       window.requestIdleCallback(() => {
         timeout = setTimeout(() => {
-          setText(highlightText(props.item.text as string, search));
+          const matchWholeWord = store.ui.conditions.isMatchWholeWord();
+          const caseIntensive = store.ui.conditions.isCaseIntensive();
+          setText(
+            highlightText(props.item.text as string, search, {
+              matchWholeWord,
+              caseIntensive,
+            })
+          );
           setChildren(
             children.map((child) => {
               const r = toResultItem(child);
               return {
                 ...r,
-                text: highlightText(r.text as string, search),
+                text: highlightText(r.text as string, search, {
+                  matchWholeWord,
+                  caseIntensive,
+                }),
               };
-            }),
+            })
           );
         }, 500);
       });
@@ -232,7 +242,7 @@ const TargetCheckboxAbleRow = observer(
         <Row item={props.item.get()} />
       </Checkbox>
     );
-  },
+  }
 );
 
 export const QueryResult = observer(() => {
@@ -291,7 +301,7 @@ export const QueryResult = observer(() => {
 
   useLayoutEffect(() => {
     const el = [...document.querySelectorAll("[data-test-id]")].find(
-      (el) => el.getAttribute("data-test-id") === "virtuoso-item-list",
+      (el) => el.getAttribute("data-test-id") === "virtuoso-item-list"
     ) as HTMLElement;
     setTimeout(() => {
       const vHeight = el.getBoundingClientRect().height;
@@ -431,7 +441,7 @@ const BackToTop = observer(() => {
             detail: {
               direction: "up-top",
             },
-          }),
+          })
         );
       }}
     ></Button>

@@ -42,6 +42,7 @@ type User = {
 type QueryConfig = {
   search: string[];
   caseIntensive: boolean;
+  matchWholeWord?: boolean;
   exclude?: {
     pages?: string[], // 目标页面
     blocks?: string[], // 引用该 block
