@@ -205,7 +205,9 @@ export const Query = (
             return includes(blockString, keyword);
           });
 
-          if (!containsAllKeywords) return false;
+          if (!containsAllKeywords) {
+            return false
+          }
 
           // 处理 include.tags
           if (includeTagsSet.size > 0) {
@@ -258,6 +260,7 @@ export const Query = (
     lowLevelBlocks: CacheBlockType[],
   ) {
     let lowBlocks = lowLevelBlocks;
+    // console.log({ topLevelBlocks, lowBlocks });
     timemeasure("0", () => {
       if (config.include?.pages?.length) {
         lowBlocks = lowBlocks.filter((block) => {
@@ -276,7 +279,7 @@ export const Query = (
     await new Promise((resolve) => {
       const newLowBlocks: CacheBlockType[] = [];
       timemeasure("1", async () => {
-        processor.start(
+        await processor.start(
           lowBlocks,
           (item) => {
             keywords.forEach((keyword, index) => {
@@ -284,7 +287,6 @@ export const Query = (
                 item.block[":node/title"] || item.block[":block/string"],
                 keyword,
               );
-
               if (!validateMap.has(item.page)) {
                 validateMap.set(item.page, []);
               }
@@ -292,6 +294,8 @@ export const Query = (
                 validateMap.get(item.page)[index] = r;
                 // result = r;
                 newLowBlocks.push(item);
+                // console.log({ r, keyword, index, item });
+
               }
             });
           },
@@ -307,7 +311,7 @@ export const Query = (
         resolve(1);
       });
     });
-
+    // console.log({ lowBlocks });
     // 如果 lowBlocks 出现过的页面,
     timemeasure("2", () => {
       const topLevelPagesMap = topLevelBlocks.reduce(
@@ -488,6 +492,7 @@ export const Query = (
   return {
     promise: promise.then((result) => {
       return new Promise((resolve) => {
+        // console.log({ result });
         setTimeout(() => {
           resolve(result);
         }, 200);

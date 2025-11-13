@@ -345,9 +345,9 @@ const trigger = debounce(
       ...config,
       search: keywordsBuildFrom(config.search),
     });
-    console.timeEnd("Full Query");
     prevOperator = queryAPi;
     return queryAPi.promise.finally(() => {
+      console.timeEnd("Full Query");
       ui.loading.set(false);
       ui.isProcessing.set(false);
     });
