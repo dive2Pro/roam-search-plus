@@ -352,7 +352,7 @@ const trigger = debounce(
       ui.isProcessing.set(false);
     });
   },
-  1500,
+  50,
 );
 let prevSearch = "";
 
