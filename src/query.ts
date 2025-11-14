@@ -1,4 +1,4 @@
-import { pull, timer } from "./helper";
+import { containsChinese, isCompleteWord, pull, timer } from "./helper";
 import { CacheBlockType, getAllBlocks, getAllPages, isUnderTag } from "./roam";
 import { ResultItem } from "./store";
 import { queryResult } from "./result";
@@ -151,30 +151,7 @@ export const Query = (
   const keywords = config.search;
   const hasKeywords = keywords.some((key) => !!key);
   
-  /**
-   * 判断字符串是否包含中文字符
-   */
-  const containsChinese = (str: string): boolean => {
-    return /[\u4e00-\u9fa5]/.test(str);
-  };
 
-  /**
-   * 判断 keyword 是否是一个完整的单词
-   * - 对于中文：每个字符通常就是一个词，所以判断是否是一个字符
-   * - 对于拉丁语系：判断是否只包含字母（可能包含连字符等）
-   */
-  const isCompleteWord = (keyword: string): boolean => {
-    if (!keyword) return false;
-    
-    // 如果包含中文字符，判断是否只有一个字符（中文通常一个字就是一个词）
-    if (containsChinese(keyword)) {
-      return keyword.length === 1;
-    }
-    
-    // 对于拉丁语系，判断是否只包含字母、数字、连字符、下划线等单词字符
-    // 如果 keyword 只包含这些字符，则认为可能是完整单词
-    return /^[\w-]+$/.test(keyword);
-  };
 
   /**
    * 检查文本中是否包含 keyword，支持完整单词匹配

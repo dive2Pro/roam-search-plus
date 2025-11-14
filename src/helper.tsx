@@ -70,14 +70,14 @@ export const pull_many = (uids: string[]) => {
   // );
 };
 
-function escapeRegExpChars(text: string) {
+export function escapeRegExpChars(text: string) {
   return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
 }
 
 /**
  * 判断字符串是否包含中文字符
  */
-function containsChinese(str: string): boolean {
+export function containsChinese(str: string): boolean {
   return /[\u4e00-\u9fa5]/.test(str);
 }
 
@@ -86,7 +86,7 @@ function containsChinese(str: string): boolean {
  * - 对于中文：每个字符通常就是一个词，所以判断是否是一个字符
  * - 对于拉丁语系：判断是否只包含字母（可能包含连字符等）
  */
-function isCompleteWord(keyword: string): boolean {
+export function isCompleteWord(keyword: string): boolean {
   if (!keyword) return false;
 
   // 如果包含中文字符，判断是否只有一个字符（中文通常一个字就是一个词）

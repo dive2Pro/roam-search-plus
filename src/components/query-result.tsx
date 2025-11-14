@@ -21,7 +21,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { date, highlightText, toResultItem } from "../helper";
+import {
+  containsChinese,
+  date,
+  escapeRegExpChars,
+  highlightText,
+  isCompleteWord,
+  toResultItem,
+} from "../helper";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -101,18 +108,70 @@ const Row = observer((props: { item: ResultItem }) => {
               caseIntensive,
             })
           );
-          setChildren(
-            children.map((child) => {
+
+          // 计算匹配关键字数量的辅助函数（与highlightText逻辑保持一致）
+          const countMatchedKeywords = (
+            text: string,
+            query: string
+          ): number => {
+            if (!query || !text) return 0;
+            const words = query.split(/\s+/).filter((word) => word.length > 0);
+            if (words.length === 0) return 0;
+
+            let matchedCount = 0;
+
+            for (const word of words) {
+              const escapedWord = escapeRegExpChars(word);
+              let pattern: string;
+
+              if (matchWholeWord) {
+                const isKeywordCompleteWord = isCompleteWord(word);
+                if (isKeywordCompleteWord) {
+                  if (containsChinese(word)) {
+                    // 中文：直接匹配字符
+                    pattern = escapedWord;
+                  } else {
+                    // 拉丁语系：使用单词边界
+                    pattern = `\\b${escapedWord}\\b`;
+                  }
+                } else {
+                  // 如果不是完整单词，使用普通匹配
+                  pattern = escapedWord;
+                }
+              } else {
+                // 普通匹配
+                pattern = escapedWord;
+              }
+
+              const flags = caseIntensive ? "g" : "gi";
+              const regex = new RegExp(pattern, flags);
+              if (regex.test(text)) {
+                matchedCount++;
+              }
+            }
+
+            return matchedCount;
+          };
+
+          // 先排序，再处理高亮
+          const sortedChildren = [...children]
+            .map((child) => {
               const r = toResultItem(child);
               return {
-                ...r,
-                text: highlightText(r.text as string, search, {
-                  matchWholeWord,
-                  caseIntensive,
-                }),
+                child: r,
+                matchedCount: countMatchedKeywords(r.text as string, search),
               };
             })
-          );
+            .sort((a, b) => b.matchedCount - a.matchedCount) // 降序排序：匹配关键字多的在前
+            .map(({ child }) => ({
+              ...child,
+              text: highlightText(child.text as string, search, {
+                matchWholeWord,
+                caseIntensive,
+              }),
+            }));
+
+          setChildren(sortedChildren);
         }, 500);
       });
     });

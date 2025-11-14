@@ -555,6 +555,7 @@ const disposeUiResult = observe(async () => {
       return a.createTime - b.createTime;
     },
   ];
+
   uiResult = uiResult.slice().sort(sortFns[ui.conditions.sort.selected.get()]);
   // console.log("sorted-", uiResult);
   // _list = uiResult;
