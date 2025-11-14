@@ -249,7 +249,6 @@ export const Query = (
     lowLevelBlocks: CacheBlockType[],
   ) {
     let lowBlocks = lowLevelBlocks;
-    console.log({ topLevelBlocks, lowBlocks });
     timemeasure("0", () => {
       if (config.include?.pages?.length) {
         lowBlocks = lowBlocks.filter((block) => {
@@ -267,6 +266,8 @@ export const Query = (
     const validateMap = new Map<string, boolean[]>();
     await new Promise((resolve) => {
       const newLowBlocks: CacheBlockType[] = [];
+      const pageSet = new Set<string>();
+
       timemeasure("1", async () => {
         await processor.start(
           lowBlocks,
@@ -278,10 +279,6 @@ export const Query = (
                 keyword,
                 config.matchWholeWord || false,
               );
-              if (keyword === "nothing can") {
-                console.log({ r, keyword, index, item: { ...item, block: { ...item.block } }, text: item.block[":block/string"] }, 11);
-
-              }
 
               if (!validateMap.has(item.page)) {
                 validateMap.set(item.page, []);
@@ -289,6 +286,11 @@ export const Query = (
               if (r) {
                 validateMap.get(item.page)[index] = true;
                 // result = r;
+                if (pageSet.has(item.block[":block/uid"])) {
+                  return;
+                }
+                pageSet.add(item.block[":block/uid"]);
+
                 newLowBlocks.push(item);
               }
             });
@@ -305,7 +307,6 @@ export const Query = (
         resolve(1);
       });
     });
-    console.log({ lowBlocks, lowLevelBlocks });
     // 如果 lowBlocks 出现过的页面,
     timemeasure("2", () => {
       const topLevelPagesMap = topLevelBlocks.reduce(
@@ -329,9 +330,9 @@ export const Query = (
       });
     });
     const map = new Map<string, CacheBlockType[]>();
-
     timemeasure("3", () => {
       lowBlocks.forEach((b) => {
+
         if (map.has(b.page)) {
           map.get(b.page).push(b);
         } else {
