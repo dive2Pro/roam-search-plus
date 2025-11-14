@@ -74,7 +74,15 @@ export const Tab = {
     try {
       const json = extentionAPI.settings.get(KEYS["tab"]) as string;
       console.log({ json })
-      return JSON.parse(json) as any;
+      const config =JSON.parse(json) as any;
+
+      return config.map((config: any) => ({
+        ...config,
+        conditions: {
+          ...config.conditions,
+          matchWholeWord: config.conditions?.matchWholeWord ?? true
+        }
+      }))
     } catch (e) {
       console.log(e, ' = error')
     }

@@ -117,9 +117,84 @@ export function toResultItem(item: ResultItem | CacheBlockType): ResultItem {
   return item;
 }
 
+/**
+ * 解析查询字符串，将被引号包裹的部分（包括引号）作为整体，引号外的部分按空格分割
+ * 例如: "\" a b \" a b " -> ["\" a b \"", "a", "b"]
+ */
+export function parseQueryWords(query: string): string[] {
+  const words: string[] = [];
+  let i = 0;
+  let currentWord = "";
+  let inQuotes = false;
+
+  while (i < query.length) {
+    const char = query[i];
+    const nextChar = i + 1 < query.length ? query[i + 1] : null;
+
+    // 检查是否是转义的引号 \"
+    if (char === "\\" && nextChar === '"') {
+      currentWord += '\\"';
+      i += 2;
+      continue;
+    }
+
+    // 检查是否是引号开始或结束
+    if (char === '"') {
+      if (inQuotes) {
+        // 引号结束，将整个引号块（包括引号）作为一个词
+        currentWord += "";
+        if (currentWord.trim().length > 0) {
+          words.push(currentWord);
+        }
+        currentWord = "";
+        inQuotes = false;
+      } else {
+        // 引号开始
+        // 如果当前有未完成的词，先保存它
+        if (currentWord.trim().length > 0) {
+          words.push(currentWord.trim());
+          currentWord = "";
+        }
+        currentWord = "";
+        inQuotes = true;
+      }
+      i++;
+      continue;
+    }
+
+    // 在引号内，直接添加到当前词
+    if (inQuotes) {
+      currentWord += char;
+      i++;
+      continue;
+    }
+
+    // 在引号外，按空格分割
+    if (char === " " || char === "\t" || char === "\n") {
+      if (currentWord.trim().length > 0) {
+        words.push(currentWord.trim());
+        currentWord = "";
+      }
+      i++;
+      continue;
+    }
+
+    // 普通字符
+    currentWord += char;
+    i++;
+  }
+
+  // 处理最后一个词
+  if (currentWord.trim().length > 0) {
+    words.push(currentWord.trim());
+  }
+
+  return words.filter((word) => word.length > 0);
+}
+
 export function highlightText(
   text: string,
-  query: string,
+  words: string[],
   options?: {
     matchWholeWord?: boolean;
     caseIntensive?: boolean;
@@ -128,12 +203,11 @@ export function highlightText(
   if (text.indexOf("![](data:image") > -1) {
     return <>{text}</>;
   }
-
+  console.log({ text, words, options });
   const matchWholeWord = options?.matchWholeWord || false;
   const caseIntensive = options?.caseIntensive || false;
 
   let lastIndex = 0;
-  const words = query.split(/\s+/).filter((word) => word.length > 0);
 
   if (words.length === 0) {
     return <>{text}</>;

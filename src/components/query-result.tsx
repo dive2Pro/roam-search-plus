@@ -27,6 +27,7 @@ import {
   escapeRegExpChars,
   highlightText,
   isCompleteWord,
+  parseQueryWords,
   toResultItem,
 } from "../helper";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
@@ -102,8 +103,9 @@ const Row = observer((props: { item: ResultItem }) => {
         timeout = setTimeout(() => {
           const matchWholeWord = store.ui.conditions.isMatchWholeWord();
           const caseIntensive = store.ui.conditions.isCaseIntensive();
+          const parsedKeywords = parseQueryWords(search);
           setText(
-            highlightText(props.item.text as string, search, {
+            highlightText(props.item.text as string, parsedKeywords, {
               matchWholeWord,
               caseIntensive,
             })
@@ -165,7 +167,7 @@ const Row = observer((props: { item: ResultItem }) => {
             .sort((a, b) => b.matchedCount - a.matchedCount) // 降序排序：匹配关键字多的在前
             .map(({ child }) => ({
               ...child,
-              text: highlightText(child.text as string, search, {
+              text: highlightText(child.text as string, parsedKeywords, {
                 matchWholeWord,
                 caseIntensive,
               }),

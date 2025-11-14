@@ -244,13 +244,21 @@ extension_helper.on_uninstall(
 );
 
 const keywordsBuildFrom = (search: string) => {
-  let keywords = [];
+  let keywords: string[] = [];
   var reg = new RegExp(/(\".+?\")|(\S+)/gi);
-  let result;
+  let result: RegExpExecArray | null;
   do {
     result = reg.exec(search);
     if (result) {
-      keywords.push(result[0].replace(/\"(.+?)\"/, "$1"));
+      // 如果匹配到带引号的字符串（result[1] 存在），保留引号内的内容（包括空格）
+      // 如果匹配到普通单词（result[2] 存在），直接添加
+      if (result[1]) {
+        // 带引号的字符串，移除引号但保留内容（包括空格）
+        keywords.push(result[1].replace(/^\"|\"$/g, ""));
+      } else if (result[2]) {
+        // 普通单词
+        keywords.push(result[2]);
+      }
     }
   } while (result);
   // console.log("keywords = ", keywords);

@@ -54,61 +54,10 @@ class ChunkProcessorV3 {
   }
 }
 
-class ChunkProcessorV2 {
-  isRunning = false;
-
-  start<T>(
-    items: T[],
-    processItem: (v: T) => void,
-    chunkSize = 2500,
-    onChunkCallback: (p: number) => void,
-  ) {
-    return new Promise((resolve) => {
-      this.isRunning = true;
-      let currentIndex = 0;
-      const totalItems = items.length;
-
-      const process = () => {
-        if (!this.isRunning) {
-          // If stopped externally, we might not resolve, or maybe we should reject.
-          // For now, we just stop.
-          return;
-        }
-
-        // Calculate the end index for the current chunk
-        const endIndex = Math.min(currentIndex + 2000, totalItems);
-
-        // Process items in the chunk using a direct loop
-        for (let i = currentIndex; i < endIndex; i++) {
-          processItem(items[i]);
-        }
-
-        currentIndex = endIndex;
-        onChunkCallback(currentIndex);
-
-        if (currentIndex < totalItems) {
-          // Yield to the main thread and schedule the next chunk
-          setTimeout(process, 0); // Using 0 for fastest possible re-scheduling
-        } else {
-          this.isRunning = false; // Mark as finished
-          resolve(1);
-        }
-      };
-
-      // Start the first chunk
-      setTimeout(process, 0);
-    });
-  }
-
-  stop() {
-    console.warn("Chunk processing stopped.");
-    this.isRunning = false;
-  }
-}
 
 class NotifyProgress {
   _percent = -1;
-  callback = (p: number) => {};
+  callback = (p: number) => { };
 
   on(callback: (p: number) => void) {
     this.callback = callback;
@@ -150,9 +99,7 @@ export const Query = (
 
   const keywords = config.search;
   const hasKeywords = keywords.some((key) => !!key);
-  
-
-
+  console.log({ keywords });
   /**
    * 检查文本中是否包含 keyword，支持完整单词匹配
    * @param text 要搜索的文本
@@ -163,7 +110,7 @@ export const Query = (
     if (!text || !keyword) {
       return false;
     }
-
+    console.log({ text, keyword, matchWholeWord }, 22);
     // 如果不要求完整单词匹配，使用原来的逻辑
     if (!matchWholeWord) {
       if (config.caseIntensive) {
@@ -175,7 +122,7 @@ export const Query = (
 
     // 完整单词匹配逻辑
     const isKeywordCompleteWord = isCompleteWord(keyword);
-    
+
     if (!isKeywordCompleteWord) {
       // 如果 keyword 本身不是完整单词，则使用普通匹配
       if (config.caseIntensive) {
@@ -260,7 +207,7 @@ export const Query = (
               return false;
             }
           }
-
+          console.log({ item: { ...item, block: { ...item.block } }, text: item.block[":block/string"], keywords }, 222);
           return true; // 所有检查都通过
         };
         if (isTopBlock()) {
@@ -302,7 +249,7 @@ export const Query = (
     lowLevelBlocks: CacheBlockType[],
   ) {
     let lowBlocks = lowLevelBlocks;
-    // console.log({ topLevelBlocks, lowBlocks });
+    console.log({ topLevelBlocks, lowBlocks });
     timemeasure("0", () => {
       if (config.include?.pages?.length) {
         lowBlocks = lowBlocks.filter((block) => {
@@ -331,15 +278,18 @@ export const Query = (
                 keyword,
                 config.matchWholeWord || false,
               );
+              if (keyword === "nothing can") {
+                console.log({ r, keyword, index, item: { ...item, block: { ...item.block } }, text: item.block[":block/string"] }, 11);
+
+              }
+
               if (!validateMap.has(item.page)) {
                 validateMap.set(item.page, []);
               }
               if (r) {
-                validateMap.get(item.page)[index] = r;
+                validateMap.get(item.page)[index] = true;
                 // result = r;
                 newLowBlocks.push(item);
-                // console.log({ r, keyword, index, item });
-
               }
             });
           },
@@ -355,7 +305,7 @@ export const Query = (
         resolve(1);
       });
     });
-    // console.log({ lowBlocks });
+    console.log({ lowBlocks, lowLevelBlocks });
     // 如果 lowBlocks 出现过的页面,
     timemeasure("2", () => {
       const topLevelPagesMap = topLevelBlocks.reduce(
@@ -372,10 +322,11 @@ export const Query = (
           return true;
         }
         return keywords.every((k, i) => {
-          return validateMap.get(block.page)[i];
+          const r = validateMap.get(block.page)[i];
+          //  console.log({ r, k, i, block: {...block, block: { ...block.block}} });
+          return r;
         });
       });
-      // console.log(keywords, validateMap, lowBlocks, "@@@----");
     });
     const map = new Map<string, CacheBlockType[]>();
 
@@ -388,6 +339,8 @@ export const Query = (
         }
       });
     });
+    console.log(keywords, validateMap, lowBlocks, map, "@@@----");
+
     notifier.notify(70);
 
     const lowBlocksResult = [...map.entries()].map((_item, index, arr) => {
