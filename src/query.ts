@@ -110,7 +110,7 @@ export const Query = (
     if (!text || !keyword) {
       return false;
     }
-    console.log({ text, keyword, matchWholeWord }, 22);
+    // console.log({ text, keyword, matchWholeWord }, 22);
     // 如果不要求完整单词匹配，使用原来的逻辑
     if (!matchWholeWord) {
       if (config.caseIntensive) {
@@ -340,7 +340,7 @@ export const Query = (
         }
       });
     });
-    console.log(keywords, validateMap, lowBlocks, map, "@@@----");
+    // console.log(keywords, validateMap, lowBlocks, map, "@@@----");
 
     notifier.notify(70);
 

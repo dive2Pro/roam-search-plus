@@ -203,7 +203,7 @@ export function highlightText(
   if (text.indexOf("![](data:image") > -1) {
     return <>{text}</>;
   }
-  console.log({ text, words, options });
+  // console.log({ text, words, options });
   const matchWholeWord = options?.matchWholeWord || false;
   const caseIntensive = options?.caseIntensive || false;
 
