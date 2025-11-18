@@ -1313,7 +1313,7 @@ class SortResultModel {
     this.current = "";
   }
   sort(result: FuseResult<PullBlock>[]) {
-    console.log(result, " = result");
+    // console.log(result, " = result");
     return result.sort(this.options.find((v) => v.value === this.current).sort);
   }
 

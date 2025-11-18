@@ -35,7 +35,7 @@ const HistoryItem = observer(({ item }: { item: Item }) => {
 
 const RecentlyViewedItem = observer(
   ({ item }: { item: ObservableObject<RecentlyViewedItem> }) => {
-    console.log({ item: item.text.get()})
+    // console.log({ item: item.text.get()})
     return (
       <Button
         minimal
@@ -83,15 +83,13 @@ const RecentlyViewedItem = observer(
 );
 
 export const QueryHistory = observer(() => {
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(0);
   const data = [
     {
       title: "Recently Viewed",
       list: store.ui.history.getViewed(),
     },
-   
-  ].filter(item => item.list.peek().length > 0);
-  console.log({ data: data[index]?.list })
+  ].filter((item) => item.list.peek().length > 0);
   return (
     <div className={`${CONSTNATS.history}`}>
       {store.ui.history.getSearch().length ? (
@@ -108,10 +106,9 @@ export const QueryHistory = observer(() => {
         <div className="gap-4">
           {data.map((item, _index) => {
             return <div>{item.title}</div>;
-         
           })}
         </div>
-        <div  className="overflow-auto flex-1">
+        <div className="overflow-auto flex-1">
           {(data[index]?.list || []).map((item) => {
             return <RecentlyViewedItem item={item} />;
           })}
