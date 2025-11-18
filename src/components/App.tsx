@@ -610,6 +610,7 @@ const App = observer(() => {
           alignItems: "flex-start",
           width: `calc(100% - 200px)`,
           height: `calc(100vh - 100px)`,
+          maxWidth: 1280,
         }}
       >
         <AppContent />
