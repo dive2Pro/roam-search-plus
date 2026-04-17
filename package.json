@@ -4,6 +4,8 @@
   "description": "Search content across blocks",
   "main": "dist/extension.js",
   "scripts": {
+    "test": "node --test src/search-index.test.mjs src/search-index.real-fixture.test.mjs",
+    "capture:roam-fixture": "node scripts/capture-roam-local-fixture.mjs",
     "build-web": "roamjs-scripts build",
     "build": "roamjs-scripts build --depot",
     "dev": "roamjs-scripts dev --depot"

@@ -1,6 +1,9 @@
 import { PullBlock } from "roamjs-components/types";
 import { timer } from "./helper";
 import { ReactNode } from "react";
+import { getDataSource, resetDataSource } from "./datasource/datasource-factory";
+import { getDataSourceConfig } from "./config";
+import { createSearchIndex, normalizeSearchText } from "./search-index.mjs";
 
 export type RefsPullBlock = PullBlock & {
   ":block/_refs": { id: number }[];
@@ -64,6 +67,7 @@ let CACHE_BLOCKS: Map<string, CacheBlockType> = new Map();
 let CACHE_BLOCKS_PAGES_BY_ID: Map<number, RefsPullBlock> = new Map();
 let CACHE_PAGES_BY_ID: Map<number, PullBlock> = new Map();
 let CACHE_USERS: Map<string, User> = new Map();
+let SEARCH_INDEX = createSearchIndex([]);
 
 // 所有的被 ref 的 block
 const CACHE_BLOCKS_REFS_BY_ID: Map<number, PullBlock> = new Map();
@@ -87,6 +91,24 @@ export const getAllPages = () => {
 export const getAllBlocks = () => {
   return [...CACHE_BLOCKS.values()];
 };
+
+const rebuildSearchIndex = () => {
+  const entries = [...CACHE_PAGES.values(), ...CACHE_BLOCKS.values()].map((item) => ({
+    id: item.block[":block/uid"],
+    page: item.page,
+    text: item.block[":node/title"] || item.block[":block/string"] || "",
+    normalizedText: normalizeSearchText(
+      item.block[":node/title"] || item.block[":block/string"] || "",
+    ),
+    isPage: !item.isBlock,
+    refIds: item.block[":block/refs"]?.map((ref) => ref[":db/id"]) || [],
+    parentRefIds: item.isBlock ? getParentsRefsById(item.block[":db/id"]) : [],
+  }));
+
+  SEARCH_INDEX = createSearchIndex(entries);
+};
+
+export const getSearchIndex = () => SEARCH_INDEX;
 
 function blockProxyRefString(block: RefsPullBlock, blockRefToString: boolean) {
   if (!block[":block/string"]) {
@@ -130,11 +152,12 @@ const PullStr = `
 `;
 
 export function queryWords(words: string[]) {
+  const dataSource = getDataSource(getDataSourceConfig());
   const endTimer = timer(`WWQuery: ${words.join(",")}`);
   const processes = words.map((word) => {
     return new Promise((resolve) => {
-      setTimeout(() => {
-        window.roamAlphaAPI.data.fast.q(`[
+      setTimeout(async () => {
+        await dataSource.query(`[
       :find [(pull ?e [${PullStr}]) ...]
       :where
         [?e :block/string ?block-string]
@@ -162,27 +185,31 @@ export const isUnderTag = (tags: number[], item: RefsPullBlock) => {
   return result;
 };
 
-export const initCache = (config: { blockRefToString: boolean }) => {
+export const initCache = async (config: { blockRefToString: boolean }) => {
+  // 获取数据源实例
+  const dataSource = getDataSource(getDataSourceConfig());
+
   CACHE_BLOCKS.clear();
   CACHE_PAGES.clear();
   CACHE_USERS.clear();
   CACHE_BLOCKS_PAGES_BY_ID.clear();
   CACHE_PAGES_BY_ID.clear();
   ALLBLOCK_PAGES.clear();
+  SEARCH_INDEX = createSearchIndex([]);
   //
   const endPageTimer = timer("init page");
   // 页面在前处理, refs 需要有指向
-  (
-    window.roamAlphaAPI.data.fast.q(
-      `
+  const pages = (await dataSource.query(
+    `
     [
             :find [(pull ?e [${PullStr}]) ...]
-            :where                
+            :where
                 [?e :node/title]
         ]
     `
-    ) as unknown as RefsPullBlock[]
-  ).map((item) => {
+  )) as unknown as RefsPullBlock[];
+
+  pages.map((item) => {
     const b = {
       block: item,
       page: item[":block/uid"],
@@ -197,18 +224,18 @@ export const initCache = (config: { blockRefToString: boolean }) => {
 
   const endBlockTimer = timer("init block");
   const refsSet = new Set<number>();
-  (
-    window.roamAlphaAPI.data.fast.q(
-      `
+  const blocks = (await dataSource.query(
+    `
     [
             :find (pull ?e [${PullStr}]) ?e2
-            :where                
+            :where
                 [?e :block/page ?p]
                 [?p :block/uid ?e2]
         ]
     `
-    ) as unknown as []
-  ).forEach((item) => {
+  )) as unknown as [];
+
+  blocks.forEach((item) => {
     const refs = [...(item[0][":block/refs"] || [])];
     refs.forEach((ref) => {
       refsSet.add(ref[":db/id"]);
@@ -236,8 +263,9 @@ export const initCache = (config: { blockRefToString: boolean }) => {
   const endFindBlockAllParentsRefs = timer("findBlockAllParentsRefs");
   findBlockAllParentsRefs();
   endFindBlockAllParentsRefs();
+  rebuildSearchIndex();
 
-  const userIds = window.roamAlphaAPI.data.fast.q(
+  const userIds = (await dataSource.query(
     `
     [
           :find [(pull ?cu [*])...]
@@ -246,7 +274,7 @@ export const initCache = (config: { blockRefToString: boolean }) => {
            [?b :create/user ?cu]
         ]
     `
-  ) as unknown as User[];
+  )) as unknown as User[];
 
   userIds
     .filter((user) => user[":user/display-name"])
@@ -262,7 +290,10 @@ const lastestRenewTime = {
   },
 };
 
-export const renewCache2 = (config: { blockRefToString: boolean }) => {
+export const renewCache2 = async (config: { blockRefToString: boolean }) => {
+  // 获取数据源实例
+  const dataSource = getDataSource(getDataSourceConfig());
+
   // 找到今日修改过的所有 block 和 page, users
   // 将其插入到 allBlocks 中
   console.time("renew");
@@ -270,22 +301,24 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
   const refsSet = new Set<number>();
 
   const newBlocks = (
-    window.roamAlphaAPI.data.fast.q(
+    await dataSource.queryWithArgs(
       `
     [
-            :find (pull ?e [*]) ?e2 
+            :find (pull ?e [*]) ?e2
             :in $ ?start_of_day
-            :where                
+            :where
                 [?e :edit/time ?time]
                 [(> ?time ?start_of_day)]
                 [?e :block/page ?p]
                 [?p :block/uid ?e2]
-              
+
         ]
     `,
       lastestRenewTime.value
-    ) as unknown as []
-  ).map((item) => {
+    )
+  ) as unknown as [];
+
+  newBlocks.map((item) => {
     const refs = [...(item[0][":block/refs"] || [])].map((v) => v[":db/id"]);
     // console.log(refs, ' --- refs ')
     refs.forEach((ref) => {
@@ -307,21 +340,21 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
   console.timeEnd("refs");
 
   console.time("pages refs");
-  (
-    window.roamAlphaAPI.data.fast.q(
-      `
+  const pages = (await dataSource.queryWithArgs(
+    `
     [
             :find [(pull ?e [*]) ...]
-            :in $ ?start_of_day 
-            :where                
+            :in $ ?start_of_day
+            :where
                 [?e :edit/time ?time]
                 [(> ?time ?start_of_day)]
                 [?e :node/title]
         ]
     `,
-      lastestRenewTime.value
-    ) as unknown as RefsPullBlock[]
-  )
+    lastestRenewTime.value
+  )) as unknown as RefsPullBlock[];
+
+  pages
     .map((item) => {
       CACHE_BLOCKS_PAGES_BY_ID.set(item[":db/id"], item);
       CACHE_PAGES_BY_ID.set(item[":db/id"], item);
@@ -349,39 +382,41 @@ export const renewCache2 = (config: { blockRefToString: boolean }) => {
   console.time("findBlockAllParentsRefs");
   findBlockAllParentsRefs(newBlocks);
   console.timeEnd("findBlockAllParentsRefs");
+  rebuildSearchIndex();
 
-  (
-    window.roamAlphaAPI.data.fast.q(
-      `
+  const users = (await dataSource.queryWithArgs(
+    `
     [
             :find [(pull ?user [*])  ...]
-            :in $ ?start_of_day 
-            :where                
+            :in $ ?start_of_day
+            :where
                 [?e :edit/time ?time]
                 [(> ?time ?start_of_day)]
                 [?e :create/user ?user]
                 [?e :block/uid]
         ]
     `,
-      lastestRenewTime.value
-    ) as unknown as User[]
-  ).forEach((user) => {
+    lastestRenewTime.value
+  )) as unknown as User[];
+
+  users.forEach((user) => {
     CACHE_USERS.set(user[":db/id"], user);
   });
   lastestRenewTime.update();
   console.timeEnd("renew");
 };
 
-export const getMe = () => {
+export const getMe = async () => {
+  const dataSource = getDataSource(getDataSourceConfig());
   const uid = window.roamAlphaAPI.util.dateToPageUid(new Date());
-  const result = window.roamAlphaAPI.data.fast.q(`
+  const result = (await dataSource.query(`
     [
       :find  (pull ?e [*]) .
       :where
         [?b :block/uid "${uid}"]
         [?b :create/user ?e]
     ]
-  `) as unknown as User;
+  `)) as unknown as User;
   return result;
 };
 
@@ -400,6 +435,7 @@ export const deleteFromCacheByUid = (uid: string) => {
   CACHE_BLOCKS.delete(uid);
   CACHE_PAGES.delete(uid);
   ALLBLOCK_PAGES.delete(uid);
+  rebuildSearchIndex();
 };
 
 // TODO: if api available 如果 graph 没有变化, 则 cache 不清空
@@ -411,12 +447,13 @@ const getFromCache = (k: string) => {
   return cache.get(k);
 };
 
-export const getBlocksContainsStr = (s: string) => {
+export const getBlocksContainsStr = async (s: string) => {
   const cacheValue = getFromCache(s);
   if (cacheValue) {
     return cacheValue;
   }
-  const result = window.roamAlphaAPI.data.fast.q(`
+  const dataSource = getDataSource(getDataSourceConfig());
+  const result = (await dataSource.query(`
     [
             :find [(pull ?e [*]) ...]
             :where
@@ -424,7 +461,7 @@ export const getBlocksContainsStr = (s: string) => {
                 [?b :block/string ?s]
                 [(clojure.string/includes? ?s  "${s}")]
         ]
-    `) as unknown as PullBlock[];
+    `)) as unknown as PullBlock[];
   saveToCache(s, result);
   return result;
 };
