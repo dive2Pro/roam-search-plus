@@ -888,8 +888,8 @@ export const store = {
           text: page[":node/title"],
         });
       },
-      me() {
-        const me = getMe();
+      async me() {
+        const me = await getMe();
         store.actions.conditions.changeSelectedUsers({
           id: me[":db/id"],
           text: me[":user/display-name"],
@@ -1062,7 +1062,7 @@ export const store = {
       ui.graph.loading.set(true);
       await delay(1);
       const start = Date.now();
-      initCache(ui.conditions.get());
+      await initCache(ui.conditions.get());
       if (Date.now() - start < 200) {
         await delay(200);
       }
@@ -1073,7 +1073,7 @@ export const store = {
     },
     async renewGraph() {
       await delay();
-      renewCache2(ui.conditions.get());
+      await renewCache2(ui.conditions.get());
     },
     result: {
       // 用于重新打开时触发更新
