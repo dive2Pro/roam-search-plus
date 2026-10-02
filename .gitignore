@@ -1,3 +1,6 @@
 node_modules
 extension.js
+build/
+.env
+.workbuddy/
 tests/fixtures/roam-local-api-fixture.json

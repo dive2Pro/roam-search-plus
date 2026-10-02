@@ -128,17 +128,34 @@ class FallbackDataSource implements IDataSource {
 
 // 导出单例实例，用于在整个应用中共享
 let _dataSourceInstance: IDataSource | null = null;
+let _dataSourceInstanceKey: string | null = null;
+
+/**
+ * 生成配置标识，用于判断配置是否发生变化
+ */
+function getConfigKey(config: DataSourceConfig): string {
+  return JSON.stringify({
+    type: config.type,
+    localhostUrl: config.localhostUrl,
+    timeout: config.timeout,
+    fallbackToRoamAPI: config.fallbackToRoamAPI,
+  });
+}
 
 /**
  * 获取全局数据源实例
- * @param config - 可选的配置，仅在第一次调用时使用
+ * 当传入的配置与当前实例的配置不同时，自动重建实例，
+ * 保证用户在设置面板中修改数据源配置后无需重启即可生效。
+ * @param config - 数据源配置
  * @returns 数据源实例
  */
 export function getDataSource(config?: DataSourceConfig): IDataSource {
-  if (!_dataSourceInstance) {
-    _dataSourceInstance = DataSourceFactory.createWithFallback(
-      config || { type: DataSourceType.LOCALHOST_API }
-    );
+  const nextConfig = config || { type: DataSourceType.LOCALHOST_API };
+  const nextKey = getConfigKey(nextConfig);
+
+  if (!_dataSourceInstance || _dataSourceInstanceKey !== nextKey) {
+    _dataSourceInstance = DataSourceFactory.createWithFallback(nextConfig);
+    _dataSourceInstanceKey = nextKey;
   }
   return _dataSourceInstance;
 }
@@ -149,6 +166,7 @@ export function getDataSource(config?: DataSourceConfig): IDataSource {
  */
 export function resetDataSource(): void {
   _dataSourceInstance = null;
+  _dataSourceInstanceKey = null;
 }
 
 /**
@@ -158,4 +176,5 @@ export function resetDataSource(): void {
 export function setDataSource(config: DataSourceConfig): void {
   resetDataSource();
   _dataSourceInstance = DataSourceFactory.createWithFallback(config);
+  _dataSourceInstanceKey = getConfigKey(config);
 }

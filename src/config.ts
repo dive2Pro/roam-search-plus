@@ -1,4 +1,7 @@
-import { DataSourceType } from "./datasource/types";
+import { DataSourceConfig, DataSourceType } from "./datasource/types";
+
+const DEFAULT_LOCALHOST_API_URL = "http://localhost:3333/query";
+const DEFAULT_DATA_SOURCE_TIMEOUT = 30000;
 
 const constants = {
   "auto-close-shift-click": "auto-close-shift-click",
@@ -92,11 +95,11 @@ export const initSettings = (extensionAPI: RoamExtensionAPI) => {
   );
   extensionAPI.settings.set(
     constants["localhost-api-url"],
-    extensionAPI.settings.get(constants["localhost-api-url"]) ?? "http://localhost:3333/query"
+    extensionAPI.settings.get(constants["localhost-api-url"]) ?? DEFAULT_LOCALHOST_API_URL
   );
   extensionAPI.settings.set(
     constants["data-source-timeout"],
-    extensionAPI.settings.get(constants["data-source-timeout"]) ?? "30000"
+    extensionAPI.settings.get(constants["data-source-timeout"]) ?? String(DEFAULT_DATA_SOURCE_TIMEOUT)
   );
   extensionAPI.settings.set(
     constants["enable-fallback"],
@@ -116,15 +119,23 @@ export const isAutoSearch = () => {
 /**
  * 获取数据源配置
  */
-export const getDataSourceConfig = () => {
-  const type = API.settings.get(constants["data-source-type"]) as DataSourceType;
+export const getDataSourceConfig = (): DataSourceConfig => {
+  const rawType = API.settings.get(constants["data-source-type"]) as string;
   const localhostUrl = API.settings.get(constants["localhost-api-url"]) as string;
   const timeout = parseInt(API.settings.get(constants["data-source-timeout"]) as string, 10);
   const fallbackToRoamAPI = API.settings.get(constants["enable-fallback"]) as boolean;
+
+  // 校验配置值，避免非法/空值导致数据源无法工作
+  const type =
+    rawType === DataSourceType.LOCALHOST_API || rawType === DataSourceType.ROAM_ALPHA_API
+      ? (rawType as DataSourceType)
+      : DataSourceType.ROAM_ALPHA_API;
+  const url = (localhostUrl || "").trim() || DEFAULT_LOCALHOST_API_URL;
+
   return {
-    type: DataSourceType.LOCALHOST_API,
-    localhostUrl: "http://localhost:3333/api/thoughtfull",
-    timeout: isNaN(timeout) ? 30000 : timeout,
+    type,
+    localhostUrl: url,
+    timeout: isNaN(timeout) ? DEFAULT_DATA_SOURCE_TIMEOUT : timeout,
     fallbackToRoamAPI: fallbackToRoamAPI !== undefined ? fallbackToRoamAPI : true,
   };
 };
