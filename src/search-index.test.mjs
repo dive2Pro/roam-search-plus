@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createSearchIndex, querySearchIndex } from "./search-index.mjs";
+import { createSearchIndex, querySearchIndex, updateSearchIndex } from "./search-index.mjs";
 
 test("querySearchIndex intersects token candidates before exact matching", () => {
   const index = createSearchIndex([
@@ -525,4 +525,243 @@ test("includeTags and excludeTags together keep only surviving direct matches", 
   });
 
   assert.deepEqual(result.directBlockIds, ["block-i"]);
+});
+
+test("whole-word search matches words adjacent to hyphens and CJK characters", () => {
+  const cases = [
+    { text: "our long-term plan", keyword: "long" },
+    { text: "alpha-beta", keyword: "alpha" },
+    { text: "学习alpha方法", keyword: "alpha" },
+    { text: "2024年计划", keyword: "2024" },
+  ];
+
+  for (const { text, keyword } of cases) {
+    const index = createSearchIndex([
+      {
+        id: "block",
+        page: "page",
+        text,
+        normalizedText: text.toLowerCase(),
+        isPage: false,
+        refIds: [],
+        parentRefIds: [],
+      },
+    ]);
+
+    const result = querySearchIndex(index, {
+      keywords: [keyword],
+      caseSensitive: false,
+      matchWholeWord: true,
+    });
+
+    assert.deepEqual(result.directBlockIds, ["block"], `${keyword} in ${text}`);
+  }
+});
+
+test("case-sensitive whole-word search matches keywords with capital letters", () => {
+  const index = createSearchIndex([
+    {
+      id: "block",
+      page: "page",
+      text: "Roam in Roam is great",
+      normalizedText: "roam in roam is great",
+      isPage: false,
+      refIds: [],
+      parentRefIds: [],
+    },
+  ]);
+
+  const sensitive = querySearchIndex(index, {
+    keywords: ["Roam"],
+    caseSensitive: true,
+    matchWholeWord: true,
+  });
+  const insensitive = querySearchIndex(index, {
+    keywords: ["Roam"],
+    caseSensitive: false,
+    matchWholeWord: true,
+  });
+
+  assert.deepEqual(sensitive.directBlockIds, ["block"]);
+  assert.deepEqual(insensitive.directBlockIds, ["block"]);
+});
+
+test("case-sensitive whole-word search still distinguishes different casing", () => {
+  const index = createSearchIndex([
+    {
+      id: "block",
+      page: "page",
+      text: "roam is lowercase",
+      normalizedText: "roam is lowercase",
+      isPage: false,
+      refIds: [],
+      parentRefIds: [],
+    },
+  ]);
+
+  const result = querySearchIndex(index, {
+    keywords: ["Roam"],
+    caseSensitive: true,
+    matchWholeWord: true,
+  });
+
+  assert.deepEqual(result.directBlockIds, []);
+});
+
+test("whole-word keyword containing a hyphen matches the hyphenated phrase", () => {
+  const index = createSearchIndex([
+    {
+      id: "block",
+      page: "page",
+      text: "our long-term plan",
+      normalizedText: "our long-term plan",
+      isPage: false,
+      refIds: [],
+      parentRefIds: [],
+    },
+  ]);
+
+  const match = querySearchIndex(index, {
+    keywords: ["long-term"],
+    caseSensitive: false,
+    matchWholeWord: true,
+  });
+  const miss = querySearchIndex(index, {
+    keywords: ["longterm"],
+    caseSensitive: false,
+    matchWholeWord: true,
+  });
+
+  assert.deepEqual(match.directBlockIds, ["block"]);
+  assert.deepEqual(miss.directBlockIds, []);
+});
+
+test("updateSearchIndex reconciles changed, added and removed entries", () => {
+  const index = createSearchIndex([
+    {
+      id: "b1",
+      page: "p1",
+      text: "alpha beta",
+      normalizedText: "alpha beta",
+      isPage: false,
+      refIds: [1],
+      parentRefIds: [],
+    },
+    {
+      id: "b2",
+      page: "p2",
+      text: "gamma",
+      normalizedText: "gamma",
+      isPage: false,
+      refIds: [2],
+      parentRefIds: [],
+    },
+  ]);
+
+  updateSearchIndex(
+    index,
+    [
+      {
+        id: "b1",
+        page: "p1",
+        text: "alpha delta",
+        normalizedText: "alpha delta",
+        isPage: false,
+        refIds: [1],
+        parentRefIds: [],
+      },
+      {
+        id: "b3",
+        page: "p3",
+        text: "beta epsilon",
+        normalizedText: "beta epsilon",
+        isPage: false,
+        refIds: [3],
+        parentRefIds: [],
+      },
+    ],
+    ["b2"],
+  );
+
+  assert.deepEqual(
+    querySearchIndex(index, { keywords: ["beta"], caseSensitive: false, matchWholeWord: true })
+      .directBlockIds.sort(),
+    ["b3"],
+  );
+  assert.deepEqual(
+    querySearchIndex(index, { keywords: ["delta"], caseSensitive: false, matchWholeWord: true })
+      .directBlockIds.sort(),
+    ["b1"],
+  );
+  assert.deepEqual(
+    querySearchIndex(index, { keywords: ["gamma"], caseSensitive: false, matchWholeWord: true })
+      .directBlockIds,
+    [],
+  );
+
+  // stale postings for the removed/edited entries are gone
+  assert.equal(index.allIds.has("b2"), false);
+  assert.equal(index.byPage.has("p2"), false);
+  assert.equal(index.byRef.has(2), false);
+  assert.equal(index.tokenMap.get("beta")?.has("b1") ?? false, false);
+  assert.equal(index.tokenMap.get("gamma") ?? null, null);
+
+  // incremental result matches a full rebuild of the same final entries
+  const rebuilt = createSearchIndex([
+    {
+      id: "b1",
+      page: "p1",
+      text: "alpha delta",
+      normalizedText: "alpha delta",
+      isPage: false,
+      refIds: [1],
+      parentRefIds: [],
+    },
+    {
+      id: "b3",
+      page: "p3",
+      text: "beta epsilon",
+      normalizedText: "beta epsilon",
+      isPage: false,
+      refIds: [3],
+      parentRefIds: [],
+    },
+  ]);
+  for (const keyword of ["alpha", "beta", "delta", "gamma"]) {
+    const options = { keywords: [keyword], caseSensitive: false, matchWholeWord: true };
+    assert.deepEqual(
+      querySearchIndex(index, options).directBlockIds.sort(),
+      querySearchIndex(rebuilt, options).directBlockIds.sort(),
+      keyword,
+    );
+  }
+});
+
+test("updateSearchIndex moves an entry between pages without leaving stale page postings", () => {
+  const index = createSearchIndex([
+    {
+      id: "b1",
+      page: "p1",
+      text: "alpha",
+      normalizedText: "alpha",
+      isPage: false,
+      refIds: [],
+      parentRefIds: [],
+    },
+  ]);
+
+  updateSearchIndex(index, [
+    {
+      id: "b1",
+      page: "p2",
+      text: "alpha",
+      normalizedText: "alpha",
+      isPage: false,
+      refIds: [],
+      parentRefIds: [],
+    },
+  ]);
+
+  assert.equal(index.byPage.has("p1"), false);
+  assert.deepEqual([...index.byPage.get("p2")], ["b1"]);
 });

@@ -1060,16 +1060,24 @@ export const store = {
       console.time("Loading graph");
       if (ui.graph.loading.get()) return;
       ui.graph.loading.set(true);
-      await delay(1);
-      const start = Date.now();
-      await initCache(ui.conditions.get());
-      if (Date.now() - start < 200) {
-        await delay(200);
+      try {
+        await delay(1);
+        const start = Date.now();
+        await initCache(ui.conditions.get());
+        if (Date.now() - start < 200) {
+          await delay(200);
+        }
+        // ui.graph.loaded.set(true);
+        setGraphLoaded(true);
+      } catch (error) {
+        // Keep the spinner from getting stuck when the data source fails
+        // (e.g. Localhost API with fallback disabled). The next dialog open
+        // will retry because the graph is still marked as not loaded.
+        console.error("Failed to load graph:", error);
+      } finally {
+        ui.graph.loading.set(false);
+        console.timeEnd("Loading graph");
       }
-      ui.graph.loading.set(false);
-      // ui.graph.loaded.set(true);
-      setGraphLoaded(true);
-      console.timeEnd("Loading graph");
     },
     async renewGraph() {
       await delay();

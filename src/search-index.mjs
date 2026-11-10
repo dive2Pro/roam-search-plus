@@ -1,4 +1,8 @@
-const WORD_TOKEN_REGEX = /[\p{L}\p{N}_-]+/gu;
+// Word-character runs, mirroring JavaScript \b semantics (ASCII word chars plus
+// underscore). Splitting on hyphens and CJK characters keeps the token map
+// consistent with the \b-based whole-word regex used for exact matching, so
+// candidate narrowing never drops a block that the regex would accept.
+const WORD_TOKEN_REGEX = /[A-Za-z0-9_]+/g;
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -73,6 +77,10 @@ const unionSets = (sets, fallbackSet) => {
 
 const compileMatcher = (keyword, caseSensitive, matchWholeWord) => {
   const normalizedKeyword = caseSensitive ? keyword : keyword.toLowerCase();
+  // The index is built from lowercased text, so candidate lookups must always
+  // use a lowercased keyword even in case-sensitive mode (the case-sensitive
+  // regex still enforces the exact casing during exact matching).
+  const lookupKeyword = keyword.toLowerCase();
   const wholeWord = matchWholeWord && isCompleteWord(keyword) && !containsChinese(keyword);
   const pattern = wholeWord
     ? new RegExp(`\\b${escapeRegExp(keyword)}\\b`, caseSensitive ? "u" : "iu")
@@ -81,6 +89,7 @@ const compileMatcher = (keyword, caseSensitive, matchWholeWord) => {
   return {
     keyword,
     normalizedKeyword,
+    lookupKeyword,
     wholeWord,
     exactMatch(text, normalizedText) {
       if (!keyword) {
@@ -103,11 +112,22 @@ const getCandidateSetForMatcher = (index, matcher) => {
   }
 
   if (matcher.wholeWord) {
-    return index.tokenMap.get(matcher.normalizedKeyword) || new Set();
+    const tokens = tokenize(matcher.lookupKeyword);
+    if (tokens.length === 0) {
+      return null;
+    }
+    if (tokens.length === 1) {
+      return index.tokenMap.get(tokens[0]) || new Set();
+    }
+    // A whole-word keyword containing hyphens (e.g. "long-term") maps to
+    // several word tokens; intersect their posting sets for a safe superset of
+    // candidates. The \b regex in exactMatch still enforces adjacency.
+    const tokenSets = tokens.map((token) => index.tokenMap.get(token));
+    return intersectSets(tokenSets, index.allIds);
   }
 
-  if (matcher.normalizedKeyword.length >= 2) {
-    const grams = getGrams(matcher.normalizedKeyword, 2);
+  if (matcher.lookupKeyword.length >= 2) {
+    const grams = getGrams(matcher.lookupKeyword, 2);
     const gramSets = grams.map((gram) => index.gramMap.get(gram));
     return intersectSets(gramSets, index.entriesById.keys());
   }
@@ -119,49 +139,100 @@ const intersectsAny = (targetSet, values) => values.some((value) => targetSet.ha
 
 const buildAllRefSet = (entry) => new Set([...(entry.refIds || []), ...(entry.parentRefIds || [])]);
 
-export function createSearchIndex(entries) {
-  const entriesById = new Map();
-  const byPage = new Map();
-  const byRef = new Map();
-  const tokenMap = new Map();
-  const gramMap = new Map();
-  const allIds = new Set();
+const normalizeEntry = (rawEntry) => ({
+  ...rawEntry,
+  normalizedText: rawEntry.normalizedText || normalizeForIndex(rawEntry.text),
+  refIds: rawEntry.refIds || [],
+  parentRefIds: rawEntry.parentRefIds || [],
+  allRefIds: buildAllRefSet(rawEntry),
+});
 
-  for (const rawEntry of entries) {
-    const normalizedText = rawEntry.normalizedText || normalizeForIndex(rawEntry.text);
-    const entry = {
-      ...rawEntry,
-      normalizedText,
-      refIds: rawEntry.refIds || [],
-      parentRefIds: rawEntry.parentRefIds || [],
-      allRefIds: buildAllRefSet(rawEntry),
-    };
+const addEntryToIndex = (index, rawEntry) => {
+  const entry = normalizeEntry(rawEntry);
 
-    entriesById.set(entry.id, entry);
-    allIds.add(entry.id);
-    addToSetMap(byPage, entry.page, entry.id);
+  index.entriesById.set(entry.id, entry);
+  index.allIds.add(entry.id);
+  addToSetMap(index.byPage, entry.page, entry.id);
 
-    for (const refId of entry.allRefIds) {
-      addToSetMap(byRef, refId, entry.id);
-    }
-
-    for (const token of tokenize(normalizedText)) {
-      addToSetMap(tokenMap, token, entry.id);
-    }
-
-    for (const gram of getGrams(normalizedText, 2)) {
-      addToSetMap(gramMap, gram, entry.id);
-    }
+  for (const refId of entry.allRefIds) {
+    addToSetMap(index.byRef, refId, entry.id);
   }
 
-  return {
-    entriesById,
-    byPage,
-    byRef,
-    tokenMap,
-    gramMap,
-    allIds,
+  for (const token of tokenize(entry.normalizedText)) {
+    addToSetMap(index.tokenMap, token, entry.id);
+  }
+
+  for (const gram of getGrams(entry.normalizedText, 2)) {
+    addToSetMap(index.gramMap, gram, entry.id);
+  }
+};
+
+const removeFromSetMap = (map, key, value) => {
+  const set = map.get(key);
+  if (!set) {
+    return;
+  }
+  set.delete(value);
+  if (set.size === 0) {
+    map.delete(key);
+  }
+};
+
+const removeEntryFromIndex = (index, id) => {
+  const entry = index.entriesById.get(id);
+  if (!entry) {
+    return;
+  }
+
+  removeFromSetMap(index.byPage, entry.page, id);
+  for (const refId of entry.allRefIds) {
+    removeFromSetMap(index.byRef, refId, id);
+  }
+  for (const token of tokenize(entry.normalizedText)) {
+    removeFromSetMap(index.tokenMap, token, id);
+  }
+  for (const gram of getGrams(entry.normalizedText, 2)) {
+    removeFromSetMap(index.gramMap, gram, id);
+  }
+
+  index.entriesById.delete(id);
+  index.allIds.delete(id);
+};
+
+export function createSearchIndex(entries) {
+  const index = {
+    entriesById: new Map(),
+    byPage: new Map(),
+    byRef: new Map(),
+    tokenMap: new Map(),
+    gramMap: new Map(),
+    allIds: new Set(),
   };
+
+  for (const rawEntry of entries) {
+    addEntryToIndex(index, rawEntry);
+  }
+
+  return index;
+}
+
+/**
+ * Incrementally reconcile an existing index: drop removed ids and upsert the
+ * provided entries in place, without rebuilding the whole token/bigram maps.
+ * An upserted id is removed first using its previous page/tokens/refs, so edits
+ * that change text, page or tags are handled correctly.
+ */
+export function updateSearchIndex(index, entries = [], removedIds = []) {
+  for (const id of removedIds) {
+    removeEntryFromIndex(index, id);
+  }
+
+  for (const rawEntry of entries) {
+    removeEntryFromIndex(index, rawEntry.id);
+    addEntryToIndex(index, rawEntry);
+  }
+
+  return index;
 }
 
 const applySharedFilters = (entry, options) => {
