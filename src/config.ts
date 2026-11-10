@@ -38,7 +38,8 @@ export const initSettings = (extensionAPI: RoamExtensionAPI) => {
       {
         id: constants["data-source-type"],
         name: "Data Source",
-        description: "Choose the data source: Roam Browser API (default) or Localhost API",
+        description:
+          "Choose the data source: Roam Browser API (default) or Localhost API (a custom local HTTP data server — not Roam Desktop's Local API)",
         action: {
           type: "select",
           options: [
@@ -56,7 +57,8 @@ export const initSettings = (extensionAPI: RoamExtensionAPI) => {
       {
         id: constants["localhost-api-url"],
         name: "Localhost API URL",
-        description: "The URL of the localhost API server (only used when Data Source is Localhost API)",
+        description:
+          "URL of your own local HTTP data server (only used when Data Source is Localhost API). It must accept POST {action:'data.q', args:[query]} and return {success:true, data:[...]}; this is not Roam Desktop's Local API.",
         action: {
           type: "text",
         },

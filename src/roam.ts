@@ -3,7 +3,7 @@ import { timer } from "./helper";
 import { ReactNode } from "react";
 import { getDataSource, resetDataSource } from "./datasource/datasource-factory";
 import { getDataSourceConfig } from "./config";
-import { createSearchIndex, normalizeSearchText } from "./search-index.mjs";
+import { createSearchIndex, normalizeSearchText, updateSearchIndex } from "./search-index.mjs";
 
 export type RefsPullBlock = PullBlock & {
   ":block/_refs": { id: number }[];
@@ -92,19 +92,20 @@ export const getAllBlocks = () => {
   return [...CACHE_BLOCKS.values()];
 };
 
-const rebuildSearchIndex = () => {
-  const entries = [...CACHE_PAGES.values(), ...CACHE_BLOCKS.values()].map((item) => ({
-    id: item.block[":block/uid"],
-    page: item.page,
-    text: item.block[":node/title"] || item.block[":block/string"] || "",
-    normalizedText: normalizeSearchText(
-      item.block[":node/title"] || item.block[":block/string"] || "",
-    ),
-    isPage: !item.isBlock,
-    refIds: item.block[":block/refs"]?.map((ref) => ref[":db/id"]) || [],
-    parentRefIds: item.isBlock ? getParentsRefsById(item.block[":db/id"]) : [],
-  }));
+const toSearchEntry = (item: CacheBlockType) => ({
+  id: item.block[":block/uid"],
+  page: item.page,
+  text: item.block[":node/title"] || item.block[":block/string"] || "",
+  normalizedText: normalizeSearchText(
+    item.block[":node/title"] || item.block[":block/string"] || "",
+  ),
+  isPage: !item.isBlock,
+  refIds: item.block[":block/refs"]?.map((ref) => ref[":db/id"]) || [],
+  parentRefIds: item.isBlock ? getParentsRefsById(item.block[":db/id"]) : [],
+});
 
+const rebuildSearchIndex = () => {
+  const entries = [...CACHE_PAGES.values(), ...CACHE_BLOCKS.values()].map(toSearchEntry);
   SEARCH_INDEX = createSearchIndex(entries);
 };
 
@@ -318,7 +319,7 @@ export const renewCache2 = async (config: { blockRefToString: boolean }) => {
     )
   ) as unknown as [];
 
-  newBlocks.map((item) => {
+  const newBlockEntries = newBlocks.map((item) => {
     const refs = [...(item[0][":block/refs"] || [])].map((v) => v[":db/id"]);
     // console.log(refs, ' --- refs ')
     refs.forEach((ref) => {
@@ -354,22 +355,21 @@ export const renewCache2 = async (config: { blockRefToString: boolean }) => {
     lastestRenewTime.value
   )) as unknown as RefsPullBlock[];
 
-  pages
-    .map((item) => {
-      CACHE_BLOCKS_PAGES_BY_ID.set(item[":db/id"], item);
-      CACHE_PAGES_BY_ID.set(item[":db/id"], item);
-      ALLBLOCK_PAGES.set(item[":block/uid"], item);
+  const newPageEntries = pages.map((item) => {
+    CACHE_BLOCKS_PAGES_BY_ID.set(item[":db/id"], item);
+    CACHE_PAGES_BY_ID.set(item[":db/id"], item);
+    ALLBLOCK_PAGES.set(item[":block/uid"], item);
 
-      return {
-        block: item,
-        page: item[":node/title"],
-        isBlock: false,
-      };
-    })
-    .forEach((b) => {
-      // console.log({...b.block }, ' ====== ')
-      CACHE_PAGES.set(b.block[":block/uid"], b);
-    });
+    return {
+      block: item,
+      page: item[":node/title"],
+      isBlock: false,
+    };
+  });
+  newPageEntries.forEach((b) => {
+    // console.log({...b.block }, ' ====== ')
+    CACHE_PAGES.set(b.block[":block/uid"], b);
+  });
   console.timeEnd("pages refs");
 
   // console.log(refsSet, " =refsSet;");
@@ -380,9 +380,15 @@ export const renewCache2 = async (config: { blockRefToString: boolean }) => {
     }
   });
   console.time("findBlockAllParentsRefs");
-  findBlockAllParentsRefs(newBlocks);
+  findBlockAllParentsRefs(newBlockEntries);
   console.timeEnd("findBlockAllParentsRefs");
-  rebuildSearchIndex();
+  // Only the entries changed since the last renew need to be re-indexed; the
+  // rest of the token/bigram index is preserved (avoiding a full rebuild each
+  // time the dialog opens on large graphs).
+  SEARCH_INDEX = updateSearchIndex(
+    SEARCH_INDEX,
+    [...newPageEntries, ...newBlockEntries].map(toSearchEntry),
+  );
 
   const users = (await dataSource.queryWithArgs(
     `
@@ -435,7 +441,7 @@ export const deleteFromCacheByUid = (uid: string) => {
   CACHE_BLOCKS.delete(uid);
   CACHE_PAGES.delete(uid);
   ALLBLOCK_PAGES.delete(uid);
-  rebuildSearchIndex();
+  updateSearchIndex(SEARCH_INDEX, [], [uid]);
 };
 
 // TODO: if api available 如果 graph 没有变化, 则 cache 不清空
